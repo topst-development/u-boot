@@ -1,0 +1,9 @@
+config UT_ICTC
+	bool "Unit test for ICTC"
+	default y
+	depends on UT_DRIVER
+
+config UT_UART
+	bool "Unit test for UART"
+	default y
+	depends on UT_DRIVER

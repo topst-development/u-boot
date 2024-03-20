@@ -1,0 +1,920 @@
+#source "drivers/hdmi/hdmi_v2_0/Kconfig"
+
+# FB
+#
+config TCC_FB
+	bool "Telechips Framebuffer Driver"
+	depends on ARCH_TELECHIPS
+	default y
+	help
+	  Support Telechips Framebuffer.
+	  Support Telechips Framebuffer.
+
+config FB_TIME_STAME_ON
+	bool "Time stame for Tramebuffer"
+	depends on ARCH_TELECHIPS
+	default n
+	help
+	  Select this config to measure framebuffer execution time.
+	  Select this config to measure framebuffer execution time.
+
+config TCC_SUBCORE_FB_ADDR
+	hex "FB address of subcore"
+	default 0x4FD00000
+	depends on TCC_FB && TCC_SUBCORE
+
+config LCD_INDIVIDUAL_BOOTLOGO_PER_PATH
+	bool "Display individual BOOT LOGO per display path"
+	default y
+	depends on TCC_FB && !TCC_SUBCORE
+
+config DISPLAY_PORT_V14
+	bool "Enable DisplayPort V1.4support"
+	default y
+	depends on TCC_FB && !TCC803X
+	help
+	   DisplayPort is a standard widely used in laptops to drive LCD panels.
+	   This property provides DP V1.4 support where it's supported by the video hardware.
+
+config DP_PHY_LANE02_13_SWAP
+	bool "DP PHY Lane 0 & 2 and Lane 1 & 3 Swap"
+	default y
+	depends on DISPLAY_PORT_V14
+	help
+	    This property will configure DP PHY to re-swap DP Lane 0 & 2 and Lane 1 and 3 in TCC805x CS.
+
+config DP_PANEL_MODE
+	bool "Enable DP panel display mode"
+	default n
+	depends on DISPLAY_PORT_V14
+
+config DP_PANEL_I2C_PORT
+	int "I2C port number for DP panel"
+	range -1 4
+	default 0
+	depends on DP_PANEL_MODE
+
+config DP_PANEL_VIC
+	int "Video Code for DP panel"
+	range 1 1030
+	default 1027
+	depends on DP_PANEL_MODE
+	help
+		Driver will configure SER DES's parameters based on video code programmed.
+
+config SERDES_LANE02_13_SWAP
+	bool "DP SerDes Lane 0 & 2 and 1 & 3 Swap"
+	default y
+	depends on DP_PANEL_MODE
+	help
+		This property will configure Serializer to re-swap DP Lane 0 & 2 and Lane 1 and 3.
+		This property will configure Serializer to re-swap DP Lane 0 & 2 and Lane 1 and 3.
+
+config LCD0_DP_MST_VCP_ID
+	int "Virtual Channel Payload Identification for 1st LCD( MST Only )"
+	range 1 4
+	default 1
+	depends on DISPLAY_PORT_V14
+	help
+		VCP Id is allocated as 1 for controller 0, 2 for controller 1, 3 for controller 2, 4 for controller 3.
+		These ones can be assinged for each panel for DP MST and Repeater functions.
+		It's not valid for SST.
+
+config LCD1_DP_MST_VCP_ID
+	int "Virtual Channel Payload Identification for 2nd LCD( MST Only )"
+	range 1 4
+	default 2
+	depends on DISPLAY_PORT_V14
+	help
+		VCP Id is allocated as 1 for controller 0, 2 for controller 1, 3 for controller 2, 4 for controller 3.
+		These ones can be assinged for each panel for DP MST and Repeater functions.
+		It's not valid for SST.
+
+config LCD2_DP_MST_VCP_ID
+	int "Virtual Channel Payload Identification for 3rd LCD( MST Only )"
+	range 1 4
+	default 3
+	depends on DISPLAY_PORT_V14
+	help
+		VCP Id is allocated as 1 for controller 0, 2 for controller 1, 3 for controller 2, 4 for controller 3.
+		These ones can be assinged for each panel for DP MST and Repeater functions.
+		It's not valid for SST.
+
+config LCD3_DP_MST_VCP_ID
+	int "Virtual Channel Payload Identification for 4th LCD( MST Only )"
+	range 1 4
+	default 4
+	depends on DISPLAY_PORT_V14
+	help
+		VCP Id is allocated as 1 for controller 0, 2 for controller 1, 3 for controller 2, 4 for controller 3.
+		These ones can be assinged for each panel for DP MST and Repeater functions.
+		It's not valid for SST.
+
+config TCC_LVDS_CTRL
+	bool "TCC LVDS control enable"
+	default y
+	depends on TCC_FB
+
+config R5_LVDS_CTRL
+	bool "Telechips R5 MCU LVDS CTRL"
+	depends on ARCH_TELECHIPS && TCC_LCD && TCC_LVDS_CTRL && TCC_MULTI_MAILBOX && TCC803X
+	default y
+	help
+		Eanble this option if you want to make R5 micom initialize LVDS
+		Eanble this option if you want to make R5 micom initialize LVDS
+#
+# LCD
+#
+config TCC_LCD
+	bool "Telechips LCD Panel"
+	default y
+	depends on TCC_FB
+
+config LCD_FLD0800
+	bool "FLD0800: 1024 * 600 LVDS"
+	depends on TCC_LCD && TCC_LVDS_CTRL
+config LCD_SLVDS_SAMPLE
+	bool "SLVDS_SAMPLE: 1024 * 600 LVDS"
+	depends on TCC_LCD && TCC_LVDS_CTRL
+config LCD_SLVDS_EXT
+	bool "SLVDS_EXT: 1024 * 600 LVDS"
+	depends on TCC_LCD && TCC_LVDS_CTRL
+config LCD_HSD123KPW2_SERDES
+	bool "HSD123KPW2_SERDES: 1920 * 720 LVDS"
+	depends on TCC_LCD && TCC_LVDS_CTRL
+config LCD_TM123XDHP90
+	bool "TM123XDHP90: 1920 * 720 LVDS"
+	depends on TCC_LCD && TCC_LVDS_CTRL
+config TCC_TI_SERDES_SUPPORT
+	bool "TI SER/DES Support on Dual LVDS"
+	default n
+	depends on LCD_TM123XDHP90
+config TCC_DISPLAY_PORT
+	bool "DisplayPort V1.4"
+	default y
+	depends on ( TCC_LCD && DISPLAY_PORT_V14 )
+config LCD_HDMIV20
+	bool "HDMIV20"
+	depends on TCC_LCD && TCC_HDMI_V2_0
+
+
+#
+# Configure Display Controller 0
+#
+config DISPLAY_OUTPUT_PATH_DC0
+	bool "Display Controller 0 configuration"
+	default n
+	depends on ( TCC_FB && ARCH_TELECHIPS  )
+
+choice
+	prompt "Select LCD Panel on Display Controller 0"
+	default DC0_DP_DISPLAY_DEVICE
+	depends on DISPLAY_OUTPUT_PATH_DC0
+
+config DC0_LCD_FLD0800
+	bool "FLD0800( Single ): 1024 * 600 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 && LCD_FLD0800 )
+config DC0_LCD_SLVDS_SAMPLE
+	bool "SLVDS SAMPLE( Single ): 1024 * 600 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 && LCD_SLVDS_SAMPLE )
+config DC0_LCD_SLVDS_EXT
+	bool "SLVDS EXT( Single ): 1024 * 600 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 && LCD_SLVDS_EXT )
+config DC0_LCD_TM123XDHP90
+	bool "TM123XDHP90( Dual ): 1920 * 720 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 && LCD_TM123XDHP90 )
+config DC0_LCD_HSD123KPW2_SERDES
+	bool "HSD123KPW2_SERDES( Dual ): 1920 * 720 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 && LCD_HSD123KPW2_SERDES )
+config DC0_DP_DISPLAY_DEVICE
+	bool "DP display device"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 && TCC_DISPLAY_PORT )
+config DC0_LCD_HDMIV20
+	bool "HDMI v2.0: HDMI v2.0 support"
+	depends on (DISPLAY_OUTPUT_PATH_DC0 && LCD_HDMIV20)
+endchoice
+
+config DC0_DP_OUTPUT_VIC
+	int "Video Identification Code for DP output timing(O is to read EDID)"
+	range 0 1030
+	default 0
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 && DC0_DP_DISPLAY_DEVICE && !DP_PANEL_MODE )
+	help
+		When programmed to 0, driver will read EDID.
+		Otherwise, driver will configure video timing parameters based on video code programmed.
+
+choice
+	prompt "Dual Port LVDS is selected"
+	default DC0_DUAL_PORT_LVDS
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 ) && ( DC0_LCD_TM123XDHP90 || DC0_LCD_HSD123KPW2_SERDES )
+
+config DC0_DUAL_PORT_LVDS
+	bool "DUAL PORT LVDS TYPE"
+	depends on ( DC0_LCD_TM123XDHP90 || DC0_LCD_HSD123KPW2_SERDES )
+endchoice
+
+choice
+	prompt "Single Port LVDS is selected"
+	default DC0_SINGLE_PORT_LVDS
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 ) && ( DC0_LCD_FLD0800 || DC0_LCD_SLVDS_SAMPLE || DC0_LCD_SLVDS_EXT )
+
+config DC0_SINGLE_PORT_LVDS
+	bool "SINGLE PORT LVDS TYPE"
+	depends on ( DC0_LCD_FLD0800 || DC0_LCD_SLVDS_SAMPLE || DC0_LCD_SLVDS_EXT )
+endchoice
+
+choice
+	prompt "Select LCD Mux path"
+	default DC0_LCD_MUX3 if TCC805X
+	default DC0_LCD_MUX0 if !TCC805X
+	depends on DISPLAY_OUTPUT_PATH_DC0 && !DC0_LCD_HDMIV20
+
+config DC0_LCD_MUX0
+	bool "DEV0_PATH"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 )
+config DC0_LCD_MUX1
+	bool "DEV1_PATH"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 && !TCC803X)
+config DC0_LCD_MUX2
+	bool "DEV2_PATH( Use SDM )"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 )
+config DC0_LCD_MUX3
+	bool "DEV3_PATH( Use SRVC )"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 )
+endchoice
+
+config DC0_SDM_BYPASS
+	bool "Bypass SDM path"
+	default n
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 && DC0_LCD_MUX2 )
+        help
+		This property makes a Bypasson SDM path in TCC805x CS.
+		This property makes a Bypasson SDM path in TCC805x CS.
+
+config DC0_SRVC_BYPASS
+	bool "Bypass SRVC path"
+	default y if TCC805X
+	default n if !TCC805X
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 && DC0_LCD_MUX3 )
+        help
+		This property makes a Bypasson SRVC path in TCC805x CS.
+		This property makes a Bypasson SRVC path in TCC805x CS.
+
+choice
+	prompt "Select tcc805x EVB LCD panel power supply connector"
+	default DC0_LCD_POWER1
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 )
+
+config DC0_LCD_POWER1
+	bool "DISPLAY POWER1"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 )
+config DC0_LCD_POWER2
+	bool "DISPLAY POWER2"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 )
+config DC0_LCD_POWER3
+	bool "DISPLAY POWER3"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 )
+config DC0_LCD_POWER4
+	bool "DISPLAY POWER4 (tcc8050, tcc8053)"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 )
+config DC0_LCD_NC
+	bool "DISPLAY POWER NOT Connected"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 )
+endchoice
+
+choice
+	prompt "Dual LCD path: TS MUX0 & 1 and LVDS Port0 &1 are reserved"
+	default DC0_LVDS_DUAL_LCD_PATH
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 ) && ( DC0_DUAL_PORT_LVDS )
+
+config DC0_LVDS_DUAL_LCD_PATH
+	bool "(TS MUX0- > LVDS Port0) + (TS MUX1 -> LVDS Port1)"
+	depends on ( DC0_DUAL_PORT_LVDS )
+endchoice
+
+choice
+	prompt "Select LCD path for single LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC0 ) && ( DC0_SINGLE_PORT_LVDS )
+
+config DC0_SINGLE_LCD_PATH_0
+	bool "TS MUX0 -> LVDS Port0"
+	depends on DC0_SINGLE_PORT_LVDS
+config DC0_SINGLE_LCD_PATH_1
+	bool "TS MUX1 -> LVDS Port1"
+	depends on DC0_SINGLE_PORT_LVDS
+config DC0_SINGLE_LCD_PATH_2
+	bool "TS MUX2 -> LVDS Port2"
+	depends on DC0_SINGLE_PORT_LVDS
+endchoice
+
+
+#
+# Configure Display Controller 1
+#
+config DISPLAY_OUTPUT_PATH_DC1
+	bool "Display Controller 1 configuration"
+	default n
+#	depends on ( TCC_FB )
+	depends on ( TCC_FB && !ARCH_TELECHIPS)
+
+choice
+	prompt "Select LCD Panel on Display Controller 1"
+	default DC1_DP_DISPLAY_DEVICE
+	depends on DISPLAY_OUTPUT_PATH_DC1
+
+config DC1_LCD_FLD0800
+	bool "FLD0800( Single ): 1024 * 600 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 && LCD_FLD0800 )
+config DC1_LCD_SLVDS_SAMPLE
+	bool "SLVDS SAMPLE( Single ): 1024 * 600 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 && LCD_SLVDS_SAMPLE )
+config DC1_LCD_SLVDS_EXT
+	bool "SLVDS EXT( Single ): 1024 * 600 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 && LCD_SLVDS_EXT )
+config DC1_LCD_TM123XDHP90
+	bool "TM123XDHP90( Dual ): 1920 * 720 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 && LCD_TM123XDHP90 )
+config DC1_LCD_HSD123KPW2_SERDES
+	bool "HSD123KPW2_SERDES( Dual ): 1920 * 720 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 && LCD_HSD123KPW2_SERDES )
+config DC1_DP_DISPLAY_DEVICE
+	bool "DP display device"
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 && TCC_DISPLAY_PORT )
+config DC1_LCD_HDMIV20
+	bool "HDMI v2.0: HDMI v2.0 support"
+	depends on (DISPLAY_OUTPUT_PATH_DC1 && LCD_HDMIV20)
+endchoice
+
+config DC1_DP_OUTPUT_VIC
+	int "Video Identification Code for DP output timing(O is to read EDID)"
+	range 1 1030
+	default 4
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 ) && ( DC1_DP_DISPLAY_DEVICE && !DP_PANEL_MODE )
+	help
+		When programmed to 0, driver will read EDID.
+		Otherwise, driver will configure video timing parameters based on video code programmed.
+
+choice
+	prompt "Dual Port LVDS Type selected"
+	default DC1_DUAL_PORT_LVDS
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 ) && ( DC1_LCD_TM123XDHP90 || DC1_LCD_HSD123KPW2_SERDES )
+
+config DC1_DUAL_PORT_LVDS
+	bool "DUAL PORT LVDS TYPE"
+	depends on ( DC1_LCD_TM123XDHP90 || DC1_LCD_HSD123KPW2_SERDES )
+endchoice
+
+choice
+	prompt "Single Port LVDS Type selected"
+	default DC1_SINGLE_PORT_LVDS
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 ) && ( DC1_LCD_FLD0800 || DC1_LCD_SLVDS_SAMPLE || DC1_LCD_SLVDS_EXT )
+
+config DC1_SINGLE_PORT_LVDS
+	bool "SINGLE PORT LVDS TYPE"
+	depends on ( DC1_LCD_FLD0800 || DC1_LCD_SLVDS_SAMPLE || DC1_LCD_SLVDS_EXT )
+endchoice
+
+choice
+	prompt "Select LCD Mux path"
+	default DC1_LCD_MUX0 if TCC805X
+	default DC1_LCD_MUX1 if !TCC805X
+	depends on DISPLAY_OUTPUT_PATH_DC1 && !DC1_LCD_HDMIV20
+
+config DC1_LCD_MUX0
+	bool "DEV0_PATH"
+	depends on ( !DC0_LCD_MUX0  )
+config DC1_LCD_MUX1
+	bool "DEV1_PATH"
+	depends on ( !DC0_LCD_MUX1 && !TCC803X)
+config DC1_LCD_MUX2
+	bool "DEV2_PATH( Use SDM )"
+	depends on ( !DC0_LCD_MUX2 )
+config DC1_LCD_MUX3
+	bool "DEV3_PATH( Use SRVC )"
+	depends on ( !DC0_LCD_MUX3 )
+endchoice
+
+config DC1_SDM_BYPASS
+	bool "Bypass SDM path"
+	default n
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 && DC1_LCD_MUX2 )
+        help
+		This property makes a Bypasson SDM path in TCC805x CS.
+		This property makes a Bypasson SDM path in TCC805x CS.
+
+config DC1_SRVC_BYPASS
+	bool "Bypass SRVC path"
+	default n
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 && DC1_LCD_MUX3 )
+        help
+		This property makes a Bypasson SRVC path in TCC805x CS.
+		This property makes a Bypasson SRVC path in TCC805x CS.
+
+choice
+	prompt "Select tcc805x EVB LCD panel power supply connector"
+	default DC1_LCD_POWER2
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 )
+
+config DC1_LCD_POWER1
+	bool "DISPLAY POWER1"
+	depends on ( !DC0_LCD_POWER1  )
+config DC1_LCD_POWER2
+	bool "DISPLAY POWER2"
+	depends on ( !DC0_LCD_POWER2  )
+config DC1_LCD_POWER3
+	bool "DISPLAY POWER3"
+	depends on ( !DC0_LCD_POWER3  )
+config DC1_LCD_POWER4
+	bool "DISPLAY POWER4 (tcc8050, tcc8053)"
+	depends on ( !DC0_LCD_POWER4  )
+config DC1_LCD_NC
+	bool "DISPLAY POWER NOT Connected"
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 )
+endchoice
+
+choice
+	prompt "Dual LCD path: TS MUX0 & 1 and LVDS Port0 &1 are reserved"
+	default DC1_LVDS_DUAL_LCD_PATH
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 ) && ( DC1_DUAL_PORT_LVDS ) && ( !DC0_DUAL_PORT_LVDS )
+
+	config DC1_LVDS_DUAL_LCD_PATH
+	bool "(TS MUX0- > LVDS Port0) + (TS MUX1 -> LVDS Port1)"
+	depends on ( DC1_DUAL_PORT_LVDS ) && ( !DC0_DUAL_PORT_LVDS )
+endchoice
+
+choice
+	prompt "Error: only 1 dual LVDS can be connected"
+	default DC1_LIMITED_LVDS_DUAL_LCD_PATH
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 ) && ( DC1_DUAL_PORT_LVDS ) && ( DC0_DUAL_PORT_LVDS )
+
+	config DC1_LIMITED_LVDS_DUAL_LCD_PATH
+	bool ""
+	depends on ( DC1_DUAL_PORT_LVDS ) && ( DC0_DUAL_PORT_LVDS )
+endchoice
+
+choice
+	prompt "Select LCD path for single LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC1 ) && ( DC1_SINGLE_PORT_LVDS )
+
+config DC1_SINGLE_LCD_PATH_0
+	bool "TS MUX0 -> LVDS Port0"
+	depends on ( DC1_SINGLE_PORT_LVDS ) && ( !DC0_DUAL_PORT_LVDS && !DC0_SINGLE_LCD_PATH_0 )
+config DC1_SINGLE_LCD_PATH_1
+	bool "TS MUX1 -> LVDS Port1"
+	depends on ( DC1_SINGLE_PORT_LVDS ) && ( !DC0_DUAL_PORT_LVDS && !DC0_SINGLE_LCD_PATH_1 )
+config DC1_SINGLE_LCD_PATH_2
+	bool "TS MUX2 -> LVDS Port2"
+	depends on ( DC1_SINGLE_PORT_LVDS ) && ( !DC0_SINGLE_LCD_PATH_2 )
+endchoice
+
+
+#
+# Configure Display controller 2
+#
+config DISPLAY_OUTPUT_PATH_DC2
+	bool "Display controller 2 configuration"
+	depends on TCC_FB
+
+choice
+	prompt "Select LCD Panel on Display controller 2"
+	default DC2_DP_DISPLAY_DEVICE
+	depends on DISPLAY_OUTPUT_PATH_DC2
+
+config DC2_LCD_FLD0800
+	bool "FLD0800( Single ): 1024 * 600 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 && LCD_FLD0800 )
+config DC2_LCD_SLVDS_SAMPLE
+	bool "SLVDS SAMPLE( Single ): 1024 * 600 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 && LCD_SLVDS_SAMPLE )
+config DC2_LCD_SLVDS_EXT
+	bool "SLVDS EXT( Single ): 1024 * 600 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 && LCD_SLVDS_EXT )
+config DC2_LCD_TM123XDHP90
+	bool "TM123XDHP90( Dual ): 1920 * 720 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 && LCD_TM123XDHP90 )
+config DC2_LCD_HSD123KPW2_SERDES
+	bool "HSD123KPW2_SERDES( Dual ): 1920 * 720 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 && LCD_HSD123KPW2_SERDES )
+config DC2_DP_DISPLAY_DEVICE
+	bool "DP display device"
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 && TCC_DISPLAY_PORT )
+config DC2_LCD_HDMIV20
+	bool "HDMI v2.0: HDMI v2.0 support"
+	depends on (DISPLAY_OUTPUT_PATH_DC2 && LCD_HDMIV20)
+endchoice
+
+config DC2_DP_OUTPUT_VIC
+	int "Video Identification Code for DP output timing(O is to read EDID)"
+	range 1 1030
+	default 4
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 ) && ( DC2_DP_DISPLAY_DEVICE && !DP_PANEL_MODE )
+	help
+		When programmed to 0, driver will read EDID.
+		Otherwise, driver will configure video timing parameters based on video code programmed.
+
+choice
+	prompt "Dual Port LVDS Type selected"
+	default DC2_DUAL_PORT_LVDS
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 ) && ( DC2_LCD_TM123XDHP90 || DC2_LCD_HSD123KPW2_SERDES )
+
+config DC2_DUAL_PORT_LVDS
+	bool "DUAL PORT LVDS TYPE"
+	depends on ( DC2_LCD_TM123XDHP90 || DC2_LCD_HSD123KPW2_SERDES )
+endchoice
+
+choice
+	prompt "Single Port LVDS Type selected"
+	default DC2_SINGLE_PORT_LVDS
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 ) && ( DC2_LCD_FLD0800 || DC2_LCD_SLVDS_SAMPLE || DC2_LCD_SLVDS_EXT )
+
+config DC2_SINGLE_PORT_LVDS
+	bool "SINGLE PORT LVDS TYPE"
+	depends on ( DC2_LCD_FLD0800 || DC2_LCD_SLVDS_SAMPLE || DC2_LCD_SLVDS_EXT )
+endchoice
+
+choice
+	prompt "Select LCD Mux path"
+	default DC2_LCD_MUX2
+	depends on DISPLAY_OUTPUT_PATH_DC2  && !DC2_LCD_HDMIV20
+
+config DC2_LCD_MUX0
+	bool "DEV0_PATH"
+	depends on ( !DC0_LCD_MUX0 && !DC1_LCD_MUX0 )
+config DC2_LCD_MUX1
+	bool "DEV1_PATH"
+	depends on ( !DC0_LCD_MUX1 && !DC1_LCD_MUX1 && !TCC803X)
+config DC2_LCD_MUX2
+	bool "DEV2_PATH( Use SDM )"
+	depends on ( !DC0_LCD_MUX2 && !DC1_LCD_MUX2 )
+config DC2_LCD_MUX3
+	bool "DEV3_PATH( Use SRVC )"
+	depends on ( !DC0_LCD_MUX3 && !DC1_LCD_MUX3 )
+endchoice
+
+config DC2_SDM_BYPASS
+	bool "Bypass SDM path"
+	default y if TCC805X
+	default n if !TCC805X
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 && DC2_LCD_MUX2 )
+        help
+		This property makes a Bypasson SDM path in TCC805x CS.
+		This property makes a Bypasson SDM path in TCC805x CS.
+
+config DC2_SRVC_BYPASS
+	bool "Bypass SRVC path"
+	default n
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 && DC2_LCD_MUX3 )
+        help
+		This property makes a Bypasson SRVC path in TCC805x CS.
+		This property makes a Bypasson SRVC path in TCC805x CS.
+
+choice
+	prompt "Select tcc805x EVB LCD panel power supply connector"
+	default DC2_LCD_POWER3
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 )
+
+config DC2_LCD_POWER1
+	bool "DISPLAY POWER1"
+	depends on ( !DC0_LCD_POWER1 && !DC1_LCD_POWER1 )
+config DC2_LCD_POWER2
+	bool "DISPLAY POWER2"
+	depends on ( !DC0_LCD_POWER2 && !DC1_LCD_POWER2 )
+config DC2_LCD_POWER3
+	bool "DISPLAY POWER3"
+	depends on ( !DC0_LCD_POWER3 && !DC1_LCD_POWER3 )
+config DC2_LCD_POWER4
+	bool "DISPLAY POWER4 (tcc8050, tcc8053)"
+	depends on ( !DC0_LCD_POWER4 && !DC1_LCD_POWER4 )
+config DC2_LCD_NC
+	bool "DISPLAY POWER NOT Connected"
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 )
+endchoice
+
+choice
+	prompt "Dual LCD path: TS MUX0 & 1 and LVDS Port0 &1 are reserved"
+	default DC2_LVDS_DUAL_LCD_PATH
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 ) && ( DC2_DUAL_PORT_LVDS ) && ( !DC0_DUAL_PORT_LVDS && !DC1_DUAL_PORT_LVDS )
+
+	config DC2_LVDS_DUAL_LCD_PATH
+	bool "(TS MUX0- > LVDS Port0) + (TS MUX1 -> LVDS Port1)"
+	depends on ( DC2_DUAL_PORT_LVDS ) && ( !DC0_DUAL_PORT_LVDS && !DC1_DUAL_PORT_LVDS )
+endchoice
+
+choice
+	prompt "Error: only 1 dual LVDS can be connected"
+	default DC2_LIMITED_LVDS_DUAL_LCD_PATH
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 ) && ( DC2_DUAL_PORT_LVDS ) && ( DC0_DUAL_PORT_LVDS || DC1_DUAL_PORT_LVDS )
+
+	config DC2_LIMITED_LVDS_DUAL_LCD_PATH
+	bool ""
+	depends on ( DC2_DUAL_PORT_LVDS ) && ( DC0_DUAL_PORT_LVDS || DC1_DUAL_PORT_LVDS )
+endchoice
+
+choice
+	prompt "Select LCD path for single LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC2 ) && ( DC2_SINGLE_PORT_LVDS )
+
+config DC2_SINGLE_LVDS_LCD_PATH_0
+	bool "TS MUX0 -> LVDS Port0"
+	depends on ( DC2_SINGLE_PORT_LVDS ) && ( !DC0_DUAL_PORT_LVDS && !DC1_DUAL_PORT_LVDS ) && ( !DC0_SINGLE_LCD_PATH_0 && !DC1_SINGLE_LCD_PATH_0 )
+config DC2_SINGLE_LVDS_LCD_PATH_1
+	bool "TS MUX1 -> LVDS Port1"
+	depends on ( DC2_SINGLE_PORT_LVDS ) && ( !DC0_DUAL_PORT_LVDS && !DC1_DUAL_PORT_LVDS ) && ( !DC0_SINGLE_LCD_PATH_1 && !DC1_SINGLE_LCD_PATH_1 )
+config DC2_SINGLE_LVDS_LCD_PATH_2
+	bool "TS MUX2 -> LVDS Port2"
+	depends on ( DC2_SINGLE_PORT_LVDS ) && ( !DC0_SINGLE_LCD_PATH_2 && !DC1_SINGLE_LCD_PATH_2 )
+endchoice
+
+
+#
+# Configure Display controller 3
+#
+config DISPLAY_OUTPUT_PATH_DC3
+	bool "Display controller 3 path configuration"
+	default n
+	depends on TCC_FB && TCC805X
+
+choice
+	prompt "Select LCD Panel on Display controller 3"
+	default DC3_DP_DISPLAY_DEVICE
+	depends on DISPLAY_OUTPUT_PATH_DC3
+
+config DC3_LCD_FLD0800
+	bool "FLD0800( Single ): 1024 * 600 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 && LCD_FLD0800 )
+config DC3_LCD_SLVDS_SAMPLE
+	bool "SLVDS SAMPLE( Single ): 1024 * 600 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 && LCD_SLVDS_SAMPLE )
+config DC3_LCD_SLVDS_EXT
+	bool "SLVDS EXT( Single ): 1024 * 600 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 && LCD_SLVDS_EXT )
+config DC3_LCD_TM123XDHP90
+	bool "TM123XDHP90( Dual ): 1920 * 720 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 && LCD_TM123XDHP90 )
+config DC3_LCD_HSD123KPW2_SERDES
+	bool "HSD123KPW2_SERDES( Dual ): 1920 * 720 LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 && LCD_HSD123KPW2_SERDES )
+config DC3_DP_DISPLAY_DEVICE
+	bool "DP display device"
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 && TCC_DISPLAY_PORT )
+endchoice
+
+config DC3_DP_OUTPUT_VIC
+	int "Video Identification Code for DP output timing(O is to read EDID)"
+	range 1 1030
+	default 4
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 ) && ( DC3_DP_DISPLAY_DEVICE && !DP_PANEL_MODE )
+	help
+		When programmed to 0, driver will read EDID.
+		Otherwise, driver will configure video timing parameters based on video code programmed.
+
+choice
+	prompt "Dual Port LVDS Type selected"
+	default DC3_DUAL_PORT_LVDS
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 ) && ( DC3_LCD_TM123XDHP90 || DC3_LCD_HSD123KPW2_SERDES )
+
+config DC3_DUAL_PORT_LVDS
+	bool "DUAL PORT LVDS TYPE"
+	depends on ( DC3_LCD_TM123XDHP90 || DC3_LCD_HSD123KPW2_SERDES )
+endchoice
+
+choice
+	prompt "Single Port LVDS Type selected"
+	default DC3_SINGLE_PORT_LVDS
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 ) && ( DC3_LCD_FLD0800 || DC3_LCD_SLVDS_SAMPLE || DC3_LCD_SLVDS_EXT )
+
+config DC3_SINGLE_PORT_LVDS
+	bool "SINGLE PORT LVDS TYPE"
+	depends on ( DC3_LCD_FLD0800 || DC3_LCD_SLVDS_SAMPLE || DC3_LCD_SLVDS_EXT )
+endchoice
+
+choice
+	prompt "Select LCD Mux path"
+	default DC3_LCD_MUX1 if TCC805X
+	default DC3_LCD_MUX3 if !TCC805X
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 )
+
+config DC3_LCD_MUX0
+	bool "DEV0_PATH"
+	depends on ( !DC0_LCD_MUX0 && !DC1_LCD_MUX0 && !DC2_LCD_MUX0 )
+config DC3_LCD_MUX1
+	bool "DEV1_PATH"
+	depends on ( !DC0_LCD_MUX1 && !DC1_LCD_MUX1 && !DC2_LCD_MUX1 )
+config DC3_LCD_MUX2
+	bool "DEV2_PATH( Use SDM )"
+	depends on ( !DC0_LCD_MUX2 && !DC1_LCD_MUX2 && !DC2_LCD_MUX2 )
+config DC3_LCD_MUX3
+	bool "DEV3_PATH( Use SRVC )"
+	depends on ( !DC0_LCD_MUX3 && !DC1_LCD_MUX3 && !DC2_LCD_MUX3 )
+endchoice
+
+config DC3_SDM_BYPASS
+	bool "Bypass SDM path"
+	default n
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 && DC3_LCD_MUX2 )
+        help
+		This property makes a Bypasson SDM path in TCC805x CS.
+		This property makes a Bypasson SDM path in TCC805x CS.
+
+config DC3_SRVC_BYPASS
+	bool "Bypass SRVC path"
+	default n
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 && DC3_LCD_MUX3 )
+        help
+		This property makes a Bypasson SRVC path in TCC805x CS.
+		This property makes a Bypasson SRVC path in TCC805x CS.
+
+choice
+	prompt "Select tcc805x EVB LCD panel power supply connector"
+	default DC3_LCD_POWER4
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 )
+
+config DC3_LCD_POWER1
+	bool "DISPLAY POWER1"
+	depends on ( !DC0_LCD_POWER1 && !DC1_LCD_POWER1 && !DC2_LCD_POWER1 )
+config DC3_LCD_POWER2
+	bool "DISPLAY POWER2"
+	depends on ( !DC0_LCD_POWER2 && !DC1_LCD_POWER2 && !DC2_LCD_POWER2 )
+config DC3_LCD_POWER3
+	bool "DISPLAY POWER3"
+	depends on ( !DC0_LCD_POWER3 && !DC1_LCD_POWER3 && !DC2_LCD_POWER3 )
+config DC3_LCD_POWER4
+	bool "DISPLAY POWER4 (tcc8050, tcc8053)"
+	depends on ( !DC0_LCD_POWER4 && !DC1_LCD_POWER4 && !DC2_LCD_POWER4 )
+config DC3_LCD_NC
+	bool "DISPLAY POWER NOT Connected"
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 )
+endchoice
+
+choice
+	prompt "Dual LCD path: TS MUX0 & 1 and LVDS Port0 &1 are reserved"
+	default DC3_LVDS_DUAL_LCD_PATH
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 ) && ( DC3_DUAL_PORT_LVDS ) && ( !DC0_DUAL_PORT_LVDS && !DC1_DUAL_PORT_LVDS && !DC2_DUAL_PORT_LVDS )
+
+	config DC3_LVDS_DUAL_LCD_PATH
+	bool "(TS MUX0- > LVDS Port0) + (TS MUX1 -> LVDS Port1)"
+	depends on ( DC3_DUAL_PORT_LVDS ) && ( !DC0_DUAL_PORT_LVDS && !DC1_DUAL_PORT_LVDS && !DC2_DUAL_PORT_LVDS )
+endchoice
+
+choice
+	prompt "Error: only 1 dual LVDS can be connected"
+	default DC3_LIMITED_LVDS_DUAL_LCD_PATH
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 ) && ( DC3_DUAL_PORT_LVDS ) && ( DC0_DUAL_PORT_LVDS || DC1_DUAL_PORT_LVDS || DC2_DUAL_PORT_LVDS )
+
+	config DC3_LIMITED_LVDS_DUAL_LCD_PATH
+	bool ""
+	depends on ( DC3_DUAL_PORT_LVDS ) && ( DC0_DUAL_PORT_LVDS || DC1_DUAL_PORT_LVDS || DC2_DUAL_PORT_LVDS )
+endchoice
+
+choice
+	prompt "Select LCD path for single LVDS"
+	depends on ( DISPLAY_OUTPUT_PATH_DC3 ) && ( DC3_SINGLE_PORT_LVDS )
+
+config DC3_SINGLE_LVDS_LCD_PATH_0
+	bool "TS MUX0 -> LVDS Port0"
+	depends on ( DC3_SINGLE_PORT_LVDS ) && ( !DC0_DUAL_PORT_LVDS && !DC1_DUAL_PORT_LVDS && !DC2_DUAL_PORT_LVDS && !DC3_DUAL_PORT_LVDS ) && ( !DC0_SINGLE_LCD_PATH_0 && !DC1_SINGLE_LCD_PATH_0 && !DC2_SINGLE_LVDS_LCD_PATH_0)
+config DC3_SINGLE_LVDS_LCD_PATH_1
+	bool "TS MUX1 -> LVDS Port1"
+	depends on ( DC3_SINGLE_PORT_LVDS ) && ( !DC0_DUAL_PORT_LVDS && !DC1_DUAL_PORT_LVDS && !DC2_DUAL_PORT_LVDS && !DC3_DUAL_PORT_LVDS ) && ( !DC0_SINGLE_LCD_PATH_1 && !DC1_SINGLE_LCD_PATH_1 && !DC2_SINGLE_LVDS_LCD_PATH_1 )
+config DC3_SINGLE_LVDS_LCD_PATH_2
+	bool "TS MUX2 -> LVDS Port2"
+	depends on ( DC3_SINGLE_PORT_LVDS ) && ( !DC0_SINGLE_LCD_PATH_2 && !DC1_SINGLE_LCD_PATH_2 && !DC2_SINGLE_LVDS_LCD_PATH_2 )
+endchoice
+
+
+config DC0_LCD_DEVICE
+	string
+	default "FLD0800" if DC0_LCD_FLD0800
+	default "SLVDS_SAMPLE" if DC0_LCD_SLVDS_SAMPLE
+	default "SLVDS_EXT" if DC0_LCD_SLVDS_EXT
+	default "TM123XDHP90" if DC0_LCD_TM123XDHP90
+	default "HSD123KPW2" if DC0_LCD_HSD123KPW2_SERDES
+	default "DPV14" if DC0_DP_DISPLAY_DEVICE
+	default "HDMIV20" if DC0_LCD_HDMIV20
+
+config DC0_DISP_LCD_MUX
+	int
+	default 0 if DC0_LCD_MUX0
+	default 1 if DC0_LCD_MUX1
+	default 2 if DC0_LCD_MUX2
+	default 3 if DC0_LCD_MUX3
+
+config DC0_DISP_LVDS_LCD_PORT
+	int
+	default 2 if ( DC0_SINGLE_PORT_LVDS && DC0_SINGLE_LCD_PATH_0 )
+	default 3 if ( DC0_SINGLE_PORT_LVDS && DC0_SINGLE_LCD_PATH_1 )
+	default 0 if ( DC0_SINGLE_PORT_LVDS && DC0_SINGLE_LCD_PATH_2 )
+	default 4 if ( DC0_DUAL_PORT_LVDS )
+
+config DC0_DISP_LCD_POWER
+	int
+	default 0 if DC0_LCD_POWER1
+	default 1 if DC0_LCD_POWER2
+	default 2 if DC0_LCD_POWER3
+	default 3 if DC0_LCD_POWER4
+	default 4 if DC0_LCD_NC
+
+config DC1_LCD_DEVICE
+	string
+	default "FLD0800" if DC1_LCD_FLD0800
+	default "SLVDS_SAMPLE" if DC1_LCD_SLVDS_SAMPLE
+	default "SLVDS_EXT" if DC1_LCD_SLVDS_EXT
+	default "TM123XDHP90" if DC1_LCD_TM123XDHP90
+	default "HSD123KPW2" if DC1_LCD_HSD123KPW2_SERDES
+	default "DPV14" if DC1_DP_DISPLAY_DEVICE
+	default "HDMIV20" if DC1_LCD_HDMIV20
+
+config DC1_DISP_LCD_MUX
+	int
+	default 0 if DC1_LCD_MUX0
+	default 1 if DC1_LCD_MUX1
+	default 2 if DC1_LCD_MUX2
+	default 3 if DC1_LCD_MUX3
+
+config DC1_DISP_LVDS_LCD_PORT
+	int
+	default 2 if ( DC1_SINGLE_PORT_LVDS && DC1_SINGLE_LCD_PATH_0 )
+	default 3 if ( DC1_SINGLE_PORT_LVDS && DC1_SINGLE_LCD_PATH_1 )
+	default 0 if ( DC1_SINGLE_PORT_LVDS && DC1_SINGLE_LCD_PATH_2 )
+	default 4 if ( DC1_DUAL_PORT_LVDS )
+
+config DC1_DISP_LCD_POWER
+	int
+	default 0 if DC1_LCD_POWER1
+	default 1 if DC1_LCD_POWER2
+	default 2 if DC1_LCD_POWER3
+	default 3 if DC1_LCD_POWER4
+	default 4 if DC1_LCD_NC
+
+config DC2_LCD_DEVICE
+	string
+	default "FLD0800" if DC2_LCD_FLD0800
+	default "SLVDS_SAMPLE" if DC2_LCD_SLVDS_SAMPLE
+	default "SLVDS_EXT" if DC2_LCD_SLVDS_EXT
+	default "TM123XDHP90" if DC2_LCD_TM123XDHP90
+	default "HSD123KPW2" if DC2_LCD_HSD123KPW2_SERDES
+	default "DPV14" if DC2_DP_DISPLAY_DEVICE
+	default "HDMIV20" if DC2_LCD_HDMIV20
+
+config DC2_DISP_LCD_MUX
+	int
+	default 0 if DC2_LCD_MUX0
+	default 1 if DC2_LCD_MUX1
+	default 2 if DC2_LCD_MUX2
+	default 3 if DC2_LCD_MUX3
+
+config DC2_DISP_LVDS_LCD_PORT
+	int
+	default 2 if ( DC2_SINGLE_PORT_LVDS && DC2_SINGLE_LVDS_LCD_PATH_0 )
+	default 3 if ( DC2_SINGLE_PORT_LVDS && DC2_SINGLE_LVDS_LCD_PATH_1 )
+	default 0 if ( DC2_SINGLE_PORT_LVDS && DC2_SINGLE_LVDS_LCD_PATH_2 )
+	default 4 if ( DC2_DUAL_PORT_LVDS )
+
+config DC2_DISP_LCD_POWER
+	int
+	default 0 if DC2_LCD_POWER1
+	default 1 if DC2_LCD_POWER2
+	default 2 if DC2_LCD_POWER3
+	default 3 if DC2_LCD_POWER4
+	default 4 if DC2_LCD_NC
+
+config DC3_LCD_DEVICE
+	string
+	default "FLD0800" if DC3_LCD_FLD0800
+	default "SLVDS_SAMPLE" if DC3_LCD_SLVDS_SAMPLE
+	default "SLVDS_EXT" if DC3_LCD_SLVDS_EXT
+	default "TM123XDHP90" if DC3_LCD_TM123XDHP90
+	default "HSD123KPW2" if DC3_LCD_HSD123KPW2_SERDES
+	default "DPV14" if DC3_DP_DISPLAY_DEVICE
+
+config DC3_DISP_LCD_MUX
+	int
+	default 0 if DC3_LCD_MUX0
+	default 1 if DC3_LCD_MUX1
+	default 2 if DC3_LCD_MUX2
+	default 3 if DC3_LCD_MUX3
+
+config DC3_DISP_LVDS_LCD_PORT
+	int
+	default 2 if ( DC3_SINGLE_PORT_LVDS && DC3_SINGLE_LVDS_LCD_PATH_0 )
+	default 3 if ( DC3_SINGLE_PORT_LVDS && DC3_SINGLE_LVDS_LCD_PATH_1 )
+	default 0 if ( DC3_SINGLE_PORT_LVDS && DC3_SINGLE_LVDS_LCD_PATH_2 )
+	default 4 if ( DC3_DUAL_PORT_LVDS )
+
+config DC3_DISP_LCD_POWER
+	int
+	default 0 if DC3_LCD_POWER1
+	default 1 if DC3_LCD_POWER2
+	default 2 if DC3_LCD_POWER3
+	default 3 if DC3_LCD_POWER4
+	default 4 if DC3_LCD_NC
+
+config DC_DISP_LVDS_LCD_PORT0
+	bool
+	default y if (DC0_SINGLE_LCD_PATH_0 || DC1_SINGLE_LCD_PATH_0 || DC2_SINGLE_LVDS_LCD_PATH_0 || DC3_SINGLE_LVDS_LCD_PATH_0)
+	default n if (!DC0_SINGLE_LCD_PATH_0 && !DC1_SINGLE_LCD_PATH_0 && !DC2_SINGLE_LVDS_LCD_PATH_0 && !DC3_SINGLE_LVDS_LCD_PATH_0)
+
+config DC_DISP_LVDS_LCD_PORT1
+	bool
+	default y if (DC0_SINGLE_LCD_PATH_1 || DC1_SINGLE_LCD_PATH_1 || DC2_SINGLE_LVDS_LCD_PATH_1 || DC3_SINGLE_LVDS_LCD_PATH_1)
+	default n if (!DC0_SINGLE_LCD_PATH_1 && !DC1_SINGLE_LCD_PATH_1 && !DC2_SINGLE_LVDS_LCD_PATH_1 && !DC3_SINGLE_LVDS_LCD_PATH_1)

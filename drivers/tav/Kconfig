@@ -1,0 +1,10 @@
+#
+# Verify Tools for Telechips Application BSP Team configuration
+#
+
+config TCC_APPB_VERIFICATION
+	bool "Support Verification Tools for Telechips Application BSP Team"
+	depends on TCC899X || TCC803X || TCC805X
+	help
+	  This driver support verification tools for Telechips Application BSP Team
+		Please Disable this unless you have right purpose

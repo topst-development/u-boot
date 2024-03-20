@@ -1,0 +1,21 @@
+#
+# IRQ subsystem configuration
+#
+
+menu "IRQ support"
+	depends on USE_IRQ
+
+config DM_IRQ
+	bool "Enable Driver Model for IRQ driver"
+	depends on DM
+	help
+	  Enable driver mdoel for IRQ.
+
+config ARM_GIC
+	bool "ARM GIC interrupt controller"
+	depends on ARM && DM_IRQ
+	default y
+	help
+	  Add support for ARM GIC interrupt controller.
+
+endmenu

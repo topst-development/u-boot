@@ -1,0 +1,127 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) Telechips Inc.
+ */
+
+/dts-v1/;
+
+#include "tcc805x.dtsi"
+#include "tcc8050_53-pinctrl.dtsi"
+
+/ {
+	model = "Telechips TCC8050 EVB SV0.1 Subcore";
+	interrupt-parent = <&gic1>;
+};
+
+&chosen {
+	stdout-path = &uart4;
+};
+
+&config {
+	u-boot,mmc-env-partition = "subcore_env";
+	u-boot,scsi-env-partition = "subcore_env";
+};
+
+&memory {
+	reg = <0x40000000 0x20000000>;
+};
+
+&cpus {
+	cpu@4 {
+		status = "okay";
+	};
+};
+
+&gic1 {
+	status = "okay";
+};
+
+&uart4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart9_data>;
+	status = "okay";
+	u-boot,dm-pre-reloc;
+};
+
+&tcc_lcd_interface {
+	board-type = <1>;
+	status = "okay";
+};
+
+&mbox1 {
+	status = "okay";
+	u-boot,dm-pre-reloc;
+};
+
+&tcc_sc_fw {
+	status = "okay";
+	mboxes = <&mbox1 0>;
+	u-boot,dm-pre-reloc;
+
+	tcc_sc_mmc {
+		status = "okay";
+		u-boot,dm-pre-reloc;
+	};
+};
+
+&i2c7 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c12_bus>;
+	port-mux = <12>;
+	status = "okay";
+
+	videosource0: videodecoder_adv7182 {
+		compatible	= "analogdevices,adv7182";
+		pinctrl-names	= "idle", "active";
+		pinctrl-0	= <&cam0_idle>;
+		pinctrl-1	= <&cam0_rst &cam0_clk &cam0_hsync &cam0_vsync
+				   &cam0_fld &cam0_de &cam0_data>;
+		rst-gpios	= <&gpb 14 GPIO_ACTIVE_HIGH>;
+		reg		= <0x21>;	// 0x42 >> 1
+		cifport		= <0>;
+	};
+#if 1
+	videosource2: deserializer_max9276 {
+		compatible	= "maxim,max9276";
+		pinctrl-names	= "idle", "active";
+		pinctrl-0	= <&cam0_idle>;
+		pinctrl-1	= <&cam0_rst &cam0_clk &cam0_hsync &cam0_vsync
+				   &cam0_fld &cam0_de &cam0_data>;
+		rst-gpios	= <&gpb 14 GPIO_ACTIVE_HIGH>;
+		reg		= <0x4A>;	// 0x94 >> 1
+		cifport		= <0>;
+	};
+#else
+	videosource2: deserializer_max9276 {
+		compatible	= "maxim,max9276";
+		pinctrl-names	= "idle", "active";
+		pinctrl-0	= <&cam1_idle>;
+		pinctrl-1	= <&cam1_rst &cam1_clk &cam1_hsync &cam1_vsync
+				   &cam1_fld &cam1_de &cam1_data>;
+		rst-gpios	= <&gpma 21 GPIO_ACTIVE_HIGH>;
+		reg		= <0x4A>;	// 0x94 >> 1
+		cifport		= <1>;
+	};
+#endif
+};
+
+&switch0 {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&switch_mb23>;
+
+	switch-gpios = <&gpmb 23 1>;
+	switch-active = <1>;
+};
+
+&tcc_timer0 {
+	/* disable dummy timer on Cortex-A53 subcore */
+	status = "disabled";
+};
+
+&tcc_timer1 {
+	/* for earlycamera */
+	status = "okay";
+};
+

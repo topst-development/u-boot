@@ -1,0 +1,13 @@
+if TCC803X
+
+config SYS_BOARD
+	default "tcc803x_evb"
+
+config SYS_CONFIG_NAME
+	default "tcc803x_evb"
+
+config CPU_OVER_VOLTAGE
+	bool "TCC803XPE Temporary Over Voltage"
+	default y
+
+endif

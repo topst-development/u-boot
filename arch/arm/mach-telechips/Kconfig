@@ -1,0 +1,67 @@
+menu "Telechips architecture specifics"
+	depends on ARCH_TELECHIPS
+
+config SYS_VENDOR
+	default "telechips"
+
+config HAS_SUBCORE
+	bool
+
+choice
+	prompt "Telechips SoC select"
+	optional
+
+config TCC805X
+	bool "Telechips TCC805x SoC Family"
+	select ARM_SMCCC
+	select USE_IRQ
+	select HAS_SUBCORE
+
+config TCC803X
+	bool "Telechips TCC803x SoC Family"
+	select ARM_SMCCC
+	select USE_IRQ
+
+endchoice
+
+choice
+	prompt "Telechips SoC target core select"
+	default TCC_MAINCORE
+
+config TCC_MAINCORE
+	bool "Telechips SoC Main-Cores"
+
+config TCC_SUBCORE
+	bool "Telechips SoC Sub-Cores"
+	depends on HAS_SUBCORE
+
+endchoice
+
+config BOOT_SUBCORE_BY_MAINCORE
+	bool "Boot subcore kernel by maincore"
+choice
+	prompt "Select subcore boot mode"
+	depends on BOOT_SUBCORE_BY_MAINCORE
+config BOOT_SUBCORE_SELF_LOAD_MODE
+	bool "Self load Mode"
+	help
+	  Subcore can load and restore subcore image from backup memory by it self.
+	  Other cores just load backup subcore image to backup memory.
+config BOOT_SUBCORE_LEGACY_MODE
+	bool "Legacy mode"
+	help
+	  Other cores should load and restore subcore image always.
+endchoice
+
+config BOOT_CM4_BY_MAINCORE
+	bool "Boot CM4 firmware by maincore"
+
+config TCC_SLT_BOOT
+	bool "Telechips SLT (System Level Test) boot mode"
+	default n
+
+source "board/telechips/common/Kconfig"
+source "arch/arm/mach-telechips/tcc805x/Kconfig"
+source "arch/arm/mach-telechips/tcc803x/Kconfig"
+
+endmenu

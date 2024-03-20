@@ -1,0 +1,8 @@
+if ARCH_TELECHIPS
+
+config TCC_CMDLINE
+	bool "Telechips Android Command Line Support"
+	select ANDROID_BOOTLOADER
+	default y
+
+endif

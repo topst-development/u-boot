@@ -1,0 +1,13 @@
+if TCC805X
+
+config SYS_BOARD
+	default "tcc805x_evb"
+
+config SYS_CONFIG_NAME
+	default "tcc805x_evb"
+
+config POWERVR_VZ
+	bool "PowerVR 9XTP Virtualization Support"
+	default n
+
+endif

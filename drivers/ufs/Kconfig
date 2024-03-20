@@ -1,0 +1,70 @@
+menu "UFS Host Controller Support"
+
+config UFS
+	bool "Support UFS controllers"
+	depends on DM_SCSI
+	help
+	  This selects support for Universal Flash Subsystem (UFS).
+	  Say Y here if you want UFS Support.
+
+config UFS_CORE
+	bool "Support Legacy UFS Core"
+	depends on UFS
+	help
+	  This selects support for Legacy UFS Core.
+	  Say Y here if you want UFS Support.
+
+config CADENCE_UFS
+	bool "Cadence platform driver for UFS"
+	depends on UFS
+        help
+	  This selects the platform driver for the Cadence UFS host
+	  controller present on present TI's J721e devices.
+
+config TI_J721E_UFS
+	bool "Glue Layer driver for UFS on TI J721E devices"
+	help
+	  This selects the glue layer driver for Cadence controller
+	  present on TI's J721E devices.
+
+config TCC_UFS
+	depends on UFS
+	bool "Telechip UFS driver"
+	help
+	  This selects the platform driver for the Telechip UFS host
+	  controller present on Telechips devices.
+
+config TCC_SC_UFS
+	bool "Telechips Storage Core UFS Proxy Driver"
+	depends on ARCH_TELECHIPS
+	depends on TCC_SC_FIRMWARE
+	help
+	  This selects the Telechips Storage Core UFS Proxy Driver.
+	  Say Y here if you want to use UFS Proxy Driver.
+
+config TCC_UFS_BOOT
+	bool "Telechips UFS BOOTING"
+	depends on ARCH_TELECHIPS
+	depends on UFS
+	help
+		This selects the Telechips UFS Booting.
+
+config SUPPORT_UFS_RPMB
+    bool "Support UFS replay protected memory block (RPMB)"
+	depends on DM_SCSI
+	depends on TCC_SC_UFS
+	depends on UFS
+    help
+      Enable support for reading, writing and programming the
+      key for the Replay Protection Memory Block partition in UFS.
+
+config SUPPORT_UFS_REFRESH
+	bool "Support UFS Refresh Operation"
+	depends on DM_SCSI
+	depends on TCC_SC_UFS
+	depends on UFS
+    help
+      This selects the TCC UFS Refresh Oeration.
+      Say Y here if you want to use UFS Refresh Feature.
+
+endmenu

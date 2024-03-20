@@ -1,0 +1,226 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) Telechips Inc.
+ */
+
+/dts-v1/;
+
+#include "tcc803x.dtsi"
+#include "tcc8030-pinctrl.dtsi"
+
+/ {
+	model = "Telechips TCC8030 EVB SV0.1";
+	board-id = <TCC_BOARD_ID_TCC8030_EVB>;
+	board-rev = <0x0>;
+	interrupt-parent = <&gic0>;
+};
+
+&chosen {
+	stdout-path = &uart0;
+};
+
+&cpus {
+	cpu@0 {
+		status = "okay";
+	};
+};
+
+&gic0 {
+	status = "okay";
+};
+
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart18_data>;
+	status = "okay";
+	u-boot,dm-pre-reloc;
+};
+
+/* SP UART */
+&uart3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart28_data>;
+	status = "okay";
+	u-boot,dm-pre-reloc;
+};
+
+&sp_serial {
+	status = "okay";
+	serial_sel = <&uart3>;
+	u-boot,dm-pre-reloc;
+};
+
+#if 0
+&mbox0 {
+	status = "okay";
+	u-boot,dm-pre-reloc;
+};
+#endif
+
+/* eMMC */
+&sdhc0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&sd0_clk>, <&sd0_cmd>, <&sd0_bus8>, <&sd0_strb>;
+	bus-width = <8>;
+	max-frequency = <200000000>;
+	status = "okay";
+
+	tcc-mmc-taps = <0xF 0xF 0xF 0xF>;
+	tcc-mmc-hs400-pos-tap = <0x6>;
+	tcc-mmc-hs400-neg-tap = <0xB>;
+
+	non-removable;
+//	mmc-hs200-1_8v;
+//	mmc-hs400-1_8v;
+};
+
+&i2c0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c12_bus>;
+	port-mux = <12>;
+	status = "okay";
+
+	videosource0: videodecoder_isl79988 {
+		compatible	= "intersil,isl79988";
+		pinctrl-names	= "idle", "active";
+		pinctrl-0	= <&cam0_idle>;
+		pinctrl-1	= <&cam0_rst &cam0_clk &cam0_hsync &cam0_vsync
+				   &cam0_fld &cam0_de &cam0_data>;
+		rst-gpios	= <&gpb 14 GPIO_ACTIVE_HIGH>;
+		reg		= <0x44>;	// 0x88 >> 1
+		cifport		= <0>;
+	};
+#if 1
+	videosource2: deserializer_max9276 {
+		compatible	= "maxim,max9276";
+		pinctrl-names	= "idle", "active";
+		pinctrl-0	= <&cam0_idle>;
+		pinctrl-1	= <&cam0_rst &cam0_clk &cam0_hsync &cam0_vsync
+				   &cam0_fld &cam0_de &cam0_data>;
+		rst-gpios	= <&gpb 14 GPIO_ACTIVE_HIGH>;
+		reg		= <0x4A>;	// 0x94 >> 1
+		cifport		= <0>;
+	};
+#else
+	videosource2: deserializer_max9276 {
+		compatible	= "maxim,max9276";
+		pinctrl-names	= "idle", "active";
+		pinctrl-0	= <&cam1_idle>;
+		pinctrl-1	= <&cam1_rst &cam1_clk &cam1_hsync &cam1_vsync
+				   &cam1_fld &cam1_de &cam1_data>;
+		rst-gpios	= <&gpma 21 GPIO_ACTIVE_HIGH>;
+		reg		= <0x4A>;	// 0x94 >> 1
+		cifport		= <1>;
+	};
+#endif
+};
+
+&i2c1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c13_bus>;
+	port-mux = <13>;
+	status = "okay";
+};
+
+&i2c2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c20_bus>;
+	port-mux = <20>;
+	status = "okay";
+};
+
+&i2c3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c11_bus>;
+	port-mux = <11>;
+	status = "okay";
+};
+
+&switch0 {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&switch_ma15>;
+
+	switch-gpios = <&gpma 15 1>;
+	switch-active = <1>;
+};
+
+&dwc3_phy {
+	status = "okay";
+};
+
+&dwc3_platform {
+	status = "okay";
+};
+
+&dwc3 {
+	pinctrl-names = "vbus_on", "vbus_off";
+	pinctrl-0 = <&usb30_vbus_pwr_ctrl_on>;
+	pinctrl-1 = <&usb30_vbus_pwr_ctrl_off>;
+};
+
+&ehci_phy {
+	status = "okay";
+};
+
+&mhst_phy {
+	status = "okay";
+};
+
+&ehci {
+	pinctrl-names = "vbus_on", "vbus_off";
+	pinctrl-0 = <&usb20_vbus_pwr_ctrl_on>;
+	pinctrl-1 = <&usb20_vbus_pwr_ctrl_off>;
+	status = "okay";
+};
+
+&ehci_mux {
+	pinctrl-names = "vbus_on", "vbus_off";
+	pinctrl-0 = <&usb20_mux_vbus_pwr_ctrl_on>;
+	pinctrl-1 = <&usb20_mux_vbus_pwr_ctrl_off>;
+	status = "okay";
+};
+
+&ohci {
+	status = "okay";
+};
+
+&ohci_mux {
+	status = "okay";
+};
+
+&dwc_otg_phy {
+	status = "okay";
+};
+
+&dwc_otg {
+	pinctrl-names = "vbus_on", "vbus_off";
+	pinctrl-0 = <&usb20_mux_vbus_pwr_ctrl_on>;
+	pinctrl-1 = <&usb20_mux_vbus_pwr_ctrl_off>;
+	status= "okay";
+};
+
+&tcc_lvds_ctrl{
+	mboxes = <&multi_mbox0 1>;
+	status = "okay";
+};
+
+&tcc_lcd_interface{
+	board-type = <1>; // tcc803x evb
+	status = "okay";
+};
+
+&ufs{
+	status = "okay";
+};
+
+&tcc_timer0 {
+	/* dummy timer */
+	status = "okay";
+};
+
+&tcc_timer1 {
+	/* for earlycamera */
+	status = "okay";
+};

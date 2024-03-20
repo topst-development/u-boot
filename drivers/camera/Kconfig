@@ -1,0 +1,50 @@
+
+config EARLYCAMERA_SOLUTION
+	bool "Enable EarlyCamera Solution"
+	default n
+	---help---
+	Enable EarlyCamera Solution
+
+	Note that you can use two sub-functions
+	- controller list of earlycamera
+	- timer interrupt to check status of reverse switch
+
+config EARLYCAMERA_SOLUTION_CONTROLLED_BY_BOOTLOADER
+	bool "Controlled by Bootloader"
+	depends on EARLYCAMERA_SOLUTION
+	default y
+	---help---
+	Controlled by Bootloader
+
+	Note that you can select controller of earlycamera
+	- controlled by main core
+	- controlled by sub-core
+
+config EARLYCAMERA_SOLUTION_TIME_MS
+        int "Switch Status Check Timer in Milli-seconds"
+        depends on EARLYCAMERA_SOLUTION && EARLYCAMERA_SOLUTION_CONTROLLED_BY_BOOTLOADER && !TCC803X
+        default 100
+	---help---
+	Check timer period setting for switch state during early camera operation.
+
+	Note that you can check status of reverse switch
+	- use polling method instead of interrupt
+	- period is 100ms in default
+
+if EARLYCAMERA_SOLUTION
+menu "Select Video Sources"
+source "drivers/camera/earlycam/dev/Kconfig"
+endmenu
+endif # EARLYCAMERA_SOLUTION
+
+config EARLYCAMERA_SOLUTION_OVERLAY_PGL
+	bool "Support Parking Guide Line"
+	depends on EARLYCAMERA_SOLUTION
+	default n
+	---help---
+	Support Parking Guide Line
+
+	Note that you can enable static parking guide line
+	- static parking guide line is supported only
+	- static parking guide line is a kind of splash image
+

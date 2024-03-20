@@ -1,0 +1,8 @@
+if TCC805X
+
+config SYS_SOC
+	default "tcc805x"
+
+source "board/telechips/tcc805x_evb/Kconfig"
+
+endif

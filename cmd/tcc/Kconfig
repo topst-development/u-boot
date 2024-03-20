@@ -1,0 +1,93 @@
+menu "Telechips specific command line interface"
+	depends on ARCH_TELECHIPS
+
+config CMD_TCC_AVM
+	bool "avm - Command to boot TCC803x subcore (Cortex-A7)"
+	depends on BOOT_SUBCORE_BY_MAINCORE
+	default y if TCC803X
+
+config CMD_TCC_BLKREAD
+	bool "blkread - Command to read partition or image from block devices"
+	depends on PARTITIONS
+	default y
+
+config CMD_TCC_ECID
+	bool "Read commands for TCC ECID"
+
+config CMD_TCC_THERMAL
+	bool "Test commands for TCC Thermal sensor"
+
+config CMD_TCC_MEM
+	bool "Enable commands for TCC DRAM test"
+
+config CMD_TCC_SYNC
+	bool "sync - Command to sync main/subcore for Telechips platform"
+	depends on BOOT_SUBCORE_BY_MAINCORE
+	default y if TCC805X
+
+config CMD_TCC_TIMER_TEST
+	bool "timer_test - Command to do TCC timer test"
+	default n
+	help
+	  Enable 'timer_test' command for testing the timer interrupt and udelay.
+
+config CMD_TCC_WDT
+	bool "Enable commands for TCC watchdog timer"
+	depends on WDT
+	help
+	  This command provide to control TCC watchdog timer.
+
+config CMD_TEST_GPIO
+	bool "test telechips GPIO"
+	default n
+	depends on PINCTRL
+	help
+	 test GPIO
+
+config CMD_TCC_OTP
+	bool "Enable commands for TCC OTP Wrapper"
+	help
+	  This command provide to control tcc OTP wrapper.
+
+config CMD_TCC_OPTEE
+	bool "Commands for management OPTEE"
+	depends on OPTEE
+	help
+	  Smaller management cmd for Telechips OPTEE.
+
+config CMD_TCC_PWM
+	bool "Enable commands for TCC PWM"
+	help
+	  This command provide to control tcc PWM.
+
+config CMD_TCC_MMC_TUNING
+	bool "Enable commands for TCC MMC Tuning"
+	depends on MMC_SDHCI
+	help
+	  This command provide to tune TCC MMC signals.
+
+config CMD_TCC_PROC_RST
+	bool "Enable commands for TCC Processor reset"
+	help
+	  This command provides to test TCC processor reset for CA72, CA53
+
+config CMD_TCC_CLK_SHOW
+	bool "This command shows TCC805x PLL and BUS Clock Frequency"
+	default n
+	help
+	  This command provides to show TCC805x PLL and BUS Clock Frequency.
+
+config CMD_TCC_CLK_CHANGER
+	bool "This command provides clock frequency configuration method on CPU, GPU"
+	depends on TCC805X
+	default y
+	help
+	  This command provides to change CPU and GPU clock frequency on Telechips System.
+
+config CMD_DWC_HOSTLIB
+	bool "HDCP DP test without host library"
+	depends on DISPLAY_PORT_V14
+	help
+	  This command provided to test HDCP DP without Host Library
+
+endmenu
