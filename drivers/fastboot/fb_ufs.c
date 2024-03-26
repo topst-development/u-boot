@@ -3,7 +3,7 @@
  * Copyright 2014 Broadcom Corporation.
  */
 /*
- * Modified by Telechips Inc. (date: 2020-09)
+ * Modified by Telechips Inc. (date: 2022-09)
  */
 
 #include <config.h>
@@ -13,40 +13,115 @@
 #include <fastboot.h>
 #include <fastboot-internal.h>
 #include <fb_ufs.h>
+#include <flash.h>
 #include <image-sparse.h>
+#include <image.h>
+#include <log.h>
 #include <part.h>
-//#include <mmc.h>
 #include <div64.h>
 #include <linux/compat.h>
 #include <android_image.h>
 
-//#define FASTBOOT_MAX_BLK_WRITE_UFS 16384
-#define FASTBOOT_MAX_BLK_WRITE_UFS (16U*50U)
+//#define FASTBOOT_MAX_BLK_WRITE 16384
+#define FASTBOOT_MAX_BLK_WRITE_UFS (800)//(16U*50U)
+
 #define BOOT_PARTITION_NAME "boot"
 
 struct fb_ufs_sparse {
 	struct blk_desc	*dev_desc;
 };
 
-static int part_get_info_by_name_or_alias(struct blk_desc *dev_desc,
-		const char *name, disk_partition_t *info)
+static int raw_part_get_info_by_name(struct blk_desc *dev_desc,
+				     const char *name,
+				     struct disk_partition *info)
+{
+	/* strlen("fastboot_raw_partition_") + PART_NAME_LEN + 1 */
+	char env_desc_name[23 + PART_NAME_LEN + 1];
+	char *raw_part_desc;
+	const char *argv[2];
+	const char **parg = argv;
+
+	/* check for raw partition descriptor */
+	strcpy(env_desc_name, "fastboot_raw_partition_");
+	strlcat(env_desc_name, name, sizeof(env_desc_name));
+	raw_part_desc = strdup(env_get(env_desc_name));
+	if (raw_part_desc == NULL)
+		return -ENODEV;
+
+	/*
+	 * parse partition descriptor
+	 *
+	 * <lba_start> <lba_size> [ufspart <num>]
+	 */
+	for (; parg < argv + sizeof(argv) / sizeof(*argv); ++parg) {
+		*parg = strsep(&raw_part_desc, " ");
+		if (*parg == NULL) {
+			pr_err("Invalid number of arguments.\n");
+			return -ENODEV;
+		}
+	}
+
+	info->start = simple_strtoul(argv[0], NULL, 0);
+	info->size = simple_strtoul(argv[1], NULL, 0);
+	info->blksz = dev_desc->blksz;
+	strlcpy((char *)info->name, name, PART_NAME_LEN);
+
+	if (raw_part_desc) {
+		if (strcmp(strsep(&raw_part_desc, " "), "scsipart") == 0) {
+			ulong scsipart = simple_strtoul(raw_part_desc, NULL, 0);
+			int ret = blk_dselect_hwpart(dev_desc, scsipart);
+
+			if (ret)
+				return ret;
+		}
+	}
+
+	return 0;
+}
+
+static int do_get_part_info(struct blk_desc **dev_desc, const char *name,
+			    struct disk_partition *info)
 {
 	int ret;
 
-	ret = part_get_info_by_name(dev_desc, name, info);
+	/* First try partition names on the default device */
+	*dev_desc = blk_get_dev("scsi", CONFIG_FASTBOOT_FLASH_UFS_DEV);
+	if (*dev_desc) {
+		ret = part_get_info_by_name(*dev_desc, name, info);
+		if (ret >= 0)
+			return ret;
+
+		/* Then try raw partitions */
+		ret = raw_part_get_info_by_name(*dev_desc, name, info);
+		if (ret >= 0)
+			return ret;
+	}
+
+	/* Then try dev.hwpart:part */
+	ret = part_get_info_by_dev_and_name_or_num("scsi", name, dev_desc,
+						   info, true);
+	return ret;
+}
+
+static int part_get_info_by_name_or_alias(struct blk_desc **dev_desc,
+					  const char *name,
+					  struct disk_partition *info)
+{
+	int ret;
+
+	ret = do_get_part_info(dev_desc, name, info);
 	if (ret < 0) {
 		/* strlen("fastboot_partition_alias_") + PART_NAME_LEN + 1 */
 		char env_alias_name[25 + PART_NAME_LEN + 1];
-		const char *aliased_part_name;
+		char *aliased_part_name;
 
 		/* check for alias */
 		strcpy(env_alias_name, "fastboot_partition_alias_");
-		strncat(env_alias_name, name, PART_NAME_LEN);
+		strlcat(env_alias_name, name, sizeof(env_alias_name));
 		aliased_part_name = env_get(env_alias_name);
-		if (aliased_part_name != NULL) {
-			ret = part_get_info_by_name(dev_desc,
-					aliased_part_name, info);
-		}
+		if (aliased_part_name != NULL)
+			ret = do_get_part_info(dev_desc, aliased_part_name,
+					       info);
 	}
 	return ret;
 }
@@ -66,25 +141,18 @@ static lbaint_t fb_ufs_blk_write(struct blk_desc *block_dev, lbaint_t start,
 	lbaint_t blks_written;
 	lbaint_t cur_blkcnt;
 	lbaint_t blks = 0;
-#if 0
-	lbaint_t blks_reads;
-	void *read_buffer = 0x40000000;
-	int ret = 0;
-#endif
 	int i;
 
-	for (i = 0; i < blkcnt; i += (int)FASTBOOT_MAX_BLK_WRITE_UFS) {
-		cur_blkcnt = min(((int)blkcnt - i), (int)FASTBOOT_MAX_BLK_WRITE_UFS);
-		if (buffer != NULL) {
-			if (fastboot_progress_callback != NULL) {
+	for (i = 0; i < blkcnt; i += FASTBOOT_MAX_BLK_WRITE_UFS) {
+		cur_blkcnt = min((int)(blkcnt - i), FASTBOOT_MAX_BLK_WRITE_UFS);
+		if (buffer) {
+			if (fastboot_progress_callback)
 				fastboot_progress_callback("writing");
-			}
 			blks_written = blk_dwrite(block_dev, blk, cur_blkcnt,
-					  buffer + (i * block_dev->blksz));
+						  buffer + (i * block_dev->blksz));
 		} else {
-			if (fastboot_progress_callback != NULL) {
+			if (fastboot_progress_callback)
 				fastboot_progress_callback("erasing");
-			}
 			blks_written = blk_derase(block_dev, blk, cur_blkcnt);
 		}
 		blk += blks_written;
@@ -105,53 +173,129 @@ static lbaint_t fb_ufs_sparse_write(struct sparse_storage *info,
 static lbaint_t fb_ufs_sparse_reserve(struct sparse_storage *info,
 		lbaint_t blk, lbaint_t blkcnt)
 {
-	(void)blk;
 	return blkcnt;
 }
 
-static void write_raw_image(struct blk_desc *dev_desc, disk_partition_t *info,
-		const char *part_name, void *buffer,
-		u32 download_bytes, char *response)
+static void write_raw_image(struct blk_desc *dev_desc,
+			    struct disk_partition *info, const char *part_name,
+			    void *buffer, u32 download_bytes, char *response)
 {
 	lbaint_t blkcnt;
 	lbaint_t blks;
 
 	/* determine number of blocks to write */
-	blkcnt = ((download_bytes + (info->blksz - 1U)) & ~(info->blksz - 1U));
+	blkcnt = ((download_bytes + (info->blksz - 1)) & ~(info->blksz - 1));
 	blkcnt = lldiv(blkcnt, info->blksz);
 
 	if (blkcnt > info->size) {
 		pr_err("too large for partition: '%s'\n", part_name);
 		fastboot_fail("too large for partition", response);
-	} else {
+		return;
+	}
 
-		pr_info("Flashing Raw Image\n");
+	puts("Flashing Raw Image\n");
 
-		blks = fb_ufs_blk_write(dev_desc, info->start, blkcnt, buffer);
+	blks = fb_ufs_blk_write(dev_desc, info->start, blkcnt, buffer);
+
+	if (blks != blkcnt) {
+		pr_err("failed writing to device %d\n", dev_desc->devnum);
+		fastboot_fail("failed writing to device", response);
+		return;
+	}
+
+	printf("........ wrote " LBAFU " bytes to '%s'\n", blkcnt * info->blksz,
+	       part_name);
+	fastboot_okay(NULL, response);
+}
+
+#if defined(CONFIG_FASTBOOT_UFS_BOOT_SUPPORT) || \
+	defined(CONFIG_FASTBOOT_UFS_USER_SUPPORT)
+static int fb_ufs_erase_ufs_hwpart(struct blk_desc *dev_desc)
+{
+	lbaint_t blks;
+
+	debug("Start Erasing ufs hwpart[%u]...\n", dev_desc->hwpart);
+
+	blks = fb_ufs_blk_write(dev_desc, 0, dev_desc->lba, NULL);
+
+	if (blks != dev_desc->lba) {
+		pr_err("Failed to erase ufs hwpart[%u]\n", dev_desc->hwpart);
+		return 1;
+	}
+
+	printf("........ erased %lu bytes from ufs hwpart[%u]\n",
+	       dev_desc->lba * dev_desc->blksz, dev_desc->hwpart);
+
+	return 0;
+}
+#endif
+
+#ifdef CONFIG_FASTBOOT_UFS_BOOT_SUPPORT
+static void fb_ufs_boot_ops(struct blk_desc *dev_desc, void *buffer,
+			    int hwpart, u32 buff_sz, char *response)
+{
+	lbaint_t blkcnt;
+	lbaint_t blks;
+	unsigned long blksz;
+
+	// To operate on UFS_BOOT1/2 (scsi 0/1) we first change the hwpart
+	if (blk_dselect_hwpart(dev_desc, hwpart)) {
+		pr_err("Failed to select hwpart\n");
+		fastboot_fail("Failed to select hwpart", response);
+		return;
+	}
+
+	if (buffer) { /* flash */
+
+		/* determine number of blocks to write */
+		blksz = dev_desc->blksz;
+		blkcnt = ((buff_sz + (blksz - 1)) & ~(blksz - 1));
+		blkcnt = lldiv(blkcnt, blksz);
+
+		if (blkcnt > dev_desc->lba) {
+			pr_err("Image size too large\n");
+			fastboot_fail("Image size too large", response);
+			return;
+		}
+
+		debug("Start Flashing Image to UFS_BOOT%d...\n", hwpart);
+
+		blks = fb_ufs_blk_write(dev_desc, 0, blkcnt, buffer);
 
 		if (blks != blkcnt) {
-			pr_err("failed writing to device %d\n", dev_desc->devnum);
-			fastboot_fail("failed writing to device", response);
-		} else {
-			pr_info("........ wrote " LBAFU " bytes to '%s'\n", blkcnt * info->blksz,
-					part_name);
-			fastboot_okay(NULL, response);
+			pr_err("Failed to write UFS_BOOT%d\n", hwpart);
+			fastboot_fail("Failed to write UFS_BOOT part",
+				      response);
+			return;
+		}
+
+		printf("........ wrote %lu bytes to UFS_BOOT%d\n",
+		       blkcnt * blksz, hwpart);
+	} else { /* erase */
+		if (fb_ufs_erase_ufs_hwpart(dev_desc)) {
+			pr_err("Failed to erase UFS_BOOT%d\n", hwpart);
+			fastboot_fail("Failed to erase UFS_BOOT part",
+				      response);
+			return;
 		}
 	}
+
+	fastboot_okay(NULL, response);
 }
+#endif
 
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 /**
  * Read Android boot image header from boot partition.
  *
- * @param[in] dev_desc MMC device descriptor
+ * @param[in] dev_desc UFS device descriptor
  * @param[in] info Boot partition info
  * @param[out] hdr Where to store read boot image header
  *
  * @return Boot image header sectors count or 0 on error
  */
 static lbaint_t fb_ufs_get_boot_header(struct blk_desc *dev_desc,
-				       disk_partition_t *info,
+				       struct disk_partition *info,
 				       struct andr_img_hdr *hdr,
 				       char *response)
 {
@@ -162,34 +306,36 @@ static lbaint_t fb_ufs_get_boot_header(struct blk_desc *dev_desc,
 	/* Calculate boot image sectors count */
 	sector_size = info->blksz;
 	hdr_sectors = DIV_ROUND_UP(sizeof(struct andr_img_hdr), sector_size);
-	if (hdr_sectors == 0U) {
+	if (hdr_sectors == 0) {
 		pr_err("invalid number of boot sectors: 0\n");
 		fastboot_fail("invalid number of boot sectors: 0", response);
-	} else {
-		/* Read the boot image header */
-		res = blk_dread(dev_desc, info->start, hdr_sectors, (void *)hdr);
-		if (res != (int)hdr_sectors) {
-			pr_err("cannot read header from boot partition\n");
-			fastboot_fail("cannot read header from boot partition",
-					response);
-			hdr_sectors = 0;
-		} else {
-			/* Check boot header magic string */
-			res = android_image_check_header(hdr);
-			if (res != 0) {
-				pr_err("bad boot image magic\n");
-				fastboot_fail("boot partition not initialized", response);
-				hdr_sectors = 0;
-			}
-		}
+		return 0;
 	}
+
+	/* Read the boot image header */
+	res = blk_dread(dev_desc, info->start, hdr_sectors, (void *)hdr);
+	if (res != hdr_sectors) {
+		pr_err("cannot read header from boot partition\n");
+		fastboot_fail("cannot read header from boot partition",
+			      response);
+		return 0;
+	}
+
+	/* Check boot header magic string */
+	res = android_image_check_header(hdr);
+	if (res != 0) {
+		pr_err("bad boot image magic\n");
+		fastboot_fail("boot partition not initialized", response);
+		return 0;
+	}
+
 	return hdr_sectors;
 }
 
 /**
  * Write downloaded zImage to boot partition and repack it properly.
  *
- * @param dev_desc MMC device descriptor
+ * @param dev_desc UFS device descriptor
  * @param download_buffer Address to fastboot buffer with zImage in it
  * @param download_bytes Size of fastboot buffer, in bytes
  *
@@ -209,18 +355,17 @@ static int fb_ufs_update_zimage(struct blk_desc *dev_desc,
 	u32 kernel_sector_start;
 	u32 kernel_sectors;
 	u32 sectors_per_page;
-	disk_partition_t info;
+	struct disk_partition info;
 	int res;
 
-	pr_info("Flashing zImage\n");
+	puts("Flashing zImage\n");
 
 	/* Get boot partition info */
 	res = part_get_info_by_name(dev_desc, BOOT_PARTITION_NAME, &info);
 	if (res < 0) {
 		pr_err("cannot find boot partition\n");
 		fastboot_fail("cannot find boot partition", response);
-		res = -1;
-		goto error;
+		return -1;
 	}
 
 	/* Put boot image header in fastboot buffer after downloaded zImage */
@@ -229,20 +374,18 @@ static int fb_ufs_update_zimage(struct blk_desc *dev_desc,
 
 	/* Read boot image header */
 	hdr_sectors = fb_ufs_get_boot_header(dev_desc, &info, hdr, response);
-	if (hdr_sectors == 0U) {
+	if (hdr_sectors == 0) {
 		pr_err("unable to read boot image header\n");
 		fastboot_fail("unable to read boot image header", response);
-		res = -1;
-		goto error;
+		return -1;
 	}
 
 	/* Check if boot image has second stage in it (we don't support it) */
-	if (hdr->second_size > 0U) {
+	if (hdr->second_size > 0) {
 		pr_err("moving second stage is not supported yet\n");
 		fastboot_fail("moving second stage is not supported yet",
 			      response);
-		res = -1;
-		goto error;
+		return -1;
 	}
 
 	/* Extract ramdisk location */
@@ -257,12 +400,11 @@ static int fb_ufs_update_zimage(struct blk_desc *dev_desc,
 	ramdisk_buffer = (u8 *)hdr + (hdr_sectors * info.blksz);
 	res = blk_dread(dev_desc, ramdisk_sector_start, ramdisk_sectors,
 			ramdisk_buffer);
-	if (res != (int)ramdisk_sectors) {
+	if (res != ramdisk_sectors) {
 		pr_err("cannot read ramdisk from boot partition\n");
 		fastboot_fail("cannot read ramdisk from boot partition",
 			      response);
-		res = -1;
-		goto error;
+		return -1;
 	}
 
 	/* Write new kernel size to boot image header */
@@ -271,8 +413,7 @@ static int fb_ufs_update_zimage(struct blk_desc *dev_desc,
 	if (res == 0) {
 		pr_err("cannot writeback boot image header\n");
 		fastboot_fail("cannot write back boot image header", response);
-		res = -1;
-		goto error;
+		return -1;
 	}
 
 	/* Write the new downloaded kernel */
@@ -284,8 +425,7 @@ static int fb_ufs_update_zimage(struct blk_desc *dev_desc,
 	if (res == 0) {
 		pr_err("cannot write new kernel\n");
 		fastboot_fail("cannot write new kernel", response);
-		res = -1;
-		goto error;
+		return -1;
 	}
 
 	/* Write the saved ramdisk back */
@@ -297,50 +437,75 @@ static int fb_ufs_update_zimage(struct blk_desc *dev_desc,
 	if (res == 0) {
 		pr_err("cannot write back original ramdisk\n");
 		fastboot_fail("cannot write back original ramdisk", response);
-		res = -1;
-		goto error;
+		return -1;
 	}
 
-	pr_info("........ zImage was updated in boot partition\n");
+	puts("........ zImage was updated in boot partition\n");
 	fastboot_okay(NULL, response);
-	res = 0;
-
-error:
-	return res;
+	return 0;
 }
 #endif
 
 /**
- * fastboot_ufs_get_part_info() - Lookup ufs partion by name
+ * fastboot_ufs_get_part_info() - Lookup UFS partion by name
  *
  * @part_name: Named partition to lookup
  * @dev_desc: Pointer to returned blk_desc pointer
- * @part_info: Pointer to returned disk_partition_t
+ * @part_info: Pointer to returned struct disk_partition
  * @response: Pointer to fastboot response buffer
  */
 int fastboot_ufs_get_part_info(const char *part_name,
 			       struct blk_desc **dev_desc,
-			       disk_partition_t *part_info, char *response)
+			       struct disk_partition *disk_part_info, char *response)
 {
-	int r;
+	int ret;
 
 	*dev_desc = blk_get_dev("scsi", CONFIG_FASTBOOT_FLASH_UFS_DEV);
 	if (*dev_desc == NULL) {
 		fastboot_fail("block device not found", response);
-		r = -ENOENT;
+		ret = -ENOENT;
 	} else {
-		if ((part_name == NULL) || (strcmp(part_name, "") == 0)) {
+		if (!part_name || !strcmp(part_name, "")) {
 			fastboot_fail("partition not given", response);
-			r = -ENOENT;
-		} else {
-			r = part_get_info_by_name_or_alias(*dev_desc, part_name, part_info);
-			if (r < 0) {
-				fastboot_fail("partition not found", response);
+			return -ENOENT;
+		}
+
+		ret = part_get_info_by_name_or_alias(dev_desc, part_name, disk_part_info);
+		if (ret < 0) {
+			switch (ret) {
+			case -ENOSYS:
+			case -EINVAL:
+				fastboot_fail("invalid partition or device", response);
+				break;
+			case -ENODEV:
+				fastboot_fail("no such device", response);
+				break;
+			case -ENOENT:
+				fastboot_fail("no such partition", response);
+				break;
+			case -EPROTONOSUPPORT:
+				fastboot_fail("unknown partition table type", response);
+				break;
+			default:
+				fastboot_fail("unanticipated error", response);
+				break;
 			}
 		}
 	}
+	return ret;
+}
 
-	return r;
+static struct blk_desc *fastboot_ufs_get_dev(char *response)
+{
+	struct blk_desc *ret = blk_get_dev("scsi",
+					   CONFIG_FASTBOOT_FLASH_UFS_DEV);
+
+	if (!ret || ret->type == DEV_TYPE_UNKNOWN) {
+		pr_err("invalid ufs device\n");
+		fastboot_fail("invalid ufs device", response);
+		return NULL;
+	}
+	return ret;
 }
 
 /**
@@ -355,73 +520,112 @@ void fastboot_ufs_flash_write(const char *cmd, void *download_buffer,
 			      u32 download_bytes, char *response)
 {
 	struct blk_desc *dev_desc;
-	disk_partition_t info;
+	struct disk_partition info = {0};
 
+	puts("flash write\n");
 	dev_desc = blk_get_dev("scsi", CONFIG_FASTBOOT_FLASH_UFS_DEV);
 	if ((dev_desc == NULL) || (dev_desc->type == (unsigned char)DEV_TYPE_UNKNOWN)) {
 		pr_err("invalid ufs device\n");
 		fastboot_fail("invalid ufs device", response);
 		goto out;
 	}
+#ifdef CONFIG_FASTBOOT_UFS_BOOT_SUPPORT
+	if (strcmp(cmd, CONFIG_FASTBOOT_UFS_BOOT1_NAME) == 0) {
+		dev_desc = fastboot_ufs_get_dev(response);
+		if (dev_desc)
+			fb_ufs_boot_ops(dev_desc, download_buffer, 1,
+					download_bytes, response);
+		return;
+	}
+	if (strcmp(cmd, CONFIG_FASTBOOT_UFS_BOOT2_NAME) == 0) {
+		dev_desc = fastboot_ufs_get_dev(response);
+		if (dev_desc)
+			fb_ufs_boot_ops(dev_desc, download_buffer, 2,
+					download_bytes, response);
+		return;
+	}
+#endif
 
 #if CONFIG_IS_ENABLED(EFI_PARTITION)
 	if (strcmp(cmd, CONFIG_FASTBOOT_GPT_NAME) == 0) {
-		pr_info("%s: updating MBR, Primary and Backup GPT(s)\n",
+		dev_desc = fastboot_ufs_get_dev(response);
+		if (!dev_desc)
+			return;
+
+		printf("%s: updating MBR, Primary and Backup GPT(s)\n",
 		       __func__);
-		if (is_valid_gpt_buf(dev_desc, download_buffer) != 0) {
-			pr_info("%s: invalid GPT - refusing to write to flash\n",
+		if (is_valid_gpt_buf(dev_desc, download_buffer)) {
+			printf("%s: invalid GPT - refusing to write to flash\n",
 			       __func__);
 			fastboot_fail("invalid GPT partition", response);
-			goto out;
+			return;
 		}
-		if (write_mbr_and_gpt_partitions(dev_desc, download_buffer) != 0) {
-			pr_info("%s: writing GPT partitions failed\n", __func__);
+		if (write_mbr_and_gpt_partitions(dev_desc, download_buffer)) {
+			printf("%s: writing GPT partitions failed\n", __func__);
 			fastboot_fail("writing GPT partitions failed",
 				      response);
-			goto out;
+			return;
 		}
-		pr_info("........ success\n");
+		part_init(dev_desc);
+		printf("........ success\n");
 		fastboot_okay(NULL, response);
-		goto out;
+		return;
 	}
 #endif
 
 #if CONFIG_IS_ENABLED(DOS_PARTITION)
 	if (strcmp(cmd, CONFIG_FASTBOOT_MBR_NAME) == 0) {
-		pr_info("%s: updating MBR\n", __func__);
-		if (is_valid_dos_buf(download_buffer) != 0) {
-			pr_info("%s: invalid MBR - refusing to write to flash\n",
+		dev_desc = fastboot_ufs_get_dev(response);
+		if (!dev_desc)
+			return;
+
+		printf("%s: updating MBR\n", __func__);
+		if (is_valid_dos_buf(download_buffer)) {
+			printf("%s: invalid MBR - refusing to write to flash\n",
 			       __func__);
 			fastboot_fail("invalid MBR partition", response);
-			goto out;
+			return;
 		}
-		if (write_mbr_partition(dev_desc, download_buffer) != 0) {
-			pr_info("%s: writing MBR partition failed\n", __func__);
+		if (write_mbr_sector(dev_desc, download_buffer)) {
+			printf("%s: writing MBR partition failed\n", __func__);
 			fastboot_fail("writing MBR partition failed",
 				      response);
-			goto out;
+			return;
 		}
-		pr_info("........ success\n");
+		part_init(dev_desc);
+		printf("........ success\n");
 		fastboot_okay(NULL, response);
-		goto out;
+		return;
 	}
 #endif
 
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 	if (strncasecmp(cmd, "zimage", 6) == 0) {
-		fb_ufs_update_zimage(dev_desc, download_buffer,
-				     download_bytes, response);
-		goto out;
+		dev_desc = fastboot_ufs_get_dev(response);
+		if (dev_desc)
+			fb_ufs_update_zimage(dev_desc, download_buffer,
+					     download_bytes, response);
+		return;
 	}
 #endif
 
-	if (part_get_info_by_name_or_alias(dev_desc, cmd, &info) < 0) {
-		pr_err("cannot find partition: '%s'\n", cmd);
-		fastboot_fail("cannot find partition", response);
-		goto out;
-	}
+#if CONFIG_IS_ENABLED(FASTBOOT_UFS_USER_SUPPORT)
+	if (strcmp(cmd, CONFIG_FASTBOOT_UFS_USER_NAME) == 0) {
+		dev_desc = fastboot_ufs_get_dev(response);
+		if (!dev_desc)
+			return;
 
-	if (is_sparse_image(download_buffer) != 0) {
+		strlcpy((char *)&info.name, cmd, sizeof(info.name));
+		info.size	= dev_desc->lba;
+		info.blksz	= dev_desc->blksz;
+	}
+#endif
+
+	if (!info.name[0] &&
+	    fastboot_ufs_get_part_info(cmd, &dev_desc, &info, response) < 0)
+		return;
+
+	if (is_sparse_image(download_buffer)) {
 		struct fb_ufs_sparse sparse_priv;
 		struct sparse_storage sparse;
 		int err;
@@ -435,74 +639,91 @@ void fastboot_ufs_flash_write(const char *cmd, void *download_buffer,
 		sparse.reserve = fb_ufs_sparse_reserve;
 		sparse.mssg = fastboot_fail;
 
-		pr_info("Flashing sparse image at offset " LBAFU "\n",
+		printf("Flashing sparse image at offset " LBAFU "\n",
 		       sparse.start);
 
 		sparse.priv = &sparse_priv;
 		err = write_sparse_image(&sparse, cmd, download_buffer,
 					 response);
-		if (err != 0) {
+		if (!err)
 			fastboot_okay(NULL, response);
-		}
 	} else {
 		write_raw_image(dev_desc, &info, cmd, download_buffer,
 				download_bytes, response);
 	}
-
 out:
 	return;
 }
 
 /**
- * fastboot_ufs_flash_erase() - Erase ufs for fastboot
+ * fastboot_ufs_flash_erase() - Erase UFS for fastboot
  *
  * @cmd: Named partition to erase
  * @response: Pointer to fastboot response buffer
  */
 void fastboot_ufs_erase(const char *cmd, char *response)
 {
-	int ret;
 	struct blk_desc *dev_desc;
-	disk_partition_t info;
-	lbaint_t blks, blks_start, blks_size/*, grp_size*/;
-#if 0
-	struct ufs *mmc = find_mmc_device(CONFIG_FASTBOOT_FLASH_MMC_DEV);
-
-	if (mmc == NULL) {
-		pr_err("invalid mmc device\n");
-		fastboot_fail("invalid mmc device", response);
-		return;
-	}
-#endif
+	struct disk_partition info;
+	lbaint_t blks, blks_start, blks_size;
+	
 	dev_desc = blk_get_dev("scsi", CONFIG_FASTBOOT_FLASH_UFS_DEV);
 	if ((dev_desc == NULL) || (dev_desc->type == (unsigned char)DEV_TYPE_UNKNOWN)) {
 		pr_err("invalid ufs device\n");
-		fastboot_fail("invalid mmc device", response);
+		fastboot_fail("invalid ufs device", response);
 	} else {
-		ret = part_get_info_by_name_or_alias(dev_desc, cmd, &info);
-		if (ret < 0) {
-			pr_err("cannot find partition: '%s'\n", cmd);
-			fastboot_fail("cannot find partition", response);
-		} else {
-			/* Align blocks to erase group size to avoid erasing other partitions */
-			//grp_size = 1;//mmc->erase_grp_size;
-			blks_start = info.start;
-			blks_size = info.size;
-
-			pr_info("Erasing blocks " LBAFU " to " LBAFU " due to alignment\n",
-					blks_start, blks_start + blks_size);
-
-			blks = fb_ufs_blk_write(dev_desc, blks_start, blks_size, NULL);
-
-			if (blks != blks_size) {
-				pr_err("failed erasing from device %d\n", dev_desc->devnum);
-				fastboot_fail("failed erasing from device", response);
-			} else {
-				pr_info("........ erased " LBAFU " bytes from '%s'\n",
-						blks_size * info.blksz, cmd);
-
-				fastboot_okay(NULL, response);
-			}
+	#ifdef CONFIG_FASTBOOT_UFS_BOOT_SUPPORT
+		if (strcmp(cmd, CONFIG_FASTBOOT_UFS_BOOT1_NAME) == 0) {
+			/* erase SCSI boot1 */
+			dev_desc = fastboot_ufs_get_dev(response);
+			if (dev_desc)
+				fb_ufs_boot_ops(dev_desc, NULL, 1, 0, response);
+			return;
 		}
+		if (strcmp(cmd, CONFIG_FASTBOOT_UFS_BOOT2_NAME) == 0) {
+			/* erase SCSI boot2 */
+			dev_desc = fastboot_ufs_get_dev(response);
+			if (dev_desc)
+				fb_ufs_boot_ops(dev_desc, NULL, 2, 0, response);
+			return;
+		}
+	#endif
+
+	#ifdef CONFIG_FASTBOOT_UFS_USER_SUPPORT
+		if (strcmp(cmd, CONFIG_FASTBOOT_UFS_USER_NAME) == 0) {
+			/* erase SCSI userdata */
+			dev_desc = fastboot_ufs_get_dev(response);
+			if (!dev_desc)
+				return;
+
+			if (fb_ufs_erase_ufs_hwpart(dev_desc))
+				fastboot_fail("Failed to erase UFS_USER", response);
+			else
+				fastboot_okay(NULL, response);
+			return;
+		}
+	#endif
+
+		if (fastboot_ufs_get_part_info(cmd, &dev_desc, &info, response) < 0)
+			return;
+
+		/* Align blocks to erase group size to avoid erasing other partitions */
+				blks_start = info.start;
+				blks_size = info.size;
+
+		printf("Erasing blocks " LBAFU " to " LBAFU " due to alignment\n",
+		       blks_start, blks_start + blks_size);
+
+		blks = fb_ufs_blk_write(dev_desc, blks_start, blks_size, NULL);
+
+		if (blks != blks_size) {
+			pr_err("failed erasing from device %d\n", dev_desc->devnum);
+			fastboot_fail("failed erasing from device", response);
+			return;
+		}
+
+		printf("........ erased " LBAFU " bytes from '%s'\n",
+		       blks_size * info.blksz, cmd);
+		fastboot_okay(NULL, response);
 	}
 }

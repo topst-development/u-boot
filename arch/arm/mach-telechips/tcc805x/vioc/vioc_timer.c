@@ -4,13 +4,12 @@
  */
 
 #include <common.h>
-#include <tcc_fb.h>
 #include <asm/io.h>
 #include <mach/clock.h>
-#include <asm/telechips/tcc_ckc.h>
-#include <asm/telechips/vioc/vioc_timer.h>
-#include <asm/telechips/vioc/vioc_global.h>
-#include <asm/telechips/vioc/reg_physical.h>
+#include <asm/arch/tcc_ckc.h>
+#include <asm/arch/vioc/vioc_timer.h>
+#include <asm/arch/vioc/vioc_global.h>
+#include <asm/arch/vioc/reg_physical.h>
 
 void VIOC_TIMER_SetUsecEnable(void __iomem *reg, int en, unsigned int utime)
 {

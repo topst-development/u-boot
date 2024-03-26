@@ -18,16 +18,7 @@
  */
 #define CONFIG_SHEEVA_88SV131	1	/* CPU Core subversion */
 #define CONFIG_KW88F6281	1	/* SOC Name */
-#define CONFIG_SKIP_LOWLEVEL_INIT	/* disable board lowlevel_init */
 
-/*
- * Commands configuration
- */
-
-/*
- * mv-common.h should be defined after CMD configs since it used them
- * to enable certain macros
- */
 #include "mv-common.h"
 
 /*
@@ -81,10 +72,5 @@
 #define CONFIG_SYS_ATA_IDE0_OFFSET	MV_SATA_PORT0_OFFSET
 #define CONFIG_SYS_ATA_IDE1_OFFSET	MV_SATA_PORT1_OFFSET
 #endif /*CONFIG_MVSATA_IDE*/
-
-#ifdef CONFIG_CMD_MMC
-#define CONFIG_MVEBU_MMC
-#define CONFIG_SYS_MMC_BASE KW_SDIO_BASE
-#endif /* CONFIG_CMD_MMC */
 
 #endif /* _CONFIG_OPENRD_BASE_H */

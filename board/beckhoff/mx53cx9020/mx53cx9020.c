@@ -13,9 +13,11 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/iomux-mx53.h>
+#include <asm/global_data.h>
 #include <asm/mach-imx/mx5_video.h>
 #include <ACEX1K.h>
 #include <asm/gpio.h>
+#include <linux/delay.h>
 
 enum LED_GPIOS {
 	GPIO_SD1_CD = IMX_GPIO_NR(1, 1),
@@ -46,6 +48,7 @@ static const u32 CCAT_MODE_RUN = 0x0033DC8F;
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifdef CONFIG_REVISION_TAG
 u32 get_board_rev(void)
 {
 	struct iim_regs *iim = (struct iim_regs *)IMX_IIM_BASE;
@@ -57,6 +60,7 @@ u32 get_board_rev(void)
 
 	return (get_cpu_rev() & ~(0xF << 8)) | (rev & 0xF) << 8;
 }
+#endif
 
 /*
  * Set CCAT mode
@@ -128,16 +132,6 @@ static void setup_gpio_leds(void)
 	gpio_direction_output(GPIO_LED_PWR_B, 0);
 	gpio_direction_output(GPIO_LED_PWR_G, 0);
 }
-
-#ifdef CONFIG_USB_EHCI_MX5
-int board_ehci_hcd_init(int port)
-{
-	/* request VBUS power enable pin, GPIO7_8 */
-	gpio_direction_output(IMX_GPIO_NR(7, 8), 1);
-	return 0;
-}
-#endif
-
 
 static int power_init(void)
 {

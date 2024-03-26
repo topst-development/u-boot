@@ -6,14 +6,17 @@
  * Note that it requires timer_get_boot_us() to be defined by the board
  *
  * Copyright (c) 2011 The Chromium OS Authors.
+ * Copyright (c) 2023 Telechips Inc.
  */
 
 /*
- * Modified by Telechips Inc. (date: 2020-05)
+ * Modified by Telechips Inc. (date: 2023-04)
  */
 
 #ifndef _BOOTSTAGE_H
 #define _BOOTSTAGE_H
+
+#include <linux/kconfig.h>
 
 /* Flags for each bootstage record */
 enum bootstage_flags {
@@ -204,9 +207,12 @@ enum bootstage_id {
 	BOOTSTAGE_ID_ACCUM_DECOMP,
 	BOOTSTAGE_ID_ACCUM_OF_LIVE,
 	BOOTSTAGE_ID_FPGA_INIT,
-	BOOTSTATE_ID_ACCUM_DM_SPL,
-	BOOTSTATE_ID_ACCUM_DM_F,
-	BOOTSTATE_ID_ACCUM_DM_R,
+	BOOTSTAGE_ID_ACCUM_DM_SPL,
+	BOOTSTAGE_ID_ACCUM_DM_F,
+	BOOTSTAGE_ID_ACCUM_DM_R,
+	BOOTSTAGE_ID_ACCUM_FSP_M,
+	BOOTSTAGE_ID_ACCUM_FSP_S,
+	BOOTSTAGE_ID_ACCUM_MMAP_SPI,
 
 	/* a few spare for the user, from here */
 	BOOTSTAGE_ID_USER,
@@ -220,7 +226,7 @@ enum bootstage_id {
  */
 ulong timer_get_boot_us(void);
 
-#if defined(USE_HOSTCC)
+#if defined(USE_HOSTCC) || !CONFIG_IS_ENABLED(SHOW_BOOT_PROGRESS)
 #define show_boot_progress(val) do {} while (0)
 #else
 /**
@@ -340,7 +346,7 @@ int bootstage_stash(void *base, int size);
  * @param base	Base address of memory buffer
  * @param size	Size of memory buffer (-1 if unknown)
  * @return 0 if unstashed ok, -ENOENT if bootstage info not found, -ENOSPC if
- *	there is not space for read the stacked data, or other error if
+ *	there is not space for read the stashed data, or other error if
  *	something else went wrong
  */
 int bootstage_unstash(const void *base, int size);

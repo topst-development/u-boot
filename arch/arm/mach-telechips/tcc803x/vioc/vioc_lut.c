@@ -5,11 +5,10 @@
 
 #include <common.h>
 #include <linux/err.h>
-#include <tcc_fb.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/vioc_global.h>
-#include <asm/telechips/vioc/reg_physical.h>
-#include <asm/telechips/vioc/vioc_lut.h>
+#include <asm/arch/vioc/vioc_global.h>
+#include <asm/arch/vioc/reg_physical.h>
+#include <asm/arch/vioc/vioc_lut.h>
 
 #define REG_VIOC_LUT(offset) (phys_to_virt(HwVIOCLUT_BASE + (offset)))
 #define LUT_CTRL_R REG_VIOC_LUT(0UL)

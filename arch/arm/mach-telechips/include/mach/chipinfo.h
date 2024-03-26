@@ -1,11 +1,12 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
-#ifndef TCC_CHIPINFO_H
-#define TCC_CHIPINFO_H
+#ifndef MACH_CHIPINFO_H
+#define MACH_CHIPINFO_H
 
+#include <asm/arch/pmu.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
 #include <mach/smc.h>
@@ -47,14 +48,10 @@ static inline u32 get_chip_family(void)
 
 static inline u64 get_chip_id(void)
 {
-	void *uid_pd[2];
 	u64 uid[2];
 
-	uid_pd[0] = phys_to_virt(TCC_ECID_UID_PD0);
-	uid_pd[1] = phys_to_virt(TCC_ECID_UID_PD1);
-
-	uid[0] = (u64)readl(uid_pd[0]);
-	uid[1] = (u64)readl(uid_pd[1]);
+	uid[0] = (u64)pmu_readl(PMU_ECID_UID_PD0);
+	uid[1] = (u64)pmu_readl(PMU_ECID_UID_PD1);
 
 	return ((uid[1] << 32U) | uid[0]) & ~((u64)1U << 63U);
 }
@@ -169,4 +166,4 @@ static inline u32 get_boot_time_stamp_num(void)
 	return ensure_u32(res.a0);
 }
 
-#endif /* TCC_CHIPINFO_H */
+#endif /* MACH_CHIPINFO_H */

@@ -9,10 +9,6 @@
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  */
 
-/*
- * Modified by Telechips Inc. (date: 2020-04)
- */
-
 #ifndef _LCD_H_
 #define _LCD_H_
 #include <lcd_console.h>
@@ -32,7 +28,6 @@ extern int lcd_line_length;
 extern struct vidinfo panel_info;
 
 void lcd_ctrl_init(void *lcdbase);
-void init_lcd_power(unsigned int board_type);
 void lcd_enable(void);
 void lcd_setcolreg(ushort regno, ushort red, ushort green, ushort blue);
 ulong lcd_setmem(ulong addr);
@@ -52,9 +47,6 @@ void lcd_set_flush_dcache(int flush);
 #include <atmel_lcd.h>
 #elif defined(CONFIG_EXYNOS_FB)
 #include <exynos_lcd.h>
-#elif defined(CONFIG_TCC_FB)
-#include <tcc_fb.h>
-#include <tcc_lcd_interface.h>
 #else
 typedef struct vidinfo {
 	ushort	vl_col;		/* Number of columns (i.e. 160) */
@@ -73,7 +65,7 @@ static __maybe_unused ushort *configuration_get_cmap(void)
 
 ushort *configuration_get_cmap(void);
 
-extern struct vidinfo panel_info;
+extern vidinfo_t panel_info;
 
 void lcd_putc(const char c);
 void lcd_puts(const char *s);

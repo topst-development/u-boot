@@ -1,22 +1,21 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * (C) Copyright 2002-2010
+ * Copyright 2020 NXP
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  */
 
 #ifndef	__ASM_GBL_DATA_H
 #define __ASM_GBL_DATA_H
 
-#include "config.h"
+#include <config.h>
 #include "asm/types.h"
 
 /* Architecture-specific global data */
 struct arch_global_data {
 #if defined(CONFIG_FSL_ESDHC)
 	u32 sdhc_clk;
-#if defined(CONFIG_FSL_ESDHC_ADAPTER_IDENT)
-	u8 sdhc_adapter;
-#endif
+	u32 sdhc_per_clk;
 #endif
 #if defined(CONFIG_MPC8xx)
 	unsigned long brg_clk;
@@ -46,9 +45,6 @@ struct arch_global_data {
 # if defined(CONFIG_ARCH_MPC834X)
 	u32 usbmph_clk;
 # endif /* CONFIG_ARCH_MPC834X */
-# if defined(CONFIG_ARCH_MPC8315)
-	u32 tdm_clk;
-# endif
 	u32 core_clk;
 	u32 enc_clk;
 	u32 lbiu_clk;
@@ -58,7 +54,7 @@ struct arch_global_data {
 	u32 pciexp1_clk;
 	u32 pciexp2_clk;
 # endif
-# if defined(CONFIG_ARCH_MPC837X) || defined(CONFIG_ARCH_MPC8315)
+# if defined(CONFIG_ARCH_MPC837X)
 	u32 sata_clk;
 # endif
 # if defined(CONFIG_ARCH_MPC8360)

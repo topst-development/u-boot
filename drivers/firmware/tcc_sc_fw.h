@@ -1,14 +1,20 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
 #ifndef TCC_SC_FW
 #define TCC_SC_FW
 
-#define TCC_SC_CID_CA72	0x72U
-#define TCC_SC_CID_CA53	0x53U
+#if IS_ENABLED(CONFIG_TCC805X)
+#define TCC_SC_CID_MAIN	0x72U
+#define TCC_SC_CID_SUB	0x53U
 #define TCC_SC_CID_SC	0xD3U
+#else /* TCC807x */
+#define TCC_SC_CID_MAIN	0x01U
+#define TCC_SC_CID_SUB	0x02U
+#define TCC_SC_CID_SC	0xD0U
+#endif
 #define TCC_SC_CID_HSM	0xA0U
 
 #define TCC_SC_BSID_BL0	0x42U
@@ -24,7 +30,7 @@
 #define TCC_SC_CMD_REG_SET		0x00000010U
 #define TCC_SC_CMD_REG_SET_MULTI	0x00000011U
 
-#define TCC_SC_BLK_REQ_TIMEOUT_US	(1000U * 1000U)
+#define TCC_SC_BLK_REQ_TIMEOUT_US	(1000U * 1000U * 1000U)
 
 #define TCC_SC_FW_CMD_FIXED_LENGTH	8U
 

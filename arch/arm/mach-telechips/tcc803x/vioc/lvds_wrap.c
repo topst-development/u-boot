@@ -5,8 +5,8 @@
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/reg_physical.h>
-#include <asm/telechips/vioc/lvds_wrap.h>
+#include <asm/arch/vioc/reg_physical.h>
+#include <asm/arch/vioc/lvds_wrap.h>
 
 #ifndef REG_LVDS_WRAP
 #define REG_LVDS_WRAP (0x1B940000) // 16 word

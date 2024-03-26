@@ -153,7 +153,7 @@
 #define PA_GRANULARITY_MAX_VAL	6
 
 /* PHY Adapter Protocol Constants */
-#define PA_MAXDATALANES	4U
+#define PA_MAXDATALANES	4
 
 /* PA power modes */
 enum {

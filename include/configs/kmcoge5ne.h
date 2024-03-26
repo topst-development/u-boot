@@ -9,8 +9,6 @@
 #define __CONFIG_H
 
 #define CONFIG_HOSTNAME		"kmcoge5ne"
-#define CONFIG_KM_BOARD_NAME	"kmcoge5ne"
-#define CONFIG_KM_DEF_NETDEV	"netdev=eth1\0"
 #define CONFIG_NAND_ECC_BCH
 #define CONFIG_NAND_KMETER1
 #define CONFIG_SYS_MAX_NAND_DEVICE		1
@@ -29,7 +27,6 @@
 /*
  * System Clock Setup
  */
-#define CONFIG_83XX_CLKIN		66000000
 #define CONFIG_SYS_CLK_FREQ		66000000
 #define CONFIG_83XX_PCICLK		66000000
 

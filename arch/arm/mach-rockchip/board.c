@@ -8,8 +8,11 @@
 #include <dm.h>
 #include <fastboot.h>
 #include <init.h>
+#include <log.h>
 #include <ram.h>
 #include <syscon.h>
+#include <asm/cache.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/arch-rockchip/boot_mode.h>
 #include <asm/arch-rockchip/clock.h>
@@ -136,7 +139,7 @@ static struct dwc3_device dwc3_device_data = {
 	.hsphy_mode = USBPHY_INTERFACE_MODE_UTMIW,
 };
 
-int usb_gadget_handle_interrupts(void)
+int usb_gadget_handle_interrupts(int index)
 {
 	dwc3_uboot_handle_interrupt(0);
 	return 0;

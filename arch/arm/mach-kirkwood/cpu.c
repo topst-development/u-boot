@@ -7,7 +7,11 @@
 
 #include <common.h>
 #include <command.h>
+#include <cpu_func.h>
 #include <env.h>
+#include <init.h>
+#include <log.h>
+#include <net.h>
 #include <netdev.h>
 #include <asm/cache.h>
 #include <asm/io.h>
@@ -15,7 +19,7 @@
 #include <asm/arch/soc.h>
 #include <mvebu_mmc.h>
 
-void reset_cpu(unsigned long ignored)
+void reset_cpu(void)
 {
 	struct kwcpu_registers *cpureg =
 	    (struct kwcpu_registers *)KW_CPU_REG_BASE;
@@ -121,7 +125,7 @@ static void kw_sysrst_check(void)
 		return;
 
 	/* read sysrstdelay value */
-	sysrst_dly = (u32) simple_strtoul(s, NULL, 10);
+	sysrst_dly = (u32)dectoul(s, NULL);
 
 	/* read SysRst Length counter register (bits 28:0) */
 	sysrst_cnt = (0x1fffffff & readl(KW_REG_SYSRST_CNT));
@@ -268,17 +272,9 @@ int arch_misc_init(void)
 #endif /* CONFIG_ARCH_MISC_INIT */
 
 #ifdef CONFIG_MVGBE
-int cpu_eth_init(bd_t *bis)
+int cpu_eth_init(struct bd_info *bis)
 {
 	mvgbe_initialize(bis);
 	return 0;
 }
 #endif
-
-#ifdef CONFIG_MVEBU_MMC
-int board_mmc_init(bd_t *bis)
-{
-	mvebu_mmc_init(bis);
-	return 0;
-}
-#endif /* CONFIG_MVEBU_MMC */

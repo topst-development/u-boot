@@ -7,19 +7,19 @@
 
 #include <common.h>
 #include <dm.h>
-#include <irq.h>
+#include <linux/io.h>
 
-#include <asm/io.h>
+#include "irqchip.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
 static struct udevice *cur_irq_controller;
-static const struct irq_ops *ops;
+static const struct irqchip_ops *ops;
 static u32 cells;
 
-static s32 arch_interrupt_cells_init(void)
+static int arch_interrupt_cells_init(void)
 {
-	s32 ret = dev_read_u32(cur_irq_controller, "#interrupt-cells", &cells);
+	int ret = dev_read_u32(cur_irq_controller, "#interrupt-cells", &cells);
 
 	if (ret != 0) {
 		const char *devname = dev_read_name(cur_irq_controller);
@@ -35,10 +35,10 @@ static s32 arch_interrupt_cells_init(void)
 	return ret;
 }
 
-s32 arch_interrupt_init(void)
+int arch_interrupt_init(void)
 {
 	struct udevice *dev;
-	s32 ret = -EAGAIN;
+	int ret = -EAGAIN;
 
 	cur_irq_controller = NULL;
 	ops = NULL;
@@ -56,7 +56,7 @@ s32 arch_interrupt_init(void)
 		if (prop != NULL) {
 			/* Must be called only once */
 			cur_irq_controller = dev;
-			ops = irq_get_ops(dev);
+			ops = irqchip_get_ops(dev);
 			ret = arch_interrupt_cells_init();
 			break;
 		}
@@ -67,11 +67,11 @@ s32 arch_interrupt_init(void)
 	return ret;
 }
 
-s32 irq_get_by_index(struct udevice *dev, struct irq_desc *irq, u32 index)
+int irq_get_by_index(struct udevice *dev, int index, struct irq *irq)
 {
 	const fdt32_t *argv;
 	u32 range;
-	s32 ret;
+	int ret;
 
 	if ((cells == 0U) || (ops == NULL) || (ops->get == NULL)) {
 		pr_err("IRQ subsystem is not initialized\n");
@@ -80,11 +80,11 @@ s32 irq_get_by_index(struct udevice *dev, struct irq_desc *irq, u32 index)
 		pr_err("Invalid arguments\n");
 		ret = -EINVAL;
 	} else {
-		s32 len = 0;
+		int len = 0;
 
 		irq->dev = cur_irq_controller;
-		irq->id = 0;
-		irq->type = 0;
+		irq->id = 0UL;
+		irq->flags = 0UL;
 
 		argv = dev_read_prop(dev, "interrupts", &len);
 		if ((argv == NULL) || (len <= 0)) {
@@ -112,65 +112,65 @@ s32 irq_get_by_index(struct udevice *dev, struct irq_desc *irq, u32 index)
 void irq_install_handler(int vec, interrupt_handler_t *handler, void *arg)
 {
 	if ((vec >= 0) && (ops != NULL) && (ops->install != NULL)) {
-		struct irq_desc irq;
+		struct irq data;
 
-		irq.dev = cur_irq_controller;
-		irq.id = (u32)vec;
-		irq.type = 0;
+		data.dev = cur_irq_controller;
+		data.id = (ulong)vec;
+		data.flags = 0UL;
 
-		ops->install(&irq, handler, arg);
+		ops->install(&data, handler, arg);
 	}
 }
 
 void irq_free_handler(int vec)
 {
 	if ((vec >= 0) && (ops != NULL) && (ops->release != NULL)) {
-		struct irq_desc irq;
+		struct irq data;
 
-		irq.dev = cur_irq_controller;
-		irq.id = (u32)vec;
-		irq.type = 0;
+		data.dev = cur_irq_controller;
+		data.id = (ulong)vec;
+		data.flags = 0UL;
 
-		ops->release(&irq);
+		ops->release(&data);
 	}
 }
 
-void irq_mask(s32 vec)
+void irq_mask(int vec)
 {
 	if ((vec >= 0) && (ops != NULL) && (ops->mask != NULL)) {
-		struct irq_desc irq;
+		struct irq data;
 
-		irq.dev = cur_irq_controller;
-		irq.id = (u32)vec;
-		irq.type = 0;
+		data.dev = cur_irq_controller;
+		data.id = (ulong)vec;
+		data.flags = 0UL;
 
-		ops->mask(&irq);
+		ops->mask(&data);
 	}
 }
 
-void irq_unmask(s32 vec)
+void irq_unmask(int vec)
 {
 	if ((vec >= 0) && (ops != NULL) && (ops->unmask != NULL)) {
-		struct irq_desc irq;
+		struct irq data;
 
-		irq.dev = cur_irq_controller;
-		irq.id = (u32)vec;
-		irq.type = 0;
+		data.dev = cur_irq_controller;
+		data.id = (ulong)vec;
+		data.flags = 0UL;
 
-		ops->unmask(&irq);
+		ops->unmask(&data);
 	}
 }
 
-void irq_set_type(s32 vec, u32 type)
+void irq_set_type(int vec, u32 type)
 {
 	if ((vec >= 0) && (ops != NULL) && (ops->set_type != NULL)) {
-		struct irq_desc irq;
+		struct irq data;
 
-		irq.dev = cur_irq_controller;
-		irq.id = (u32)vec;
-		irq.type = type;
+		data.dev = cur_irq_controller;
+		data.id = (ulong)vec;
+		data.flags = (ulong)type;
 
-		ops->set_type(&irq);
+		ops->set_type(&data);
 	}
 }
 

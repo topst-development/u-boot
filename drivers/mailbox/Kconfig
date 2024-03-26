@@ -19,7 +19,7 @@ config SANDBOX_MBOX
 
 config TEGRA_HSP
 	bool "Enable Tegra HSP controller support"
-	depends on DM_MAILBOX && TEGRA
+	depends on DM_MAILBOX && ARCH_TEGRA
 	help
 	  This enables support for the NVIDIA Tegra HSP Hw module, which
 	  implements doorbells, mailboxes, semaphores, and shared interrupts.
@@ -55,11 +55,10 @@ config TCC_MBOX
 	  This enables support for the telechips mailbox. It can be used for
 	  communication between multiple processor with the SoC.
 
- config TCC_MULTI_MAILBOX
-	bool "Enable the telechips multi mailbox driver"
+config SSS_MBOX
+	bool "Enable the samsung mailbox driver"
 	depends on DM_MAILBOX && ARCH_TELECHIPS
-	default y
 	help
-	  Enable support for the telechips multi mailbox.
-	  This drvier supports TCC803x and TCC805x.
+	  This enables SSS mailbox driver.
+
 endmenu

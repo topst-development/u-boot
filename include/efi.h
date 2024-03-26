@@ -20,6 +20,11 @@
 #include <linux/string.h>
 #include <linux/types.h>
 
+/* Type INTN in UEFI specification */
+#define efi_intn_t ssize_t
+/* Type UINTN in UEFI specification*/
+#define efi_uintn_t size_t
+
 /*
  * EFI on x86_64 uses the Microsoft ABI which is not the default for GCC.
  *
@@ -91,7 +96,13 @@ typedef struct {
 #define EFI_IP_ADDRESS_CONFLICT		(EFI_ERROR_MASK | 34)
 #define EFI_HTTP_ERROR			(EFI_ERROR_MASK | 35)
 
-#define EFI_WARN_DELETE_FAILURE	2
+#define EFI_WARN_UNKNOWN_GLYPH		1
+#define EFI_WARN_DELETE_FAILURE		2
+#define EFI_WARN_WRITE_FAILURE		3
+#define EFI_WARN_BUFFER_TOO_SMALL	4
+#define EFI_WARN_STALE_DATA		5
+#define EFI_WARN_FILE_SYSTEM		6
+#define EFI_WARN_RESET_REQUIRED		7
 
 typedef unsigned long efi_status_t;
 typedef u64 efi_physical_addr_t;
@@ -114,8 +125,36 @@ struct efi_table_hdr {
 	u32 reserved;
 };
 
+/* Allocation types for calls to boottime->allocate_pages*/
+/**
+ * enum efi_allocate_type - address restriction for memory allocation
+ */
+enum efi_allocate_type {
+	/**
+	 * @EFI_ALLOCATE_ANY_PAGES:
+	 * Allocate any block of sufficient size. Ignore memory address.
+	 */
+	EFI_ALLOCATE_ANY_PAGES,
+	/**
+	 * @EFI_ALLOCATE_MAX_ADDRESS:
+	 * Allocate a memory block with an uppermost address less or equal
+	 * to the indicated address.
+	 */
+	EFI_ALLOCATE_MAX_ADDRESS,
+	/**
+	 * @EFI_ALLOCATE_ADDRESS:
+	 * Allocate a memory block starting at the indicatged adress.
+	 */
+	EFI_ALLOCATE_ADDRESS,
+	/**
+	 * @EFI_MAX_ALLOCATE_TYPE:
+	 * Value use for range checking.
+	 */
+	EFI_MAX_ALLOCATE_TYPE,
+};
+
 /* Enumeration of memory types introduced in UEFI */
-enum efi_mem_type {
+enum efi_memory_type {
 	EFI_RESERVED_MEMORY_TYPE,
 	/*
 	 * The code portions of a loaded application.
@@ -169,12 +208,15 @@ enum efi_mem_type {
 	 */
 	EFI_PAL_CODE,
 	/*
-	 * Non-volatile memory.
+	 * Byte addressable non-volatile memory.
 	 */
 	EFI_PERSISTENT_MEMORY_TYPE,
+	/*
+	 * Unaccepted memory must be accepted by boot target before usage.
+	 */
+	EFI_UNACCEPTED_MEMORY_TYPE,
 
 	EFI_MAX_MEMORY_TYPE,
-	EFI_TABLE_END,	/* For efi_build_mem_table() */
 };
 
 /* Attribute values */
@@ -190,6 +232,8 @@ enum efi_mem_type {
 #define EFI_MEMORY_MORE_RELIABLE \
 				((u64)0x0000000000010000ULL)	/* higher reliability */
 #define EFI_MEMORY_RO		((u64)0x0000000000020000ULL)	/* read-only */
+#define EFI_MEMORY_SP		((u64)0x0000000000040000ULL)	/* specific-purpose memory (SPM) */
+#define EFI_MEMORY_CPU_CRYPTO	((u64)0x0000000000080000ULL)	/* cryptographically protectable */
 #define EFI_MEMORY_RUNTIME	((u64)0x8000000000000000ULL)	/* range requires runtime mapping */
 #define EFI_MEM_DESC_VERSION	1
 
@@ -207,12 +251,6 @@ struct efi_mem_desc {
 };
 
 #define EFI_MEMORY_DESCRIPTOR_VERSION 1
-
-/* Allocation types for calls to boottime->allocate_pages*/
-#define EFI_ALLOCATE_ANY_PAGES		0
-#define EFI_ALLOCATE_MAX_ADDRESS	1
-#define EFI_ALLOCATE_ADDRESS		2
-#define EFI_MAX_ALLOCATE_TYPE		3
 
 /* Types and defines for Time Services */
 #define EFI_TIME_ADJUST_DAYLIGHT 0x1
@@ -283,7 +321,7 @@ struct efi_info_hdr {
  * struct efi_entry_hdr - Header for a table entry
  *
  * @type:	enum eft_entry_t
- * @size	size of entry bytes excluding header and padding
+ * @size:	size of entry bytes excluding header and padding
  * @addr:	address of this entry (0 if it follows the header )
  * @link:	size of entry including header and padding
  * @spare1:	Spare space for expansion
@@ -376,6 +414,17 @@ struct efi_priv {
 	void *next_hdr;
 };
 
+/*
+ * EFI attributes of the udevice handled by efi_media driver
+ *
+ * @handle: handle of the controller on which this driver is installed
+ * @blkio: block io protocol proxied by this driver
+ */
+struct efi_media_plat {
+	efi_handle_t		handle;
+	struct efi_block_io	*blkio;
+};
+
 /* Base address of the EFI image */
 extern char image_base[];
 
@@ -406,8 +455,14 @@ extern char _binary_u_boot_bin_start[], _binary_u_boot_bin_end[];
  *
  * @return pointer to EFI system table
  */
-
 struct efi_system_table *efi_get_sys_table(void);
+
+/**
+ * efi_get_boot() - Get access to the EFI boot services table
+ *
+ * @return pointer to EFI boot services table
+ */
+struct efi_boot_services *efi_get_boot(void);
 
 /**
  * efi_get_ram_base() - Find the base of RAM
@@ -473,18 +528,5 @@ void efi_putc(struct efi_priv *priv, const char ch);
  * of the requested type, -EPROTONOSUPPORT if the table has the wrong version
  */
 int efi_info_get(enum efi_entry_t type, void **datap, int *sizep);
-
-/**
- * efi_build_mem_table() - make a sorted copy of the memory table
- *
- * @map:	Pointer to EFI memory map table
- * @size:	Size of table in bytes
- * @skip_bs:	True to skip boot-time memory and merge it with conventional
- *		memory. This will significantly reduce the number of table
- *		entries.
- * @return pointer to the new table. It should be freed with free() by the
- *	   caller
- */
-void *efi_build_mem_table(struct efi_entry_memmap *map, int size, bool skip_bs);
 
 #endif /* _LINUX_EFI_H */

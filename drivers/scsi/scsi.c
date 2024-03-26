@@ -5,15 +5,21 @@
  */
 
 #include <common.h>
+#include <blk.h>
+#include <bootstage.h>
 #include <dm.h>
 #include <env.h>
+#include <libata.h>
+#include <log.h>
+#include <part.h>
 #include <pci.h>
 #include <scsi.h>
 #include <dm/device-internal.h>
 #include <dm/uclass-internal.h>
-#include <memalign.h>
+#if defined(CONFIG_TCC_UFS) || defined(CONFIG_TCC_SC_UFS)
+#include <stdlib.h>
 #include <ufs.h>
-#include <cpu_func.h>
+#endif
 
 #if !defined(CONFIG_DM_SCSI)
 # ifdef CONFIG_SCSI_DEV_LIST
@@ -179,9 +185,9 @@ static void scsi_setup_write_ext(struct scsi_cmd *pccb, lbaint_t start,
 static ulong scsi_read(struct udevice *dev, lbaint_t blknr, lbaint_t blkcnt,
 		       void *buffer)
 {
-	struct blk_desc *block_dev = dev_get_uclass_platdata(dev);
+	struct blk_desc *block_dev = dev_get_uclass_plat(dev);
 	struct udevice *bdev = dev->parent;
-	struct scsi_platdata *uc_plat = dev_get_uclass_platdata(bdev);
+	struct scsi_plat *uc_plat = dev_get_uclass_plat(bdev);
 	lbaint_t start, blks, max_blks;
 	uintptr_t buf_addr;
 	unsigned short smallblks = 0;
@@ -249,9 +255,9 @@ static ulong scsi_read(struct udevice *dev, lbaint_t blknr, lbaint_t blkcnt,
 static ulong scsi_write(struct udevice *dev, lbaint_t blknr, lbaint_t blkcnt,
 			const void *buffer)
 {
-	struct blk_desc *block_dev = dev_get_uclass_platdata(dev);
+	struct blk_desc *block_dev = dev_get_uclass_plat(dev);
 	struct udevice *bdev = dev->parent;
-	struct scsi_platdata *uc_plat = dev_get_uclass_platdata(bdev);
+	struct scsi_plat *uc_plat = dev_get_uclass_plat(bdev);
 	lbaint_t start, blks, max_blks;
 	uintptr_t buf_addr;
 	unsigned short smallblks;
@@ -306,7 +312,7 @@ static ulong scsi_write(struct udevice *dev, lbaint_t blknr, lbaint_t blkcnt,
 
 static ulong scsi_erase(struct udevice *dev, lbaint_t start, lbaint_t blkcnt)
 {
-	struct blk_desc *block_dev = dev_get_uclass_platdata(dev);
+	struct blk_desc *block_dev = dev_get_uclass_plat(dev);
 	struct udevice *bdev = dev->parent;
 	struct scsi_unmap_parameter *unmap_parameter;
 	uintptr_t buf_addr;
@@ -391,7 +397,6 @@ void scsi_init(void)
 	 */
 	for (i = 0; i < ARRAY_SIZE(scsi_device_list); i++) {
 		/* get PCI Device ID */
-#ifdef CONFIG_DM_PCI
 		struct udevice *dev;
 		int ret;
 
@@ -401,11 +406,6 @@ void scsi_init(void)
 			busdevfunc = dm_pci_get_bdf(dev);
 			break;
 		}
-#else
-		busdevfunc = pci_find_device(scsi_device_list[i].vendor,
-					     scsi_device_list[i].device,
-					     0);
-#endif
 		if (busdevfunc != -1)
 			break;
 	}
@@ -624,12 +624,12 @@ static int scsi_detect_dev(struct udevice *dev, int target, int lun,
 {
 	unsigned char perq, modi;
 	lbaint_t capacity;
-	unsigned long blksz = 0;
+	unsigned long blksz;
 	struct scsi_cmd *pccb = (struct scsi_cmd *)&tempccb;
 	int count, err;
 
 #if defined(CONFIG_TCC_UFS) || defined(CONFIG_TCC_SC_UFS)
-	dev_info(dev, "%s - Req Sense\n", __func__);
+	pr_info("%s - Req Sense\n", __func__);
 	pccb->target = target;
 	pccb->lun = lun;
 	pccb->pdata = (unsigned char *)&tempbuff;
@@ -688,7 +688,6 @@ static int scsi_detect_dev(struct udevice *dev, int target, int lun,
 	dev_desc->lun = pccb->lun;
 
 	for (count = 0; count < 3; count++) {
-		pr_info("%s - Test Unit Ready\n", __func__);
 		pccb->datalen = 0;
 		scsi_setup_test_unit_ready(pccb);
 		err = scsi_exec(dev, pccb);
@@ -723,6 +722,7 @@ removable:
  * to the user if mode = 1
  */
 #if defined(CONFIG_DM_SCSI)
+#if defined(CONFIG_SUPPORT_UFS_REFRESH)
 static int scsi_ufs_refresh_op(struct udevice *dev, uint32_t Req_type,
 		uint32_t index, uint32_t direction, uint32_t value)
 {
@@ -760,7 +760,74 @@ static int scsi_ufs_refresh_op(struct udevice *dev, uint32_t Req_type,
 	memset(pccb, 0, sizeof(struct scsi_cmd));
 	return ret;
 }
+#endif
 
+static void scsi_setup_start_stop(struct scsi_cmd *pccb)
+{
+	pccb->cmd[0] = SCSI_START_STP;
+	pccb->cmd[1] = 0;
+	pccb->cmd[2] = 0;
+	pccb->cmd[3] = 0;
+	pccb->cmd[4] = 0x30;
+	pccb->cmd[5] = 0;
+	pccb->cmdlen = 6;
+	pccb->msgout[0] = SCSI_IDENTIFY; /* NOT USED */
+}
+
+int scsi_ufs_start_stop(void)
+{
+	struct uclass *uc;
+	struct udevice *dev; /* SCSI controller */
+	struct scsi_cmd *pccb = (struct scsi_cmd *)&tempccb;
+	int ret;
+
+	ret = uclass_get(UCLASS_SCSI, &uc);
+	if (ret)
+		return ret;
+
+	printf("Send START STOP to UFS Device\n");
+	uclass_foreach_dev(dev, uc) {
+		debug("%s - Req Sense\n", __func__);
+		pccb->target = 0x0;
+		pccb->lun = 0xD0;
+		pccb->pdata = (unsigned char *)&tempbuff;
+		pccb->datalen = 18;
+		pccb->dma_dir = DMA_FROM_DEVICE;
+		scsi_setup_req_sense(pccb);
+		if (scsi_exec(dev, pccb)) {
+			if (pccb->contr_stat == SCSI_SEL_TIME_OUT) {
+				debug("Selection timeout ID %d\n",
+						pccb->target);
+				printf("%s:%d - Err\n", __func__, __LINE__);
+				return -ETIMEDOUT;
+			}
+			scsi_print_error(pccb);
+			printf("%s:%d - Err\n", __func__, __LINE__);
+			return -ENODEV;
+		}
+
+		debug("%s - CMD START STOP\n", __func__);
+		pccb->target = 0x0;
+		pccb->lun = 0xD0;
+		pccb->pdata = (unsigned char *)&tempbuff;
+		pccb->datalen = 0x30;
+		pccb->dma_dir = DMA_FROM_DEVICE;
+		scsi_setup_start_stop(pccb);
+		if (scsi_exec(dev, pccb)) {
+			if (pccb->contr_stat == SCSI_SEL_TIME_OUT) {
+				debug("Selection timeout ID %d\n",
+						pccb->target);
+				printf("%s:%d - Err\n", __func__, __LINE__);
+				ret = -ETIMEDOUT;
+			}
+			scsi_print_error(pccb);
+			printf("%s:%d - Err\n", __func__, __LINE__);
+			ret =  -ENODEV;
+		}
+	}
+
+	return ret;
+}
 static int do_scsi_scan_one(struct udevice *dev, int id, int lun, bool verbose)
 {
 	int ret;
@@ -790,7 +857,7 @@ static int do_scsi_scan_one(struct udevice *dev, int id, int lun, bool verbose)
 		return ret;
 	}
 
-	bdesc = dev_get_uclass_platdata(bdev);
+	bdesc = dev_get_uclass_plat(bdev);
 	bdesc->target = id;
 	bdesc->lun = lun;
 	bdesc->removable = bd.removable;
@@ -798,6 +865,11 @@ static int do_scsi_scan_one(struct udevice *dev, int id, int lun, bool verbose)
 	memcpy(&bdesc->vendor, &bd.vendor, sizeof(bd.vendor));
 	memcpy(&bdesc->product, &bd.product, sizeof(bd.product));
 	memcpy(&bdesc->revision, &bd.revision,	sizeof(bd.revision));
+	if (IS_ENABLED(CONFIG_SYS_BIG_ENDIAN)) {
+		ata_swap_buf_le16((u16 *)&bdesc->vendor, sizeof(bd.vendor) / 2);
+		ata_swap_buf_le16((u16 *)&bdesc->product, sizeof(bd.product) / 2);
+		ata_swap_buf_le16((u16 *)&bdesc->revision, sizeof(bd.revision) / 2);
+	}
 
 	if (verbose) {
 		printf("  Device %d: ", bdesc->devnum);
@@ -808,7 +880,7 @@ static int do_scsi_scan_one(struct udevice *dev, int id, int lun, bool verbose)
 
 int scsi_scan_dev(struct udevice *dev, bool verbose)
 {
-	struct scsi_platdata *uc_plat; /* scsi controller platdata */
+	struct scsi_plat *uc_plat; /* scsi controller plat */
 	int ret;
 	int i;
 	int lun;
@@ -818,8 +890,8 @@ int scsi_scan_dev(struct udevice *dev, bool verbose)
 	if (ret)
 		return ret;
 
-	/* Get controller platdata */
-	uc_plat = dev_get_uclass_platdata(dev);
+	/* Get controller plat */
+	uc_plat = dev_get_uclass_plat(dev);
 
 	for (i = 0; i < uc_plat->max_id; i++)
 		for (lun = 0; lun < uc_plat->max_lun; lun++)
@@ -833,57 +905,96 @@ int scsi_scan_dev(struct udevice *dev, bool verbose)
 	return 0;
 }
 
+#if defined(CONFIG_SUPPORT_UFS_REFRESH)
 int scsi_refresh()
 {
 	struct uclass *uc;
 	struct udevice *dev; /* SCSI controller */
 	int ret;
+	uint32_t refresh_freq;
 
 	ret = uclass_get(UCLASS_SCSI, &uc);
 	if (ret)
 		return ret;
 
 	uclass_foreach_dev(dev, uc) {
-		if (!env_get("ufs_refresh")) {
-#ifdef CONFIG_TCC_MAINCORE
-			printf("UFS Needs to REFRESH!\n");
-			ret = scsi_ufs_refresh_op(
-				dev, 0x1, 0x2F, 0x1, 0x1); //bRefreshMethod = 0x1;
-			ret = scsi_ufs_refresh_op(
-				dev, 0x1, 0x2E, 0x1, 0x1); //bRefreshUnit = 0x1;
-			ret = scsi_ufs_refresh_op(
-				dev, 0x2, 0x7, 0x1, 0x1); //fRefreshEnable = 0x1;
-			ret = scsi_ufs_refresh_op(
-				dev, 0x1, 0x2C, 0x0, 0);
-			printf("Waiting to REFRESH ");
-			while(ret == 0x1) { //Get bRefreshStatus
-				printf(".", ret);
-				mdelay(1000);
-				ret = scsi_ufs_refresh_op(
-					dev, 0x1, 0x2C, 0x0, 0);
-			}
-			printf("\nREFRESH Complete!\n");
-			ret = env_set("ufs_refresh", "1");
-			ret = env_save();
+		refresh_freq = scsi_ufs_refresh_op(
+				dev, 0x1, 0x2D, 0x0, 0x0); //Get bRefreshfreq
+		if (!env_get("ufs_refresh") && refresh_freq != 0xFF) {
+			if(refresh_freq != 0xFF) {
+#ifdef CONFIG_USE_MAINCORE
+				printf("UFS Needs to REFRESH!\n");
+				ret = scsi_ufs_refresh_op(dev, 0x1, 0x2F, 0x1, 0x1); //bRefreshMethod = 0x1;
+				ret = scsi_ufs_refresh_op(dev, 0x1, 0x2E, 0x1, 0x1); //bRefreshUnit = 0x1;
+				ret = scsi_ufs_refresh_op(dev, 0x2, 0x7, 0x1, 0x1); //fRefreshEnable = 0x1;
+				ret = scsi_ufs_refresh_op(dev, 0x1, 0x2C, 0x0, 0);
+				printf("Waiting to REFRESH ");
+				while(ret == 0x1) { //Get bRefreshStatus
+					printf(".", ret);
+					mdelay(1000);
+					ret = scsi_ufs_refresh_op(dev, 0x1, 0x2C, 0x0, 0);
+				}
+				printf("\nREFRESH Complete!\n");
+				(void)scsi_ufs_refresh_op(
+						dev, 0x1, 0x2D, 0x1, 0xFF); //bRefreshFreq = 0xFF;
 #else
-			printf("Wait for maincore's Refresh OP\n");
-			mdelay(2000);
-			ret = scsi_ufs_refresh_op(
-				dev, 0x1, 0x2C, 0x0, 0);
-			while (ret == 0x1) {
-				printf(".", ret);
-				mdelay(1000);
-				ret = scsi_ufs_refresh_op(
-					dev, 0x1, 0x2C, 0x0, 0);
-			}
-			ret = env_set("ufs_refresh", "1");
-			ret = env_save();
+				printf("Wait for maincore's Refresh OP\n");
+				mdelay(2000);
+				ret = scsi_ufs_refresh_op(dev, 0x1, 0x2C, 0x0, 0);
+				while (ret == 0x1) {
+					printf(".", ret);
+					mdelay(1000);
+					ret = scsi_ufs_refresh_op(dev, 0x1, 0x2C, 0x0, 0);
+				}
 #endif
+			}
+		}
+		else if(env_get("ufs_refresh") && refresh_freq != 0xFF) {
+			printf("UFS No need to REFRESH(0x%x)!\n", refresh_freq);
+			(void)scsi_ufs_refresh_op(
+					dev, 0x1, 0x2D, 0x1, 0xFF); //bRefreshFreq = 0xFF;
+		}
+		else {
+			printf("UFS No need to REFRESH(0x%x)!\n", refresh_freq);
+		}
+		ret = 0;
+	}
+
+	return ret;
+}
+
+int scsi_set_refresh_freq(uint32_t freq)
+{
+	struct uclass *uc;
+	struct udevice *dev; /* SCSI controller */
+	int ret;
+	uint32_t refresh_freq;
+
+	if (freq > 0xFF)
+	{
+		printf("Wrong Param = 0x%x\n", freq);
+		ret = -EINVAL;
+	}
+	else {
+		ret = uclass_get(UCLASS_SCSI, &uc);
+		if (ret == 0) {
+
+			uclass_foreach_dev(dev, uc) {
+				refresh_freq = scsi_ufs_refresh_op(
+						dev, 0x1, 0x2D, 0x0, 0x0); //Get bRefreshfreq
+				printf("Pre Freq = 0x%x / set 0x%x\n", refresh_freq, freq);
+				ret = scsi_ufs_refresh_op(
+						dev, 0x1, 0x2D, 0x1, freq); //Set bRefreshFreq
+				refresh_freq = scsi_ufs_refresh_op(
+						dev, 0x1, 0x2D, 0x0, 0x0); //Get bRefreshfreq
+				printf("Cur Freq = 0x%x\n", refresh_freq);
+			}
 		}
 	}
 
 	return ret;
 }
+#endif
 
 int scsi_scan(bool verbose)
 {

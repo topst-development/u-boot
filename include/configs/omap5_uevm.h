@@ -31,7 +31,6 @@
 #define CONFIG_SYS_NS16550_COM3		UART3_BASE
 
 /* MMC ENV related defines */
-#define CONFIG_SYS_MMC_ENV_DEV		1	/* SLOT2: eMMC(1) */
 
 /* Enhance our eMMC support / experience. */
 #define CONFIG_HSMMC2_8BIT
@@ -43,9 +42,6 @@
 
 /* USB UHH support options */
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
-
-#define CONFIG_OMAP_EHCI_PHY2_RESET_GPIO 80
-#define CONFIG_OMAP_EHCI_PHY3_RESET_GPIO 79
 
 /* Enabled commands */
 

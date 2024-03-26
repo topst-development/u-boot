@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * (C) Copyright 2021 Telechips, Inc.
+ * (C) Copyright 2008-2011 Freescale Semiconductor, Inc.
+ */
+/*
+ * Modified by Telechips Inc. (date: 2021-03)
  */
 
 /* #define DEBUG */
 
 #include <common.h>
+#include <asm/global_data.h>
 
 #include <command.h>
 #include <env.h>
@@ -18,6 +22,7 @@
 #include <part.h>
 #include <search.h>
 #include <errno.h>
+#include <dm/ofnode.h>
 
 #define __STR(X) #X
 #define STR(X) __STR(X)
@@ -25,9 +30,9 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 #if CONFIG_IS_ENABLED(OF_CONTROL)
-static inline int scsi_offset_try_partition(const char *str, s64 *val)
+static inline int scsi_offset_try_partition(const char *str, int copy, s64 *val)
 {
-	disk_partition_t info;
+	struct disk_partition info;
 	struct blk_desc *desc;
 	int len, i, ret;
 
@@ -37,7 +42,7 @@ static inline int scsi_offset_try_partition(const char *str, s64 *val)
 	if (ret < 0)
 		return (ret);
 
-	for (i = 1; ; i++) {
+	for (i = 1;;i++) {
 		ret = part_get_info(desc, i, &info);
 		if (ret < 0)
 			return ret;
@@ -50,7 +55,7 @@ static inline int scsi_offset_try_partition(const char *str, s64 *val)
 	len = DIV_ROUND_UP(CONFIG_ENV_SIZE, info.blksz);
 
 	/* use the top of the partion for the environment */
-	*val = (info.start + info.size - len) * info.blksz;
+	*val = (info.start + info.size - (1 + copy) * len) * info.blksz;
 
 	return 0;
 }
@@ -72,10 +77,10 @@ static inline s64 scsi_offset(int copy)
 	int err;
 
 	/* look for the partition in scsi CONFIG_SYS_SCSI_ENV_DEV */
-	str = fdtdec_get_config_string(gd->fdt_blob, dt_prop.partition);
+	str = ofnode_conf_read_str(dt_prop.partition);
 	if (str) {
 		/* try to place the environment at end of the partition */
-		err = scsi_offset_try_partition(str, &val);
+		err = scsi_offset_try_partition(str, copy, &val);
 		if (!err)
 			return val;
 	}
@@ -89,7 +94,7 @@ static inline s64 scsi_offset(int copy)
 		propname = dt_prop.offset_redund;
 	}
 #endif
-	return fdtdec_get_config_int(gd->fdt_blob, propname, defvalue);
+	return ofnode_conf_read_int(propname, defvalue);
 }
 #else
 static inline s64 scsi_offset(int copy)
@@ -104,15 +109,10 @@ static inline s64 scsi_offset(int copy)
 }
 #endif
 
-__weak int scsi_get_env_addr(int copy, u64 *env_addr)
+__weak int scsi_get_env_addr(int copy, u32 *env_addr)
 
 {
 	s64 offset = scsi_offset(copy);
-
-#if 0
-	if (offset < 0)
-		offset += mmc->capacity;
-#endif
 
 	*env_addr = offset;
 
@@ -129,8 +129,7 @@ __weak int scsi_get_env_dev(void)
 static inline int write_env(unsigned long size,
 			    unsigned long offset, const void *buffer)
 {
-	lbaint_t blk_start, blk_cnt;
-	unsigned long n;
+	uint blk_start, blk_cnt, n;
 	int dev = scsi_get_env_dev();
 	struct blk_desc *desc;
 
@@ -152,7 +151,7 @@ static int env_scsi_save(void)
 {
 	//ALLOC_CACHE_ALIGN_BUFFER(env_t, env_new, 1);
 	ALLOC_ALIGN_BUFFER(env_t, env_new, 1, 4096);
-	u64	offset;
+	u32	offset;
 	int	ret, copy = 0;
 
 	ret = env_export(env_new);
@@ -186,11 +185,9 @@ fini:
 	return ret;
 }
 
-#if defined(CONFIG_CMD_ERASEENV)
 static inline int erase_env(u64 size, u64 offset)
 {
-	lbaint_t blk_start, blk_cnt;
-	unsigned long n;
+	uint blk_start, blk_cnt, n;
 	int dev = scsi_get_env_dev();
 	struct blk_desc *desc;
 
@@ -212,7 +209,7 @@ static inline int erase_env(u64 size, u64 offset)
 static int env_scsi_erase(void)
 {
 	int	ret, copy = 0;
-	u64	offset;
+	u32	offset;
 
 	if (scsi_get_env_addr(copy, &offset))
 		return CMD_RET_FAILURE;
@@ -230,13 +227,12 @@ static int env_scsi_erase(void)
 
 	return ret;
 }
-#endif /* CONFIG_CMD_ERASEENV */
 #endif /* CONFIG_CMD_SAVEENV && !CONFIG_SPL_BUILD */
 
-static inline int read_env(u64 size, u64 offset, const void *buffer)
+static inline int read_env(unsigned long size,
+			   unsigned long offset, const void *buffer)
 {
-	lbaint_t blk_start, blk_cnt;
-	unsigned long n;
+	uint blk_start, blk_cnt, n;
 	int dev = scsi_get_env_dev();
 	struct blk_desc *desc;
 
@@ -259,9 +255,10 @@ static int env_scsi_load(void)
 #if !defined(ENV_IS_EMBEDDED)
 	//ALLOC_CACHE_ALIGN_BUFFER(char, buf, CONFIG_ENV_SIZE);
 	ALLOC_ALIGN_BUFFER(char, buf, CONFIG_ENV_SIZE, 4096);
-	u64 offset;
+	u32 offset;
 	int ret;
 	const char *errmsg;
+	env_t *ep = NULL;
 
 	if (scsi_get_env_addr(0, &offset)) {
 		ret = -EIO;
@@ -274,7 +271,11 @@ static int env_scsi_load(void)
 		goto fini;
 	}
 
-	ret = env_import(buf, 1);
+	ret = env_import(buf, 1, H_EXTERNAL);
+	if (!ret) {
+		ep = (env_t *)buf;
+		gd->env_addr = (ulong)&ep->data;
+	}
 
 fini:
 	if (ret)
@@ -289,8 +290,6 @@ U_BOOT_ENV_LOCATION(scsi) = {
 	.load		= env_scsi_load,
 #ifndef CONFIG_SPL_BUILD
 	.save		= env_save_ptr(env_scsi_save),
-#if defined(CONFIG_CMD_ERASEENV)
-	.erase		= env_scsi_erase,
-#endif
+	.erase		= ENV_ERASE_PTR(env_scsi_erase),
 #endif
 };

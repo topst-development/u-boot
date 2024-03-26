@@ -9,17 +9,18 @@
 #include <common.h>
 #include <dm.h>
 #include <errno.h>
+#include <log.h>
 #include <pci.h>
 #include <asm/test.h>
 #include <linux/ctype.h>
 
 /**
- * struct swap_case_platdata - platform data for this device
+ * struct swap_case_plat - platform data for this device
  *
  * @command:	Current PCI command value
  * @bar:	Current base address values
  */
-struct swap_case_platdata {
+struct swap_case_plat {
 	u16 command;
 	u32 bar[6];
 };
@@ -51,9 +52,9 @@ struct swap_case_priv {
 	char mem_text[MEM_TEXT_SIZE];
 };
 
-static int sandbox_swap_case_use_ea(struct udevice *dev)
+static int sandbox_swap_case_use_ea(const struct udevice *dev)
 {
-	return !!ofnode_get_property(dev->node, "use-ea", NULL);
+	return !!ofnode_get_property(dev_ofnode(dev), "use-ea", NULL);
 }
 
 /* Please keep these macros in sync with ea_regs below */
@@ -82,7 +83,7 @@ static const u32 ea_regs[] = {
 	PCI_CAP_EA_SIZE_HI,
 };
 
-static int sandbox_swap_case_read_ea(struct udevice *emul, uint offset,
+static int sandbox_swap_case_read_ea(const struct udevice *emul, uint offset,
 				     ulong *valuep, enum pci_size_t size)
 {
 	u32 reg;
@@ -95,10 +96,11 @@ static int sandbox_swap_case_read_ea(struct udevice *emul, uint offset,
 	return 0;
 }
 
-static int sandbox_swap_case_read_config(struct udevice *emul, uint offset,
-					 ulong *valuep, enum pci_size_t size)
+static int sandbox_swap_case_read_config(const struct udevice *emul,
+					 uint offset, ulong *valuep,
+					 enum pci_size_t size)
 {
-	struct swap_case_platdata *plat = dev_get_platdata(emul);
+	struct swap_case_plat *plat = dev_get_plat(emul);
 
 	/*
 	 * The content of the EA capability structure is handled elsewhere to
@@ -198,7 +200,7 @@ static int sandbox_swap_case_read_config(struct udevice *emul, uint offset,
 static int sandbox_swap_case_write_config(struct udevice *emul, uint offset,
 					  ulong value, enum pci_size_t size)
 {
-	struct swap_case_platdata *plat = dev_get_platdata(emul);
+	struct swap_case_plat *plat = dev_get_plat(emul);
 
 	switch (offset) {
 	case PCI_COMMAND:
@@ -226,7 +228,7 @@ static int sandbox_swap_case_write_config(struct udevice *emul, uint offset,
 static int sandbox_swap_case_find_bar(struct udevice *emul, unsigned int addr,
 				      int *barnump, unsigned int *offsetp)
 {
-	struct swap_case_platdata *plat = dev_get_platdata(emul);
+	struct swap_case_plat *plat = dev_get_plat(emul);
 	int barnum;
 
 	for (barnum = 0; barnum < ARRAY_SIZE(barinfo); barnum++) {
@@ -300,7 +302,6 @@ static int sandbox_swap_case_write_io(struct udevice *dev, unsigned int addr,
 }
 
 static int pci_ea_bar2_magic = PCI_EA_BAR2_MAGIC;
-static int pci_ea_bar4_magic = PCI_EA_BAR4_MAGIC;
 
 static int sandbox_swap_case_map_physmem(struct udevice *dev,
 		phys_addr_t addr, unsigned long *lenp, void **ptrp)
@@ -330,12 +331,22 @@ static int sandbox_swap_case_map_physmem(struct udevice *dev,
 			*ptrp = &pci_ea_bar2_magic;
 			*lenp = PCI_CAP_EA_SIZE_LO;
 			break;
+#ifdef CONFIG_HOST_64BIT
+		/*
+		 * This cannot be work on a 32-bit machine since *lenp is ulong
+		 * which is 32-bits, but it needs to have a 64-bit value
+		 * assigned
+		 */
 		case (phys_addr_t)((PCI_CAP_EA_BASE_HI4 << 32) |
-				   PCI_CAP_EA_BASE_LO4):
+				   PCI_CAP_EA_BASE_LO4): {
+			static int pci_ea_bar4_magic = PCI_EA_BAR4_MAGIC;
+
 			*ptrp = &pci_ea_bar4_magic;
 			*lenp = (PCI_CAP_EA_SIZE_HI << 32) |
 				PCI_CAP_EA_SIZE_LO;
 			break;
+		}
+#endif
 		default:
 			return -ENOENT;
 		}
@@ -389,8 +400,8 @@ U_BOOT_DRIVER(sandbox_swap_case_emul) = {
 	.id		= UCLASS_PCI_EMUL,
 	.of_match	= sandbox_swap_case_ids,
 	.ops		= &sandbox_swap_case_emul_ops,
-	.priv_auto_alloc_size = sizeof(struct swap_case_priv),
-	.platdata_auto_alloc_size = sizeof(struct swap_case_platdata),
+	.priv_auto	= sizeof(struct swap_case_priv),
+	.plat_auto	= sizeof(struct swap_case_plat),
 };
 
 static struct pci_device_id sandbox_swap_case_supported[] = {

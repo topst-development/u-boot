@@ -2,7 +2,7 @@ menu "Timer Interrupt Support"
 
 config DM_TIMER_IRQ
 	bool "Enable driver model for timer interrupt drivers"
-	depends on DM && ARCH_TELECHIPS
+	depends on DM && DM_IRQ && ARCH_TELECHIPS
 	default y
 	help
 	  Enable driver model for timer access. It uses the same API as

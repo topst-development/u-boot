@@ -5,7 +5,9 @@
  */
 
 #include <common.h>
+#include <clock_legacy.h>
 #include <cpu_func.h>
+#include <asm/global_data.h>
 #include <linux/compiler.h>
 #include <asm/io.h>
 #include <asm/processor.h>
@@ -59,8 +61,8 @@ void get_sys_info(struct sys_info *sys_info)
 #endif
 	cluster_clk = CONFIG_CLUSTER_CLK_FREQ;
 
-#ifdef CONFIG_DDR_CLK_FREQ
-	sys_info->freq_ddrbus = CONFIG_DDR_CLK_FREQ;
+#if defined(CONFIG_DYNAMIC_DDR_CLK_FREQ) || defined(CONFIG_STATIC_DDR_CLK_FREQ)
+	sys_info->freq_ddrbus = get_board_ddr_clk();
 #else
 	sys_info->freq_ddrbus = sysclk;
 #endif
@@ -125,7 +127,6 @@ void get_sys_info(struct sys_info *sys_info)
 	}
 #endif
 
-#ifdef CONFIG_FSL_ESDHC
 #define HWA_CGA_M2_CLK_SEL	0x00000007
 #define HWA_CGA_M2_CLK_SHIFT	0
 #if defined(CONFIG_TARGET_LS1046ARDB) || defined(CONFIG_TARGET_LS1043ARDB)
@@ -148,10 +149,9 @@ void get_sys_info(struct sys_info *sys_info)
 		break;
 #endif
 	default:
-		printf("Error: Unknown peripheral clock select!\n");
+		printf("Error: Unknown cluster group A mux 2 clock select!\n");
 		break;
 	}
-#endif
 #endif
 
 #if defined(CONFIG_FSL_IFC)
@@ -179,28 +179,21 @@ unsigned long get_qman_freq(void)
 int get_clocks(void)
 {
 	struct sys_info sys_info;
-
+#ifdef CONFIG_FSL_ESDHC
+	u32 clock = 0;
+#endif
 	get_sys_info(&sys_info);
 	gd->cpu_clk = sys_info.freq_processor[0];
 	gd->bus_clk = sys_info.freq_systembus / CONFIG_SYS_FSL_PCLK_DIV;
 	gd->mem_clk = sys_info.freq_ddrbus;
-
 #ifdef CONFIG_FSL_ESDHC
-#if defined(CONFIG_FSL_ESDHC_USE_PERIPHERAL_CLK)
-#if defined(CONFIG_TARGET_LS1046ARDB)
-	gd->arch.sdhc_clk = sys_info.freq_cga_m2 / 2;
+#if defined(CONFIG_ARCH_LS1012A)
+	clock = sys_info.freq_systembus;
+#elif defined(CONFIG_ARCH_LS1043A) || defined(CONFIG_ARCH_LS1046A)
+	clock = sys_info.freq_cga_m2;
 #endif
-#if defined(CONFIG_TARGET_LS1043ARDB)
-	gd->arch.sdhc_clk = sys_info.freq_cga_m2;
-#endif
-#if defined(CONFIG_TARGET_LS1012ARDB)
-	gd->arch.sdhc_clk = sys_info.freq_systembus;
-#endif
-#else
-	gd->arch.sdhc_clk = (sys_info.freq_systembus /
-			CONFIG_SYS_FSL_PCLK_DIV) /
-			CONFIG_SYS_FSL_SDHC_CLK_DIV;
-#endif
+	gd->arch.sdhc_per_clk = clock / CONFIG_SYS_FSL_SDHC_CLK_DIV;
+	gd->arch.sdhc_clk = gd->bus_clk / CONFIG_SYS_FSL_SDHC_CLK_DIV;
 #endif
 	if (gd->cpu_clk != 0)
 		return 0;

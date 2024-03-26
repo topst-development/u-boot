@@ -1,0 +1,164 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/display/telechips-dispdef.h>
+#include <dt-bindings/display/tcc750x-vioc.h>
+#include <dt-bindings/display/telechips-common-fb_dm_display.h>
+#include <dt-bindings/display/tcc750x-fb_dm_display.h>
+
+/ {
+	tcc_fb_dm0: tcc_fb_dm0 {
+		compatible = "telechips,tcc_fb_dm";
+		status = "disabled";
+
+		/* clocks = <&clk_peri PERI_LCD0>; */
+		lcd-id = <VIOC_DISP0>;
+		lcd-layer = <0>;
+		lcd-ovp = <24>;
+		clk-div = <0>; /* unused for now */
+		fb-draw-type = <FB_DRAW_TYPE_BITMAP_HEADER>;
+		fb-buf-id = <0>;
+                fb-buf-addr = <0x2A000000>;
+		bpix = <TCC_VIDEO_BPP32>;
+		lcd-mux-id = <0>;
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			fb0_in: port@0 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				reg = <0>;
+				fb0_display_out: endpoint {
+					//remote-endpoint = <&fb_dsi_input_0>;
+				};
+			};
+		};
+	};
+	fb_dsi_0:fb_dsi0 {
+		compatible = "telechips,fb-dsi-panel";
+		status = "disabled";
+		no_of_lane = <DSI_PHY_LANE1>; 	// number of lane used
+		non_continuous_clock = <0>; 	// continuous clock
+		color_coding = <DSI_COLOR_CODE_24BIT>; // <COLOR_CODE_24BIT>
+		ser_des_mode = <SER_DES_MODE_NORMAL>;
+
+		pinctrl-names = "default", "pwr_on_1", "pwr_on_2",
+				  "blk_on", "blk_off", "power_off", "ser_pwdn_on";
+		#if defined(LCD_PORT1_PWDN) && defined(LCD_PORT1_RST) && \
+		defined(LCD_PORT1_BLK) && defined(LCD_PORT1_PWR)
+		pinctrl-0 = <&lcd_port_default1>;
+		pinctrl-1 = <&lcd_port_power_on1>;
+		pinctrl-2 = <&lcd_port_reset_off1>;
+		pinctrl-3 = <&lcd_port_blk_on1>;
+		pinctrl-4 = <&lcd_port_blk_off1>;
+		pinctrl-5 = <&lcd_port_reset_on1 &lcd_port_power_off1>;
+		pinctrl-6 = <&lcd_port_pwdn_on>;
+		#else
+		pinctrl-0 = <>;
+		pinctrl-1 = <>;
+		pinctrl-2 = <>;
+		pinctrl-3 = <>;
+		pinctrl-4 = <>;
+		pinctrl-5 = <>;
+		pinctrl-6 = <>;
+		#endif
+		display-timings {
+			timing0 {
+			#if 0
+				clock-frequency = <80000000>;
+				hactive = <1920>;
+				vactive = <720>;
+				hfront-porch = <28>;
+				hback-porch = <28>;
+				hsync-len = <8>;
+				hsync-active = <0>;
+				vback-porch = <10>;
+				vfront-porch = <10>;
+				vsync-len = <1>;
+				vsync-active = <0>;
+			#else
+				clock-frequency = <30000000>;
+				hactive = <800>;
+				vactive = <480>;
+				hfront-porch = <19>;
+				hback-porch = <19>;
+				hsync-len = <70>;
+				hsync-active = <1>;
+				vback-porch = <18>;
+				vfront-porch = <18>;
+				vsync-len = <12>;
+				vsync-active = <1>;
+			#endif
+				de-active = <1>;
+				pixelclk-active = <1>;
+			};
+		};
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			dsi0_out: port@0 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				reg = <0>;
+				fb_dsi_input_0: endpoint {
+					//remote-endpoint = <&fb0_display_out>;
+				};
+			};
+		};
+	};
+};
+
+&pinctrl {
+	/* LCD POWER PORT 1 */
+	#if defined(LCD_PORT1_PWDN) && defined(LCD_PORT1_PWR) && \
+	    defined(LCD_PORT1_RST) && defined(LCD_PORT1_BLK)
+	lcd_port_default1:lcd_port_default1 {
+		telechips,pins = LCD_PORT1_PWDN, LCD_PORT1_PWR,
+				 LCD_PORT1_RST, LCD_PORT1_BLK;
+		telechips,pin-function = <0>;
+		telechips,no-pull;
+	};
+	lcd_port_pwdn_on:lcd_port_pwdn_on {
+		telechips,pins = LCD_PORT1_PWDN;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_pwdn_off:lcd_port_pwdn_off {
+		telechips,pins = LCD_PORT1_PWDN;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	lcd_port_power_on1:lcd_port_power_on1 {
+		telechips,pins = LCD_PORT1_PWR;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_power_off1:lcd_port_power_off1 {
+		telechips,pins = LCD_PORT1_PWR;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	lcd_port_reset_on1:lcd_port_reset_on1 {
+		telechips,pins = LCD_PORT1_RST;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	lcd_port_reset_off1:lcd_port_reset_off1 {
+		telechips,pins = LCD_PORT1_RST;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_blk_on1:lcd_port_blk_on1 {
+		telechips,pins = LCD_PORT1_BLK;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_blk_off1:lcd_port_blk_off1 {
+		telechips,pins = LCD_PORT1_BLK;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	#endif
+};

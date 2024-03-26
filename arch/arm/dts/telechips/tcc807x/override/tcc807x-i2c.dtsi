@@ -1,0 +1,124 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+/* PMIC I2C CH */
+&i2c0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c38_bus>;
+	port-mux = <38>;
+	status = "okay";
+
+	mpq2286: mpq2286 {
+		compatible = "pmic-i2c-simple";
+		status = "okay";
+		reg = <0x03>;
+		/* default 750 mV */
+		npu-mv = <850>;
+	};
+
+	mpq2977: mpq2977 {
+		compatible = "pmic-i2c-simple";
+		reg = <0x20>;
+		/* default 950 mV */
+		mc-cpu-mv = <950>;
+	};
+
+	mpq7932: mpq7932 {
+		compatible = "pmic-i2c-simple";
+		reg = <0x08>;
+		/* defalut 950 mV*/
+		sc-cpu-mv = <950>;
+	};
+};
+
+/* DP SER, MIPI0_1 */
+&i2c4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c13_bus>;
+	port-mux = <13>;
+	status = "okay";
+};
+
+&pinctrl {
+	/omit-if-no-ref/
+	i2c10_bus: i2c10_bus {
+		telechips,pins = "gpb-17", "gpb-18";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	i2c11_bus: i2c11_bus {
+		telechips,pins = "gpb-19", "gpb-20";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	i2c12_bus: i2c12_bus {
+		telechips,pins = "gpb-21", "gpb-22";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	i2c13_bus: i2c13_bus {
+		telechips,pins = "gpb-23", "gpb-24";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	i2c29_bus: i2c29_bus {
+		telechips,pins = "gpmb-4", "gpmb-5";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	i2c34_bus: i2c34_bus {
+		telechips,pins = "gpmb-30", "gpmb-31";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	i2c35_bus: i2c35_bus {
+		telechips,pins = "gpmc-4", "gpmc-5";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	i2c36_bus: i2c36_bus {
+		telechips,pins = "gpmc-10", "gpmc-11";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	i2c37_bus: i2c37_bus {
+		telechips,pins = "gpmc-16", "gpmc-17";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	i2c38_bus: i2c38_bus {
+		telechips,pins = "gpmc-22", "gpmc-23";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+};

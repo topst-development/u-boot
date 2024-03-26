@@ -13,72 +13,10 @@
  */
 
 /*
- * Modified by Telechips Inc. (date: 2020-04)
+ * Modified by Telechips Inc. (date: 2022-06)
  */
 
 #include <config.h>
-
-#if defined(CONFIG_TCC803X)
-
-.global  _tcc_start
-
-	.section ".vectors", "ax"
-
-_tcc_start:
-	b _start
-
-	.word   0xFFFF0106
-FirmwareVersion:
-	.word   0x3A726556              /* Ver: */
-	.word   0x34333231              /* 1234 */
-FirmwareCheckSum:
-	.word   0x00000000              /* (legacy)CRC32 Value up to 128KB */
-DACVersion:
-	.word   0x00000000              /* Not Used Area - Reserved */
-FirmwareCheckSumEnd:
-	.word   0x00000000              /* (legacy)CRC32 Value for remains */
-FirmwareSize:
-	.word   0x00000000              /* Firmware Total Size */
-SerialNumber:
-	.word   0x00000000              /* SN[3:0]      */
-	.word   0x00000000              /* SN[7:4]      */
-	.word   0x00000000              /* SN[11:8]     */
-	.word   0x00000000              /* SN[15:12]    */
-	.word   0x00000000              /* SN[19:16]    */
-	.word   0x00000000              /* SN[23:20]    */
-	.word   0x00000000              /* SN[27:24]    */
-	.word   0x00000000              /* SN[31:28]    */
-	.word   0x00000000              /* SN[35:32]    */
-	.word   0x00000000              /* SN[39:36]    */
-	.word   0x00000000              /* SN[43:40]    */
-	.word   0x00000000              /* SN[47:44]    */
-	.word   0x00000000              /* SN[51:48]    */
-	.word   0x00000000              /* SN[55:52]    */
-	.word   0x00000000              /* SN[59:56]    */
-	.word   0x00000000              /* SN[63:60]    */
-
-.global FirmwareBaseAddress
-FirmwareBaseAddress:
-	.word _tcc_start
-	.word 0x00000000
-
-	.word 0x20203756
-
-	.word 0x00000000
-
-.global __arm_tf_start
-__arm_tf_start:
-
-.global __arm_tf_end
-__arm_tf_end:
-	.word 0
-
-	.word 0x524F4E53
-	.word 0x00000000
-	.word 0x00000000
-	.word 0x00000000
-
-#endif /* CONFIG_TCC803X */
 
 /*
  * A macro to allow insertion of an ARM exception vector either
@@ -109,8 +47,6 @@ __arm_tf_end:
  */
 
 .globl _start
-
-	.align 5
 
 /*
  *************************************************************************
@@ -230,7 +166,7 @@ IRQ_STACK_START:
 /* FIQ stack memory (calculated at run-time) */
 .globl FIQ_STACK_START
 FIQ_STACK_START:
-	.word 0x0badc0de
+	.word	0x0badc0de
 
 #endif /* CONFIG_USE_IRQ */
 

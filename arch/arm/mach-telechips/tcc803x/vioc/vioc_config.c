@@ -5,14 +5,15 @@
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/reg_physical.h>
-#include <asm/telechips/vioc/vioc_blk.h>
-#include <asm/telechips/vioc/vioc_global.h>
-#include <asm/telechips/vioc/vioc_config.h>
-#include <asm/telechips/vioc/vioc_scaler.h>
-#include <asm/telechips/vioc/vioc_ddicfg.h>
-#include <asm/telechips/vioc/vioc_viqe.h>
+#include <asm/arch/vioc/reg_physical.h>
+#include <asm/arch/vioc/vioc_blk.h>
+#include <asm/arch/vioc/vioc_global.h>
+#include <asm/arch/vioc/vioc_config.h>
+#include <asm/arch/vioc/vioc_scaler.h>
+#include <asm/arch/vioc/vioc_ddicfg.h>
+#include <asm/arch/vioc/vioc_viqe.h>
 #include <mach/chipinfo.h>
+#include <linux/delay.h>
 
 static void __iomem *pIREQ_reg = (void __iomem *)(HwVIOC_BASE + 0xA000);
 
@@ -1569,16 +1570,6 @@ FUNC_EXIT:
 
 void VIOC_CONFIG_SWReset(unsigned int component, unsigned int mode)
 {
-#ifdef CONFIG_VIOC_MGR
-	if (vioc_mgr_queue_work(VIOC_CMD_RESET, component, mode, 0, 0) < 0)
-#endif
-	{
-		VIOC_CONFIG_SWReset_RAW(component, mode);
-	}
-}
-
-void VIOC_CONFIG_SWReset_RAW(unsigned int component, unsigned int mode)
-{
 	u32 value;
 	void __iomem *reg = pIREQ_reg;
 
@@ -2078,13 +2069,13 @@ int VIOC_CONFIG_GetScaler_PluginToRDMA(unsigned int RdmaNum)
 		    && (VIOC_PlugIn.connect_device == rdma_idx))  {
 			/* prevent KCS warning */
 			ret = ((int)VIOC_SCALER0 + (int)i);
-			/* coverity[misra_c_2012_rule_15_1_violation : FALSE] */
-			goto FUNC_EXIT;
+			break;
 		}
 	}
-	ret = -1;
+	if (i > VIOC_SCALER_MAX) {
+		ret = -1;
+	}
 
-FUNC_EXIT:
 	return ret;
 }
 
@@ -2102,19 +2093,21 @@ int VIOC_CONFIG_GetScaler_PluginToWDMA(unsigned int WdmaNum)
 			continue;
 		}
 
-		if ((VIOC_PlugIn.enable == 0U) || VIOC_PlugIn.connect_device < 0x14) {
+		if ((VIOC_PlugIn.enable == 0U) || (VIOC_PlugIn.connect_device < 0x14U)) {
 			//disabled or connected device is not WDMA
 			continue;
 		}
 #if defined(CONFIG_TCC805X)
-		if (VIOC_PlugIn.connect_device == 0x20U &&
-		    WdmaNum == VIOC_WDMA13) {
+		if ((VIOC_PlugIn.connect_device == 0x20U) &&
+		    (WdmaNum == VIOC_WDMA13)) {
 			ret = ((int)VIOC_SCALER0 + (int)i);
-			break;
 		}
 #endif
 		if ((VIOC_PlugIn.connect_device - 0x14U) == get_vioc_index(WdmaNum)) {
 			ret = ((int)VIOC_SCALER0 + (int)i);
+		}
+
+		if (ret != -1) {
 			break;
 		}
 	}

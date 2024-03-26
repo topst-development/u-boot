@@ -8,8 +8,6 @@
 # (= When we move all CONFIGs from header files to Kconfig)
 # this makefile can be deleted.
 
-# Modified by Telechips Inc. (date: 2020-02)
-
 __all: include/autoconf.mk include/autoconf.mk.dep
 
 ifeq ($(shell grep -q '^CONFIG_SPL=y' include/config/auto.conf 2>/dev/null && echo y),y)
@@ -63,7 +61,7 @@ quiet_cmd_autoconf = GEN     $@
 			if [ -n "${KCONFIG_IGNORE_DUPLICATES}" ] ||			\
 			   ! grep -q "$${line%=*}=" include/config/auto.conf; then	\
 				echo "$$line";						\
-			fi								\
+			fi;								\
 		done > $@
 
 quiet_cmd_u_boot_cfg = CFG     $@
@@ -106,7 +104,6 @@ define filechk_config_h
 		| sed '/=/ {s/=/	/;q; } ; { s/$$/	1/; }'; \
 	done;								\
 	echo \#define CONFIG_BOARDDIR board/$(if $(VENDOR),$(VENDOR)/)$(BOARD);\
-	echo \#include \<config_defaults.h\>;				\
 	echo \#include \<config_uncmd_spl.h\>;				\
 	echo \#include \<configs/$(CONFIG_SYS_CONFIG_NAME).h\>;		\
 	echo \#include \<asm/config.h\>;				\
@@ -114,16 +111,8 @@ define filechk_config_h
 	echo \#include \<config_fallbacks.h\>;)
 endef
 
-define filechk_tcc_config_h
-	(cat include/config.h;						\
-	echo \#include \<configs/tcc/config_fallbacks.h\>;)
-endef
-
 include/config.h: scripts/Makefile.autoconf create_symlink FORCE
 	$(call filechk,config_h)
-ifdef CONFIG_ARCH_TELECHIPS
-	$(call filechk,tcc_config_h)
-endif
 
 # symbolic links
 # If arch/$(ARCH)/mach-$(SOC)/include/mach exists,
@@ -132,37 +121,6 @@ endif
 PHONY += create_symlink
 create_symlink:
 ifdef CONFIG_CREATE_ARCH_SYMLINK
-ifdef CONFIG_ARCH_TELECHIPS
-ifneq ($(KBUILD_SRC),)
-	$(Q)mkdir -p $(KBUILD_SRC)/arch/$(ARCH)/include/asm
-	$(Q)if [ -d $(KBUILD_SRC)/arch/$(ARCH)/mach-$(VENDOR)/include/mach ]; then	\
-		dest=arch/$(ARCH)/mach-$(VENDOR)/include/mach;			\
-	else									\
-		dest=arch-$(if $(SOC),$(SOC),$(CPU));			\
-	fi;									\
-	ln -fsn $(KBUILD_SRC)/$$dest $(KBUILD_SRC)/arch/$(ARCH)/include/asm/arch
-	$(Q)if [ -d $(KBUILD_SRC)/arch/$(ARCH)/mach-$(VENDOR)/$(SOC)/include ]; then	\
-		dest=arch/$(ARCH)/mach-$(VENDOR)/$(SOC)/include;			\
-	else								\
-		dest=arch-$(if $(SOC),$(SOC),$(CPU));			\
-	fi;								\
-	ln -fsn $(KBUILD_SRC)/$$dest $(KBUILD_SRC)/arch/$(ARCH)/include/asm/$(VENDOR)
-else
-	$(Q)if [ -d arch/$(ARCH)/mach-$(VENDOR)/include/mach ]; then	\
-		dest=../../mach-$(VENDOR)/include/mach;			\
-	else								\
-		dest=arch-$(if $(SOC),$(SOC),$(CPU));			\
-	fi;								\
-	ln -fsn $$dest arch/$(ARCH)/include/asm/arch			\
-
-	$(Q)if [ -d arch/$(ARCH)/mach-$(VENDOR)/$(SOC)/include ]; then	\
-		dest=../../mach-$(VENDOR)/$(SOC)/include;		\
-	else								\
-		dest=arch-$(if $(SOC),$(SOC),$(CPU));			\
-	fi;								\
-	ln -fsn $$dest arch/$(ARCH)/include/asm/$(VENDOR)
-endif
-else
 ifneq ($(KBUILD_SRC),)
 	$(Q)mkdir -p include/asm
 	$(Q)if [ -d $(KBUILD_SRC)/arch/$(ARCH)/mach-$(SOC)/include/mach ]; then	\
@@ -178,7 +136,6 @@ else
 		dest=arch-$(if $(SOC),$(SOC),$(CPU));			\
 	fi;								\
 	ln -fsn $$dest arch/$(ARCH)/include/asm/arch
-endif
 endif
 endif
 

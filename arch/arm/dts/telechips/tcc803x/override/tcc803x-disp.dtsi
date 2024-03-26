@@ -1,0 +1,451 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/display/telechips-dispdef.h>
+#include <dt-bindings/display/tcc803x-vioc.h>
+#include <dt-bindings/display/telechips-common-fb_dm_display.h>
+#include <dt-bindings/display/tcc803x-fb_dm_display.h>
+
+&pinctrl {
+	/* LCD POWER PORT 1 */
+	#if defined(LCD_PORT1_PWR) && defined(LCD_PORT1_RST) && \
+		defined(LCD_PORT1_BLK)
+	lcd_port_default1:lcd_port_default1 {
+		telechips,pins = LCD_PORT1_PWR, LCD_PORT1_RST, LCD_PORT1_BLK;
+		telechips,pin-function = <0>;
+		telechips,no-pull;
+	};
+	lcd_port_power_on1:lcd_port_power_on1 {
+		telechips,pins = LCD_PORT1_PWR;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_power_off1:lcd_port_power_off1 {
+		telechips,pins = LCD_PORT1_PWR;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	lcd_port_reset_on1:lcd_port_reset_on1 {
+		telechips,pins = LCD_PORT1_RST;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	lcd_port_reset_off1:lcd_port_reset_off1 {
+		telechips,pins = LCD_PORT1_RST;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_blk_on1:lcd_port_blk_on1 {
+		telechips,pins = LCD_PORT1_BLK;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_blk_off1:lcd_port_blk_off1 {
+		telechips,pins = LCD_PORT1_BLK;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	#endif
+
+	/* LCD POWER PORT 2 */
+	#if defined(LCD_PORT2_PWR) && defined(LCD_PORT2_RST) && \
+		defined(LCD_PORT2_BLK)
+	lcd_port_default2:lcd_port_default2 {
+		telechips,pins = LCD_PORT2_PWR, LCD_PORT2_RST, LCD_PORT2_BLK;
+		telechips,pin-function = <0>;
+		telechips,no-pull;
+	};
+	lcd_port_power_on2:lcd_port_power_on2 {
+		telechips,pins = LCD_PORT2_PWR;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_power_off2:lcd_port_power_off2 {
+		telechips,pins = LCD_PORT2_PWR;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	lcd_port_reset_on2:lcd_port_reset_on2 {
+		telechips,pins = LCD_PORT2_RST;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	lcd_port_reset_off2:lcd_port_reset_off2 {
+		telechips,pins = LCD_PORT2_RST;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_blk_on2:lcd_port_blk_on2 {
+		telechips,pins = LCD_PORT2_BLK;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_blk_off2:lcd_port_blk_off2 {
+		telechips,pins = LCD_PORT2_BLK;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	#endif
+
+	/* LCD POWER PORT 3 */
+	#if defined(LCD_PORT3_PWR) && defined(LCD_PORT3_RST) && \
+		defined(LCD_PORT3_BLK)
+	lcd_port_default3:lcd_port_default3 {
+		telechips,pins = LCD_PORT3_PWR, LCD_PORT3_RST, LCD_PORT3_BLK;
+		telechips,pin-function = <0>;
+		telechips,no-pull;
+	};
+	/* LVDS power on */
+	lcd_port_power_on3:lcd_port_power_on3 {
+		telechips,pins = LCD_PORT3_PWR;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_power_off3:lcd_port_power_off3 {
+		telechips,pins = LCD_PORT3_PWR;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	lcd_port_reset_on3:lcd_port_reset_on3 {
+		telechips,pins = LCD_PORT3_RST;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	lcd_port_reset_off3:lcd_port_reset_off3 {
+		telechips,pins = LCD_PORT3_RST;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_blk_on3:lcd_port_blk_on3 {
+		telechips,pins = LCD_PORT3_BLK;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_blk_off3:lcd_port_blk_off3 {
+		telechips,pins = LCD_PORT3_BLK;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	#endif
+
+	/* LCD POWER PORT 4 */
+	#if defined(LCD_PORT4_PWR) && defined(LCD_PORT4_RST) && defined(LCD_PORT4_BLK)
+	lcd_port_default4:lcd_port_default4 {
+		telechips,pins = LCD_PORT4_PWR, LCD_PORT4_RST, LCD_PORT4_BLK;
+		telechips,pin-function = <0>;
+		telechips,no-pull;
+	};
+	lcd_port_power_on4:lcd_port_power_on4 {
+		telechips,pins = LCD_PORT4_PWR;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_power_off4:lcd_port_power_off4 {
+		telechips,pins = LCD_PORT4_PWR;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	lcd_port_reset_on4:lcd_port_reset_on4 {
+		telechips,pins = LCD_PORT4_RST;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	lcd_port_reset_off4:lcd_port_reset_off4 {
+		telechips,pins = LCD_PORT4_RST;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_blk_on4:lcd_port_blk_on4 {
+		telechips,pins = LCD_PORT4_BLK;
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+	lcd_port_blk_off4:lcd_port_blk_off4 {
+		telechips,pins = LCD_PORT4_BLK;
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+	#endif
+};
+
+/ {
+	tcc_fb_dm0: tcc_fb_dm0{
+		compatible = "telechips,tcc_fb_dm";
+		status = "disabled";
+
+		/* clocks = <&clk_peri PERI_LCD0>; */
+		lcd-id = <VIOC_DISP0>;
+		lcd-layer = <0>;
+		lcd-ovp = <24>;
+		clk-div = <0>; /* unused for now */
+		fb-draw-type = <FB_DRAW_TYPE_BITMAP_HEADER>;
+		fb-buf-id = <0>;
+		fb-buf-addr = <0x2A000000>;
+		/* fb-buf-addr = <0x90000000>; sub-core */
+		bpix = <TCC_VIDEO_BPP32>;
+		lcd-mux-id = <0>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			fb0_in: port@0 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				reg = <0>;
+				#if defined(CONFIG_SAMPLE_DTB)
+				fb0_display_out: endpoint {
+					remote-endpoint = <&fb_tm123xdhp90_in>; /* default */
+				};
+				fb0_display_out: endpoint {
+					remote-endpoint = <&fb_hdmi_v20_in>;
+				};
+				#endif
+			};
+		};
+	};
+
+	tcc_fb_dm1: tcc_fb_dm1{
+		compatible = "telechips,tcc_fb_dm";
+		status = "disabled";
+
+		/* clocks = <&clk_peri PERI_LCD0>; */
+		lcd-id = <VIOC_DISP1>;
+		lcd-layer = <0>;
+		lcd-ovp = <24>;
+		clk-div = <0>; /* unused for now */
+		fb-draw-type = <FB_DRAW_TYPE_BITMAP_HEADER>;
+		fb-buf-id = <1>;
+		fb-buf-addr = <0x2A800000>;
+		/* fb-buf-addr = <0x90000000>; sub-core */
+		bpix = <TCC_VIDEO_BPP32>;
+		lcd-mux-id = <0>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			fb1_in: port@0 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				reg = <0>;
+				#if defined(CONFIG_SAMPLE_DTB)
+				fb1_display_out: endpoint {
+					remote-endpoint = <&fb_tm123xdhp90_in>; /* default */
+				};
+				fb1_display_out: endpoint {
+					remote-endpoint = <&fb_hdmi_v20_in>;
+				};
+				#endif
+			};
+		};
+	};
+
+	tcc_fb_dm2: tcc_fb_dm2 {
+		compatible = "telechips,tcc_fb_dm";
+		status = "disabled";
+
+		/* clocks = <&clk_peri PERI_LCD0>; */
+		lcd-id = <VIOC_DISP2>;
+		lcd-layer = <0>;
+		lcd-ovp = <24>;
+		clk-div = <0>; /* unused for now */
+		fb-draw-type = <FB_DRAW_TYPE_BITMAP_HEADER>;
+		fb-buf-id = <2>;
+		fb-buf-addr = <0x2B000000>;
+		/* fb-buf-addr = <0x90000000>; sub-core */
+		bpix = <TCC_VIDEO_BPP32>;
+		lcd-mux-id = <2>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			fb2_in: port@0 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				reg = <0>;
+				#if defined(CONFIG_SAMPLE_DTB)
+				fb2_display_out: endpoint {
+					remote-endpoint = <&fb_fld0800_in>;
+				};
+				#endif
+			};
+		};
+	};
+
+	fb_tm123xdhp90:fb_tm123xdhp90 {
+		compatible = "telechips,fb-tm123xdhp90";
+		status = "disabled";
+
+		mode = <LVDS_DUAL>;   /* 0: single 1: dual */
+		phy-ports = <PHY_PORT_D0 PHY_PORT_D1>; /*port main, port sub*/
+		data-mapping = "vesa-24";
+		lane-main =
+			<DATA3_LANE CLK_LANE DATA2_LANE DATA1_LANE DATA0_LANE>;
+		lane-sub =
+			<DATA0_LANE DATA1_LANE DATA2_LANE CLK_LANE DATA3_LANE>;
+		vcm = <1200>;
+		vsw = <500>;
+		//mboxes = <&multi_mbox0 1>;
+
+		pinctrl-names = "default", "pwr_on_1", "pwr_on_2",
+				"blk_on", "blk_off", "power_off";
+		#if defined(LCD_PORT1_PWR) && defined(LCD_PORT1_RST) && \
+		    defined(LCD_PORT1_BLK)
+		pinctrl-0 = <&lcd_port_default1>;
+		pinctrl-1 = <&lcd_port_power_on1>;
+		pinctrl-2 = <&lcd_port_reset_off1>;
+		pinctrl-3 = <&lcd_port_blk_on1>;
+		pinctrl-4 = <&lcd_port_blk_off1>;
+		pinctrl-5 = <&lcd_port_reset_on1 &lcd_port_power_off1>;
+		#else
+		pinctrl-0 = <>;
+		pinctrl-1 = <>;
+		pinctrl-2 = <>;
+		pinctrl-3 = <>;
+		pinctrl-4 = <>;
+		pinctrl-5 = <>;
+		#endif
+		display-timings {
+			timing0 {
+				clock-frequency = <88200000>;
+				hactive = <1920>;
+				vactive = <720>;
+				hfront-porch = <28>;
+				hback-porch = <28>;
+				hsync-len = <8>;
+				hsync-active = <0>;
+				vback-porch = <10>;
+				vfront-porch = <10>;
+				vsync-len = <2>;
+				vsync-active = <0>;
+				de-active = <1>;
+				pixelclk-active = <1>;
+			};
+		};
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			tm123_in: port@0 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				reg = <0>;
+				#if defined(CONFIG_SAMPLE_DTB)
+				fb_tm123xdhp90_in: endpoint {
+					remote-endpoint = <&fb0_display_out>;
+				};
+				fb_tm123xdhp90_in: endpoint {
+					remote-endpoint = <&fb1_display_out>;
+				};
+				#endif
+			};
+		};
+	};
+
+	fb_fld0800:fb_fld0800 {
+		compatible = "telechips,fb-fld0800";
+		status = "disabled";
+
+		mode = <LVDS_SINGLE>;   /* 0: single 1: dual */
+		phy-ports = <PHY_PORT_S0>; /*port main, port sub*/
+		data-mapping = "vesa-24";
+		lane-main = <DATA0_LANE DATA1_LANE DATA2_LANE CLK_LANE DATA3_LANE>;
+		vcm = <1200>;
+		vsw = <400>;
+		pinctrl-names = "default", "pwr_on_1", "pwr_on_2",
+				"blk_on", "blk_off", "power_off";
+		#if defined(LCD_PORT3_PWR) && defined(LCD_PORT3_RST) && \
+		    defined(LCD_PORT3_BLK)
+		pinctrl-0 = <&lcd_port_default3>;
+		pinctrl-1 = <&lcd_port_power_on3>;
+		pinctrl-2 = <&lcd_port_reset_off3>;
+		pinctrl-3 = <&lcd_port_blk_on3>;
+		pinctrl-4 = <&lcd_port_blk_off3>;
+		pinctrl-5 = <&lcd_port_reset_on3 &lcd_port_power_off3>;
+		#else
+		pinctrl-0 = <>;
+		pinctrl-1 = <>;
+		pinctrl-2 = <>;
+		pinctrl-3 = <>;
+		pinctrl-4 = <>;
+		pinctrl-5 = <>;
+		#endif
+		display-timings {
+			timing0 {
+				clock-frequency = <51200000>;
+				hactive = <1024>;
+				vactive = <600>;
+				hfront-porch = <147>;
+				hback-porch = <147>;
+				hsync-len = <19>;
+				hsync-active = <0>;
+				vback-porch = <10>;
+				vfront-porch = <25>;
+				vsync-len = <2>;
+				vsync-active = <0>;
+				de-active = <1>;
+				pixelclk-active = <1>;
+			};
+		};
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				reg = <0>;
+				#if defined(CONFIG_SAMPLE_DTB)
+				fb_fld0800_in: endpoint {
+					remote-endpoint = <&fb2_display_out>;
+				};
+				#endif
+			};
+		};
+	};
+
+	fb_hdmi_v20: fb_hdmi_v20 {
+		compatible = "telechips,fb-hdmi_v20";
+		status = "disabled";
+		vic = <1027>; /* 1024: old 1920x720 hdmi panel
+			       * 1027: 1920x720 boe hdmi panel
+			       */
+		pinctrl-names = "default", "pwr_on_1", "pwr_on_2",
+				"blk_on", "blk_off", "power_off";
+		#if defined(LCD_PORT2_PWR) && defined(LCD_PORT2_RST) && \
+		    defined(LCD_PORT2_BLK)
+		pinctrl-0 = <&lcd_port_default2>;
+		pinctrl-1 = <&lcd_port_power_on2>;
+		pinctrl-2 = <&lcd_port_reset_off2>;
+		pinctrl-3 = <&lcd_port_blk_on2>;
+		pinctrl-4 = <&lcd_port_blk_off2>;
+		pinctrl-5 = <&lcd_port_reset_on2 &lcd_port_power_off2>;
+		#else
+		pinctrl-0 = <>;
+		pinctrl-1 = <>;
+		pinctrl-2 = <>;
+		pinctrl-3 = <>;
+		pinctrl-4 = <>;
+		pinctrl-5 = <>;
+		#endif
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			hdmi_out: port@0 {
+				reg = <0>;
+				#if defined(CONFIG_SAMPLE_DTB)
+				fb_hdmi_v20_in: endpoint {
+					remote-endpoint = <&fb0_display_out>;
+				};
+				fb_hdmi_v20_in: endpoint {
+					remote-endpoint = <&fb1_display_out>;
+				};
+				#endif
+			};
+		};
+	};
+};

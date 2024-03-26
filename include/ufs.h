@@ -2,6 +2,8 @@
 #ifndef _UFS_H
 #define _UFS_H
 
+struct udevice;
+
 struct query_desc {
     uint8_t     opcode;
     uint8_t     idn;

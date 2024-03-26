@@ -63,13 +63,13 @@ def test_ab(ab_disk_image, u_boot_console):
 
     u_boot_console.run_command('host bind 0 ' + ab_disk_image.path)
 
-    output = u_boot_console.run_command('ab select slot_name host 0#misc')
+    output = u_boot_console.run_command('ab_select slot_name host 0#misc')
     assert 're-initializing A/B metadata' in output
     assert 'Attempting slot a, tries remaining 7' in output
     output = u_boot_console.run_command('printenv slot_name')
     assert 'slot_name=a' in output
 
-    output = u_boot_console.run_command('ab select slot_name host 0:1')
+    output = u_boot_console.run_command('ab_select slot_name host 0:1')
     assert 'Attempting slot b, tries remaining 7' in output
     output = u_boot_console.run_command('printenv slot_name')
     assert 'slot_name=b' in output

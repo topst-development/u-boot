@@ -15,7 +15,6 @@
 #define __CONFIG_H
 
 /* High Level Configuration Options */
-#define CONFIG_MACH_TYPE	MACH_TYPE_DEVKIT8000
 
 /*
  * 1MB into the SDRAM to allow for SPL's bss at the beginning of SDRAM
@@ -33,12 +32,6 @@
 /*  Physical Memory Map  */
 
 #include <configs/ti_omap3_common.h>
-
-#define CONFIG_REVISION_TAG		1
-
-/* Size of malloc() pool */
-#undef CONFIG_SYS_MALLOC_LEN
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (128 << 10))
 
 /* Hardware drivers */
 /* DM9000 */
@@ -65,8 +58,6 @@
 /* BOOTP/DHCP options */
 #define CONFIG_BOOTP_NISDOMAIN
 #define CONFIG_BOOTP_BOOTFILESIZE
-#define CONFIG_BOOTP_DNS2
-#define CONFIG_BOOTP_SEND_HOSTNAME
 #define CONFIG_BOOTP_TIMEOFFSET
 #undef CONFIG_BOOTP_VENDOREX
 
@@ -138,31 +129,16 @@
 #define CONFIG_BOOTCOMMAND "run autoboot"
 
 /* Boot Argument Buffer Size */
-#define CONFIG_SYS_MEMTEST_START	(OMAP34XX_SDRC_CS0 + 0x07000000)
-#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + \
-					0x01000000) /* 16MB */
-
-/* SRAM config */
-#define CONFIG_SYS_SRAM_START              0x40200000
-#define CONFIG_SYS_SRAM_SIZE               0x10000
 
 /* Defines for SPL */
 
 /* NAND boot config */
-#define CONFIG_SYS_NAND_5_ADDR_CYCLE
-#define CONFIG_SYS_NAND_PAGE_COUNT	64
-#define CONFIG_SYS_NAND_PAGE_SIZE	2048
-#define CONFIG_SYS_NAND_OOBSIZE		64
-#define CONFIG_SYS_NAND_BLOCK_SIZE	(128*1024)
-#define CONFIG_SYS_NAND_BAD_BLOCK_POS	0
 #define CONFIG_SYS_NAND_ECCPOS		{2, 3, 4, 5, 6, 7, 8, 9,\
 						10, 11, 12, 13}
 
 #define CONFIG_SYS_NAND_ECCSIZE		512
 #define CONFIG_SYS_NAND_ECCBYTES	3
-#define CONFIG_NAND_OMAP_ECCSCHEME	OMAP_ECC_HAM1_CODE_HW
 
-#define CONFIG_SYS_NAND_U_BOOT_OFFS	0x80000
 #define CONFIG_SYS_NAND_U_BOOT_SIZE	0x200000
 
 /* SPL OS boot options */

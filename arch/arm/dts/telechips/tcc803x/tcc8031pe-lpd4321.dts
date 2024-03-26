@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+/dts-v1/;
+
+#include "tcc803x.dts"
+
+/ {
+	model = "Telechips TCC8031PE LPD4321 Main Core";
+};
+
+#include "override/tcc8031pe-uart.dtsi"
+#include "override/tcc8031pe-mmc.dtsi"
+#include "override/tcc8031pe-usb-lpd4321.dtsi"
+#include "override/tcc8031pe-i2c.dtsi"
+#include "override/tcc803x-pwm.dtsi"
+#include "override/tcc8031pe-lpd4321-display.dts"

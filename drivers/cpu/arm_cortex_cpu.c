@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
 #define pr_fmt(fmt) "arm-cortex: " fmt
@@ -8,21 +8,16 @@
 #include <common.h>
 #include <dm.h>
 #include <cpu.h>
+#include <asm/armv8/cpu.h>
 
-#if defined(CONFIG_ARM64)
-#  include <asm/armv8/cpu.h>
-#else
-#  include <asm/armv7/cpu.h>
-#endif
+#define ARM_CPU_DESC_LEN (40)
 
 static int arm_cortex_cpu_probe(struct udevice *dev)
 {
 	return 0;
 }
 
-#define ARM_CPU_DESC_LEN (40)
-
-static int arm_cortex_cpu_get_desc(struct udevice *dev, char *buf, int size)
+static int arm_cortex_cpu_get_desc(const struct udevice *dev, char *buf, int size)
 {
 	u32 midr = read_midr();
 
@@ -31,25 +26,23 @@ static int arm_cortex_cpu_get_desc(struct udevice *dev, char *buf, int size)
 	u32 revision = midr & 0x0000000FU;
 
 	const char *processor;
-	s32 ret = -ENOSPC;
+	int ret = -ENOSPC;
 
 	switch (partnum) {
-#if !defined(CONFIG_ARM64)
-	case MIDR_PARTNUM_CORTEX_A7:
-		processor = "Cortex-A7";
-		break;
-	case MIDR_PARTNUM_CORTEX_A15:
-		processor = "Cortex-A15";
-		break;
-#endif
 	case MIDR_PARTNUM_CORTEX_A35:
 		processor = "Cortex-A35";
 		break;
 	case MIDR_PARTNUM_CORTEX_A53:
 		processor = "Cortex-A53";
 		break;
+	case MIDR_PARTNUM_CORTEX_A55:
+		processor = "Cortex-A55";
+		break;
 	case MIDR_PARTNUM_CORTEX_A72:
 		processor = "Cortex-A72";
+		break;
+	case MIDR_PARTNUM_CORTEX_A76:
+		processor = "Cortex-A76";
 		break;
 	default:
 		processor = "Unknown";
@@ -72,13 +65,11 @@ static const struct cpu_ops arm_cortex_cpu_ops = {
 };
 
 static const struct udevice_id arm_cortex_cpu_ids[] = {
-#if !defined(CONFIG_ARM64)
-	{ .compatible = "arm,cortex-a7"  },
-	{ .compatible = "arm,cortex-a15" },
-#endif
 	{ .compatible = "arm,cortex-a35" },
 	{ .compatible = "arm,cortex-a53" },
+	{ .compatible = "arm,cortex-a55" },
 	{ .compatible = "arm,cortex-a72" },
+	{ .compatible = "arm,cortex-a76" },
 	{ .compatible = NULL }
 };
 

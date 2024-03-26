@@ -13,25 +13,11 @@
 #define _CONFIG_DNS325_H
 
 /*
- * Machine number definition
- */
-#define CONFIG_MACH_TYPE		MACH_TYPE_DNS325
-
-/*
  * High Level Configuration Options (easy to change)
  */
 #define CONFIG_FEROCEON_88FR131		/* CPU Core subversion */
 #define CONFIG_KW88F6281		/* SOC Name */
-#define CONFIG_SKIP_LOWLEVEL_INIT	/* disable board lowlevel_init */
 
-/*
- * Commands configuration
- */
-
-/*
- * mv-common.h should be defined after CMD configs since it used them
- * to enable certain macros
- */
 #include "mv-common.h"
 
 /* Remove or override few declarations from mv-common.h */
@@ -41,15 +27,6 @@
  */
 #ifdef CONFIG_CMD_NET
 #define CONFIG_MVGBE_PORTS		{1, 0} /* enable port 0 only */
-#define CONFIG_NETCONSOLE
-#endif
-
-/*
- * SATA Driver configuration
- */
-#ifdef CONFIG_MVSATA_IDE
-#define CONFIG_SYS_ATA_IDE0_OFFSET      MV_SATA_PORT0_OFFSET
-#define CONFIG_SYS_ATA_IDE1_OFFSET      MV_SATA_PORT1_OFFSET
 #endif
 
 /*

@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+/ {
+	compatible = "telechips,tcc807x";
+	interrupt-parent = <&gic>;
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	chosen: chosen {};
+	aliases: aliases {};
+
+	config: config {
+		u-boot,reloc-off = <0x08000000>;
+		u-boot,mmc-env-partition = "env";
+		u-boot,scsi-env-partition = "env";
+	};
+
+	memory: memory {
+		device_type = "memory";
+		reg = <0x20000000 0xA0000000>;
+	};
+
+	firmware: firmware {
+		optee: optee {
+			compatible = "linaro,optee-tz";
+			method = "smc";
+		};
+
+		psci: psci {
+			compatible = "arm,psci-1.0";
+			method = "smc";
+		};
+	};
+};
+
+#include "tcc807x-cpu.dtsi"
+#include "tcc807x-clk.dtsi"
+#include "tcc807x-gpio.dtsi"
+#include "tcc807x-uart.dtsi"
+#include "tcc807x-usb.dtsi"
+#include "tcc807x-mbox.dtsi"
+#include "tcc807x-scfw.dtsi"
+#include "tcc807x-hsmfw.dtsi"
+#include "tcc807x-mmc.dtsi"
+#include "tcc807x-ufs.dtsi"
+#include "tcc807x-timer.dtsi"
+#include "tcc807x-adc.dtsi"
+#include "tcc807x-spi.dtsi"
+#include "tcc807x-i2c.dtsi"
+#include "tcc807x-pwm.dtsi"
+#include "tcc807x-pcie.dtsi"

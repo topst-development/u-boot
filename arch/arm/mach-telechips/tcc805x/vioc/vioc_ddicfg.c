@@ -5,8 +5,8 @@
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/vioc_ddicfg.h>
-#include <asm/telechips/vioc/reg_physical.h>
+#include <asm/arch/vioc/vioc_ddicfg.h>
+#include <asm/arch/vioc/reg_physical.h>
 #include <mach/chipinfo.h>
 
 void VIOC_DDICONFIG_SetPWDN(unsigned int type, unsigned int set)
@@ -100,11 +100,17 @@ unsigned int VIOC_DDICONFIG_GetViocRemap(void)
 {
 	void __iomem *reg = phys_to_virt(HwDDI_CONFIG_BASE);
 	u32 val = 0U;
+	void *tmp_pDDICONFIG = NULL; /* avoid MISRA C-2012 Rule 8.13 */
+
+	/* avoid MISRA C-2012 Rule 8.13 */
+	tmp_pDDICONFIG = reg;
+	reg = tmp_pDDICONFIG;
 
 	if (get_chip_rev() != 0U) {
 		/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
 		/* coverity[misra_c_2012_rule_18_4_violation : FALSE] */
 		val = __raw_readl(reg + VIOC_REMAP);
+		//val = 1U;
 	} else {
 		/* Prevent KCS warning */
 		val = 0U;

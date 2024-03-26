@@ -5,8 +5,8 @@
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/reg_physical.h>
-#include <asm/telechips/vioc/vioc_pxdemux.h>
+#include <asm/arch/vioc/reg_physical.h>
+#include <asm/arch/vioc/vioc_pxdemux.h>
 
 #ifndef REG_VIOC_PXDEMUX
 #define REG_VIOC_PXDEMUX	(HwVIOC_BASE + 0x390000U) // 16 word

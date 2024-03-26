@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
 #include <clk-uclass.h>
 #include <clk.h>
 #include <dm.h>
-#include <linux/arm-smccc.h>
+#include <dm/uclass-internal.h>
 #include <mach/clock.h>
 #include <mach/smc.h>
 #include <linux/sizes.h>
 #include <linux/io.h>
-#include <dm/uclass-internal.h>
+#include <linux/arm-smccc.h>
 
 // clock fbus
 struct tcc_ckc_desc {
@@ -26,15 +26,39 @@ struct tcc_ckc_fbus_priv {
 	struct tcc_ckc_desc *fbus_clks;
 };
 
+#define CLK_TFA_VERSION(major, minor, patch)	\
+	((major)*1000000 + (minor)*1000 + (patch))
+
+#define CHECK_TFA_VERSION_MIN(major, minor, patch) \
+	(CLK_TFA_VERSION((major), (minor), (patch)) <= vtfa_clk)
+
+#define CHECK_TFA_VERSION_IS(major, minor, patch) \
+	(CLK_TFA_VERSION((major), (minor), (patch)) == vtfa_clk)
+
+static uint32_t vtfa_clk;
+
+/* [DR]
+ * tcc_ckc_fbus_probe is call back of struct driver.probe
+ * function is declare as
+ * ‘int (*probe)(struct udevice *dev)'
+ */
 static int tcc_ckc_fbus_probe(struct udevice *dev)
 {
+	struct arm_smccc_res res;
 	(void)dev;
-	/*
-	 * Register operations only
-	 */
+
+	arm_smccc_smc(SIP_CLK_INIT, 0, 0, 0, 0, 0, 0, 0, &res);
+
+	vtfa_clk = CLK_TFA_VERSION(res.a0, res.a1, res.a2);
+
 	return 0;
 }
 
+/* [DR]
+ * tcc_ckc_fbus_set_rate is call back of struct clk_ops.set_rate
+ * function is declare as
+ * ‘ulong (*set_rate)(struct clk *clk, ulong rate)'
+ */
 static unsigned long tcc_ckc_fbus_set_rate(struct clk *pclk,
 					   unsigned long rate)
 {
@@ -43,11 +67,21 @@ static unsigned long tcc_ckc_fbus_set_rate(struct clk *pclk,
 
 	arm_smccc_smc(SIP_CLK_SET_CLKCTRL, pclk->id, 1,
 		      rate, 0, 0, 0, 0, &res);
-	ret = res.a0;
+
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		ret = res.a3;
+	} else {
+		ret = res.a0;
+	}
 
 	return ret;
 }
 
+/* [DR]
+ * tcc_ckc_fbus_get_rate is call back of struct clk_ops.get_rate
+ * function is declare as
+ * ‘ulong (*get_rate)(struct clk *clk)'
+ */
 static unsigned long tcc_ckc_fbus_get_rate(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -55,11 +89,17 @@ static unsigned long tcc_ckc_fbus_get_rate(struct clk *pclk)
 
 	arm_smccc_smc(SIP_CLK_GET_CLKCTRL, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
+
 	ret = res.a0;
 
 	return ret;
 }
 
+/* [DR]
+ * tcc_ckc_fbus_enable is call back of struct clk_ops.enable
+ * function is declare as
+ * ‘int (*enable)(struct clk *clk)'
+ */
 static int tcc_ckc_fbus_enable(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -68,15 +108,28 @@ static int tcc_ckc_fbus_enable(struct clk *pclk)
 	arm_smccc_smc(SIP_CLK_ENABLE_CLKCTRL, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
 
-	if (res.a0 == 0UL) {
-		ret = 0;
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		if (res.a3 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	} else {
-		ret = -1;
+		if (res.a0 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	}
 
 	return ret;
 }
 
+/* [DR]
+ * tcc_ckc_fbus_disable is call back of struct clk_ops.disable
+ * function is declare as
+ * ‘int (*disable)(struct clk *clk)'
+ */
 static int tcc_ckc_fbus_disable(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -85,10 +138,18 @@ static int tcc_ckc_fbus_disable(struct clk *pclk)
 	arm_smccc_smc(SIP_CLK_DISABLE_CLKCTRL, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
 
-	if (res.a0 == 0UL) {
-		ret = 0;
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		if (res.a3 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	} else {
-		ret = -1;
+		if (res.a0 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	}
 
 	return ret;
@@ -106,6 +167,10 @@ static const struct udevice_id tcc_ckc_fbus_id[] = {
 	{}
 };
 
+/*
+ * [DR]
+ * u-boot API U_BOOT_DRIVER has defects it's inside.
+ */
 U_BOOT_DRIVER(tcc_fbus_ckc) = {
 	.name = "tcc_ckc_fbus",
 	.id = UCLASS_CLK,
@@ -113,7 +178,7 @@ U_BOOT_DRIVER(tcc_fbus_ckc) = {
 	.of_match = tcc_ckc_fbus_id,
 	.probe = tcc_ckc_fbus_probe,
 	.flags = DM_FLAG_PRE_RELOC,
-	.priv_auto_alloc_size = (int)sizeof(struct tcc_ckc_fbus_priv),
+	.priv_auto = (int)sizeof(struct tcc_ckc_fbus_priv),
 };
 
 // clock peripheral
@@ -122,15 +187,28 @@ struct tcc_ckc_peri_priv {
 	struct tcc_ckc_desc *peri_clks;
 };
 
+/* [DR]
+ * tcc_ckc_peri_probe is call back of struct driver.probe
+ * function is declare as
+ * ‘int (*probe)(struct udevice *dev)'
+ */
 static int tcc_ckc_peri_probe(struct udevice *dev)
 {
+	struct arm_smccc_res res;
 	(void)dev;
-	/*
-	 * Regiter operations only
-	 */
+
+	arm_smccc_smc(SIP_CLK_INIT, 0, 0, 0, 0, 0, 0, 0, &res);
+
+	vtfa_clk = CLK_TFA_VERSION(res.a0, res.a1, res.a2);
+
 	return 0;
 }
 
+/* [DR]
+ * tcc_ckc_peri_set_rate is call back of struct clk_ops.set_rate
+ * function is declare as
+ * ‘ulong (*set_rate)(struct clk *clk, ulong rate)'
+ */
 static unsigned long tcc_ckc_peri_set_rate(struct clk *pclk,
 					   unsigned long rate)
 {
@@ -139,11 +217,21 @@ static unsigned long tcc_ckc_peri_set_rate(struct clk *pclk,
 
 	arm_smccc_smc(SIP_CLK_SET_PCLKCTRL, pclk->id,
 		      1UL, rate, 0, 0, 0, 0, &res);
-	ret = res.a0;
+
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		ret = res.a3;
+	} else {
+		ret = res.a0;
+	}
 
 	return ret;
 }
 
+/* [DR]
+ * tcc_ckc_peri_get_rate is call back of struct clk_ops.get_rate
+ * function is declare as
+ * ‘ulong (*get_rate)(struct clk *clk)'
+ */
 static unsigned long tcc_ckc_peri_get_rate(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -151,11 +239,17 @@ static unsigned long tcc_ckc_peri_get_rate(struct clk *pclk)
 
 	arm_smccc_smc(SIP_CLK_GET_PCLKCTRL, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
+
 	ret = res.a0;
 
 	return ret;
 }
 
+/* [DR]
+ * tcc_ckc_peri_enable is call back of struct clk_ops.enable
+ * function is declare as
+ * ‘int (*enable)(struct clk *clk)'
+ */
 static int tcc_ckc_peri_enable(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -164,15 +258,28 @@ static int tcc_ckc_peri_enable(struct clk *pclk)
 	arm_smccc_smc(SIP_CLK_ENABLE_PERI, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
 
-	if (res.a0 == 0UL) {
-		ret = 0;
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		if (res.a3 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	} else {
-		ret = -1;
+		if (res.a0 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	}
 
 	return ret;
 }
 
+/* [DR]
+ * tcc_ckc_peri_disable is call back of struct clk_ops.disable
+ * function is declare as
+ * ‘int (*disable)(struct clk *clk)'
+ */
 static int tcc_ckc_peri_disable(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -181,10 +288,18 @@ static int tcc_ckc_peri_disable(struct clk *pclk)
 	arm_smccc_smc(SIP_CLK_DISABLE_PERI, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
 
-	if (res.a0 == 0UL) {
-		ret = 0;
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		if (res.a3 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	} else {
-		ret = -1;
+		if (res.a0 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	}
 
 	return ret;
@@ -222,6 +337,10 @@ static const struct udevice_id tcc_ckc_peri_id[] = {
 	{}
 };
 
+/*
+ * [DR]
+ * u-boot API U_BOOT_DRIVER has defects it's inside.
+ */
 U_BOOT_DRIVER(tcc_peri_ckc) = {
 	.name = "tcc_ckc_peri",
 	.id = UCLASS_CLK,
@@ -229,7 +348,7 @@ U_BOOT_DRIVER(tcc_peri_ckc) = {
 	.of_match = tcc_ckc_peri_id,
 	.probe = tcc_ckc_peri_probe,
 	.flags = DM_FLAG_PRE_RELOC,
-	.priv_auto_alloc_size = (int)sizeof(struct tcc_ckc_peri_priv),
+	.priv_auto = (int)sizeof(struct tcc_ckc_peri_priv),
 };
 
 // clock iobus
@@ -238,6 +357,11 @@ struct tcc_ckc_iobus_priv {
 	struct tcc_ckc_desc *iobus_clks;
 };
 
+/* [DR]
+ * tcc_ckc_iobus_probe is call back of struct driver.probe
+ * function is declare as
+ * ‘int (*probe)(struct udevice *dev)'
+ */
 static int tcc_ckc_iobus_probe(struct udevice *dev)
 {
 	(void)dev;
@@ -247,6 +371,11 @@ static int tcc_ckc_iobus_probe(struct udevice *dev)
 	return 0;
 }
 
+/* [DR]
+ * tcc_ckc_iobus_enable is call back of struct clk_ops.enable
+ * function is declare as
+ * ‘int (*enable)(struct clk *clk)'
+ */
 static int tcc_ckc_iobus_enable(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -255,15 +384,28 @@ static int tcc_ckc_iobus_enable(struct clk *pclk)
 	arm_smccc_smc(SIP_CLK_ENABLE_IOBUS, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
 
-	if (res.a0 == 0UL) {
-		ret = 0;
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		if (res.a3 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	} else {
-		ret = -1;
+		if (res.a0 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	}
 
 	return ret;
 }
 
+/* [DR]
+ * tcc_ckc_iobus_disable is call back of struct clk_ops.disable
+ * function is declare as
+ * ‘int (*disable)(struct clk *clk)'
+ */
 static int tcc_ckc_iobus_disable(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -272,10 +414,18 @@ static int tcc_ckc_iobus_disable(struct clk *pclk)
 	arm_smccc_smc(SIP_CLK_DISABLE_IOBUS, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
 
-	if (res.a0 == 0UL) {
-		ret = 0;
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		if (res.a3 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	} else {
-		ret = -1;
+		if (res.a0 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	}
 
 	return ret;
@@ -311,6 +461,10 @@ static const struct udevice_id tcc_ckc_iobus_id[] = {
 	{}
 };
 
+/*
+ * [DR]
+ * u-boot API U_BOOT_DRIVER has defects it's inside.
+ */
 U_BOOT_DRIVER(tcc_iobus_ckc) = {
 	.name = "tcc_ckc_iobus",
 	.id = UCLASS_CLK,
@@ -318,7 +472,7 @@ U_BOOT_DRIVER(tcc_iobus_ckc) = {
 	.of_match = tcc_ckc_iobus_id,
 	.probe = tcc_ckc_iobus_probe,
 	.flags = DM_FLAG_PRE_RELOC,
-	.priv_auto_alloc_size = (int)sizeof(struct tcc_ckc_iobus_priv),
+	.priv_auto = (int)sizeof(struct tcc_ckc_iobus_priv),
 };
 
 // clock hsio bus
@@ -327,6 +481,11 @@ struct tcc_ckc_hsiobus_priv {
 	struct tcc_ckc_desc *hsiobus_clks;
 };
 
+/* [DR]
+ * tcc_ckc_hsiobus_probe is call back of struct driver.probe
+ * function is declare as
+ * ‘int (*probe)(struct udevice *dev)'
+ */
 static int tcc_ckc_hsiobus_probe(struct udevice *dev)
 {
 	(void)dev;
@@ -336,6 +495,11 @@ static int tcc_ckc_hsiobus_probe(struct udevice *dev)
 	return 0;
 }
 
+/* [DR]
+ * tcc_ckc_hsiobus_enable is call back of struct clk_ops.enable
+ * function is declare as
+ * ‘int (*enable)(struct clk *clk)'
+ */
 static int tcc_ckc_hsiobus_enable(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -344,15 +508,28 @@ static int tcc_ckc_hsiobus_enable(struct clk *pclk)
 	arm_smccc_smc(SIP_CLK_ENABLE_HSIOBUS, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
 
-	if (res.a0 == 0UL) {
-		ret = 0;
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		if (res.a3 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	} else {
-		ret = -1;
+		if (res.a0 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	}
 
 	return ret;
 }
 
+/* [DR]
+ * tcc_ckc_hsiobus_disable is call back of struct clk_ops.disable
+ * function is declare as
+ * ‘int (*disable)(struct clk *clk)'
+ */
 static int tcc_ckc_hsiobus_disable(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -361,10 +538,18 @@ static int tcc_ckc_hsiobus_disable(struct clk *pclk)
 	arm_smccc_smc(SIP_CLK_DISABLE_HSIOBUS, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
 
-	if (res.a0 == 0UL) {
-		ret = 0;
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		if (res.a3 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	} else {
-		ret = -1;
+		if (res.a0 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	}
 
 	return ret;
@@ -400,6 +585,10 @@ static const struct udevice_id tcc_ckc_hsiobus_id[] = {
 	{}
 };
 
+/*
+ * [DR]
+ * u-boot API U_BOOT_DRIVER has defects it's inside.
+ */
 U_BOOT_DRIVER(tcc_hsiobus_ckc) = {
 	.name = "tcc_ckc_hsiobus",
 	.id = UCLASS_CLK,
@@ -407,7 +596,7 @@ U_BOOT_DRIVER(tcc_hsiobus_ckc) = {
 	.of_match = tcc_ckc_hsiobus_id,
 	.probe = tcc_ckc_hsiobus_probe,
 	.flags = DM_FLAG_PRE_RELOC,
-	.priv_auto_alloc_size = (int)sizeof(struct tcc_ckc_hsiobus_priv),
+	.priv_auto = (int)sizeof(struct tcc_ckc_hsiobus_priv),
 };
 
 // clock display bus
@@ -416,6 +605,11 @@ struct tcc_ckc_ddibus_priv {
 	struct tcc_ckc_desc *ddibus_clks;
 };
 
+/* [DR]
+ * tcc_ckc_ddibus_probe is call back of struct driver.probe
+ * function is declare as
+ * ‘int (*probe)(struct udevice *dev)'
+ */
 static int tcc_ckc_ddibus_probe(struct udevice *dev)
 {
 	(void)dev;
@@ -425,6 +619,11 @@ static int tcc_ckc_ddibus_probe(struct udevice *dev)
 	return 0;
 }
 
+/* [DR]
+ * tcc_ckc_ddibus_enable is call back of struct clk_ops.enable
+ * function is declare as
+ * ‘int (*enable)(struct clk *clk)'
+ */
 static int tcc_ckc_ddibus_enable(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -433,15 +632,28 @@ static int tcc_ckc_ddibus_enable(struct clk *pclk)
 	arm_smccc_smc(SIP_CLK_ENABLE_ISODDI, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
 
-	if (res.a0 == 0UL) {
-		ret = 0;
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		if (res.a3 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	} else {
-		ret = -1;
+		if (res.a0 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	}
 
 	return ret;
 }
 
+/* [DR]
+ * tcc_ckc_ddibus_disable is call back of struct clk_ops.disable
+ * function is declare as
+ * ‘int (*disable)(struct clk *clk)'
+ */
 static int tcc_ckc_ddibus_disable(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -450,10 +662,18 @@ static int tcc_ckc_ddibus_disable(struct clk *pclk)
 	arm_smccc_smc(SIP_CLK_DISABLE_ISODDI, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
 
-	if (res.a0 == 0UL) {
-		ret = 0;
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		if (res.a3 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	} else {
-		ret = -1;
+		if (res.a0 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	}
 
 	return ret;
@@ -489,6 +709,11 @@ static const struct udevice_id tcc_ckc_ddibus_id[] = {
 	{}
 };
 
+/*
+ * [DR]
+ * u-boot API U_BOOT_DRIVER has defects it's inside.
+ */
+
 U_BOOT_DRIVER(tcc_ddibus_ckc) = {
 	.name = "tcc_ckc_ddibus",
 	.id = UCLASS_CLK,
@@ -496,7 +721,7 @@ U_BOOT_DRIVER(tcc_ddibus_ckc) = {
 	.of_match = tcc_ckc_ddibus_id,
 	.probe = tcc_ckc_ddibus_probe,
 	.flags = DM_FLAG_PRE_RELOC,
-	.priv_auto_alloc_size = (int)sizeof(struct tcc_ckc_ddibus_priv),
+	.priv_auto = (int)sizeof(struct tcc_ckc_ddibus_priv),
 };
 
 // clock vpubus
@@ -504,6 +729,14 @@ struct tcc_ckc_vpubus_priv {
 	unsigned long num_vpubus_clk;
 	struct tcc_ckc_desc *vpubus_clks;
 };
+
+/* [DR]
+ * 
+static int tcc_ckc_vpubus_probe(struct udevice *dev)
+ is call back of struct driver.probe
+ * function is declare as
+ * ‘int (*probe)(struct udevice *dev)'
+ */
 
 static int tcc_ckc_vpubus_probe(struct udevice *dev)
 {
@@ -514,6 +747,11 @@ static int tcc_ckc_vpubus_probe(struct udevice *dev)
 	return 0;
 }
 
+/* [DR]
+ * tcc_ckc_vpubus_enable is call back of struct clk_ops.enable
+ * function is declare as
+ * ‘int (*enable)(struct clk *clk)'
+ */
 static int tcc_ckc_vpubus_enable(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -522,15 +760,28 @@ static int tcc_ckc_vpubus_enable(struct clk *pclk)
 	arm_smccc_smc(SIP_CLK_ENABLE_VPUBUS, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
 
-	if (res.a0 == 0UL) {
-		ret = 0;
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		if (res.a3 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	} else {
-		ret = -1;
+		if (res.a0 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	}
 
 	return ret;
 }
 
+/* [DR]
+ * tcc_ckc_vpubus_disable is call back of struct clk_ops.disable
+ * function is declare as
+ * ‘int (*disable)(struct clk *clk)'
+ */
 static int tcc_ckc_vpubus_disable(struct clk *pclk)
 {
 	struct arm_smccc_res res;
@@ -539,10 +790,18 @@ static int tcc_ckc_vpubus_disable(struct clk *pclk)
 	arm_smccc_smc(SIP_CLK_DISABLE_VPUBUS, pclk->id,
 		      0, 0, 0, 0, 0, 0, &res);
 
-	if (res.a0 == 0UL) {
-		ret = 0;
+	if (CHECK_TFA_VERSION_IS(1, 1, 0)) {
+		if (res.a3 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	} else {
-		ret = -1;
+		if (res.a0 == 0UL) {
+			ret = 0;
+		} else {
+			ret = -1;
+		}
 	}
 
 	return ret;
@@ -579,6 +838,10 @@ static const struct udevice_id tcc_ckc_vpubus_id[] = {
 	{}
 };
 
+/*
+ * [DR]
+ * u-boot API U_BOOT_DRIVER has defects it's inside.
+ */
 U_BOOT_DRIVER(tcc_vpubus_ckc) = {
 	.name = "tcc_ckc_vpubus",
 	.id = UCLASS_CLK,
@@ -586,7 +849,7 @@ U_BOOT_DRIVER(tcc_vpubus_ckc) = {
 	.of_match = tcc_ckc_vpubus_id,
 	.probe = tcc_ckc_vpubus_probe,
 	.flags = DM_FLAG_PRE_RELOC,
-	.priv_auto_alloc_size = (int)sizeof(struct tcc_ckc_vpubus_priv),
+	.priv_auto = (int)sizeof(struct tcc_ckc_vpubus_priv),
 };
 
 // clock isoip_top

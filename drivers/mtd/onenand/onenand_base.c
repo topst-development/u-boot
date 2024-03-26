@@ -20,7 +20,10 @@
  */
 
 #include <common.h>
+#include <log.h>
 #include <watchdog.h>
+#include <dm/devres.h>
+#include <linux/bitops.h>
 #include <linux/compat.h>
 #include <linux/mtd/mtd.h>
 #include "linux/mtd/flashchip.h"
@@ -1833,9 +1836,6 @@ int onenand_erase(struct mtd_info *mtd, struct erase_info *instr)
 erase_exit:
 
 	ret = instr->state == MTD_ERASE_DONE ? 0 : -EIO;
-	/* Do call back function */
-	if (!ret)
-		mtd_erase_callback(instr);
 
 	/* Deselect and wake up anyone waiting on the device */
 	onenand_release_device(mtd);
@@ -2303,8 +2303,8 @@ static int flexonenand_get_boundary(struct mtd_info *mtd)
 
 /**
  * flexonenand_get_size - Fill up fields in onenand_chip and mtd_info
- * 			  boundary[], diesize[], mtd->size, mtd->erasesize,
- * 			  mtd->eraseregions
+ *			  boundary[], diesize[], mtd->size, mtd->erasesize,
+ *			  mtd->eraseregions
  * @param mtd		- MTD device structure
  */
 static void flexonenand_get_size(struct mtd_info *mtd)
@@ -2654,6 +2654,7 @@ int onenand_probe(struct mtd_info *mtd)
 	else
 		mtd->size = this->chipsize;
 
+	mtd->type = ONENAND_IS_MLC(this) ? MTD_MLCNANDFLASH : MTD_NANDFLASH;
 	mtd->flags = MTD_CAP_NANDFLASH;
 	mtd->_erase = onenand_erase;
 	mtd->_read_oob = onenand_read_oob;

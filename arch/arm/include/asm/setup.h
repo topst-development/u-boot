@@ -18,11 +18,6 @@
  *  (2001). This will allow boot loaders to convert to the new struct
  *  tag way.
  */
-
-/*
- * Modified by Telechips Inc. (date: 2020-12)
- */
-
 #ifndef __ASMARM_SETUP_H
 #define __ASMARM_SETUP_H
 
@@ -240,7 +235,7 @@ struct tagtable {
 	int (*parse)(const struct tag *);
 };
 
-#define __tag __attribute__((unused, __section__(".taglist")))
+#define __tag __attribute__((unused)) __section(".taglist")
 #define __tagtable(tag, fn) \
 static struct tagtable __tagtable_##fn __tag = { tag, fn }
 
@@ -277,4 +272,3 @@ extern struct meminfo meminfo;
  * Board specified tags
  */
 void setup_board_tags(struct tag **in_params);
-void setup_board_cmdline(void);

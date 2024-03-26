@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) Telechips Inc.
+
+# FB
+#
+comment "Telechips Videos"
+config TELECHIPS_FB_DM
+        bool "Telechips Framebuffer DM version"
+        depends on ARCH_TELECHIPS && DM_VIDEO
+	default y
+        help
+          Support Telechips Framebuffer.
+
+if TELECHIPS_FB_DM
+config FB_SUPPORT_VIOC_DUMP
+	bool "Support vioc dump for debugging"
+	default n
+
+comment "Telechips Display Devices"
+source "drivers/displayport/Kconfig"
+#source "drivers/hdmi/hdmi_v2_0/Kconfig"
+
+comment "Telechips DM Video Drivers"
+
+config TELECHIPS_DPV14_DM
+        bool "Telechips DP Ver. 1.4 driver DM version"
+		depends on (TCC805X || TCC807X) && DISPLAY_PORT_V14
+		default y
+        help
+			DP V1.4 driver will be controlled by Video Device Model
+
+config TELECHIPS_LVDS_DM
+        bool "Telechips LVDS driver DM version"
+        depends on (TCC897X || TCC803X || TCC805X)
+	default y
+	select TELECHIPS_LVDS_CTRL if (TCC803X || TCC805X)
+        help
+          Support Telechips Framebuffer.
+if TELECHIPS_LVDS_DM
+comment "Telechips LVDS Options"
+config TELECHIPS_LVDS_CTRL
+        bool "TCC LVDS control enable"
+        default n
+        depends on (TCC803X || TCC805X)
+
+config R5_LVDS_CTRL
+	bool "Telechips R5 MCU LVDS CTRL"
+	depends on TCC_MULTI_MAILBOX && TCC803X
+	default n
+	help
+		Eanble this option if you want to make R5 micom initialize LVDS
+		Eanble this option if you want to make R5 micom initialize LVDS
+endif
+
+config TELECHIPS_DSI_DM
+        bool "Telechips DSI driver DM version"
+        depends on (TCC750X || TCC807X)
+        default y
+        help
+          Support Telechips Framebuffer.
+
+config TELECHIPS_HDMI_DM
+        bool "Telechips HDMI driver DM version"
+        depends on TCC803X && TELECHIPS_HDMI_V2_0
+        default y
+        help
+          Support Telechips HDMI driver of device model
+endif
+
+source "drivers/video/telechips/splash/Kconfig"
+

@@ -1,0 +1,79 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/display/tcc8031pe-lpd4321-panel.h>
+#include "tcc803x-disp.dtsi"
+
+/*==============================================================================
+ * TCC805x DISPLAY PATH
+ * ---------------------------
+ * FB0 : fb0<fb0_display_out> -> <fb_tm123xdhp90_in>fb_tm123xdhp90
+ *	 RDMA0 - WMIX0 - DISP0 -> MUX0 -> DP0 (MAIN)
+ * FB1 : fb1<tcc_fb_dm1_out> -> <fb_hdmi_v20_in>fb_hdmi_v20
+ *	 RDMA4 - WMIX1 - DISP1 -> HDMI
+==============================================================================*/
+
+&tcc_fb_dm0 {
+	status = "okay";
+	fb-buf-id = <0>;
+	fb-buf-addr = <0x2A000000>;
+};
+
+&fb0_in {
+	fb0_display_out: endpoint {
+		remote-endpoint = <&fb_tm123xdhp90_in>;
+	};
+};
+
+&tcc_fb_dm1 {
+	status = "disabled";
+	fb-buf-id = <1>;
+	fb-buf-addr = <0x2A800000>;
+};
+
+&fb1_in {
+	tcc_fb_dm1_out: endpoint {
+		remote-endpoint = <&fb_hdmi_v20_in>;
+	};
+};
+
+&fb_tm123xdhp90 {
+	status = "okay";
+	#if defined(LCD_PORT1_PWR) && defined(LCD_PORT1_RST) && \
+		defined(LCD_PORT1_BLK)
+	pinctrl-0 = <&lcd_port_default1>;
+	pinctrl-1 = <&lcd_port_power_on1>;
+	pinctrl-2 = <&lcd_port_reset_off1>;
+	pinctrl-3 = <&lcd_port_blk_on1>;
+	pinctrl-4 = <&lcd_port_blk_off1>;
+	pinctrl-5 = <&lcd_port_reset_on1 &lcd_port_power_off1>;
+	#endif
+};
+
+&tm123_in {
+	fb_tm123xdhp90_in: endpoint {
+		remote-endpoint = <&fb0_display_out>;
+	};
+};
+
+&fb_hdmi_v20 {
+	status = "okay";
+	#if defined(LCD_PORT2_PWR) && defined(LCD_PORT2_RST) && \
+		defined(LCD_PORT2_BLK)
+	pinctrl-0 = <&lcd_port_default2>;
+	pinctrl-1 = <&lcd_port_power_on2>;
+	pinctrl-2 = <&lcd_port_reset_off2>;
+	pinctrl-3 = <&lcd_port_blk_on2>;
+	pinctrl-4 = <&lcd_port_blk_off2>;
+	pinctrl-5 = <&lcd_port_reset_on2 &lcd_port_power_off2>;
+	#endif
+};
+
+&hdmi_out {
+	fb_hdmi_v20_in: endpoint {
+		remote-endpoint = <&tcc_fb_dm1_out>;
+	};
+};
+

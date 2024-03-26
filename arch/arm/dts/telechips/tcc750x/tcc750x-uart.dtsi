@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcc750x-clks.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+	uart0: serial@18000000 {
+		compatible = "telechips,telechips-pl011", "arm,pl011", "arm,primecell";
+		reg = <0x18000000 0x1000 0x180C0000 0x8>;
+		interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_peri PERI_UART0>, <&clk_fbus FBUS_UART>;
+		clock = <48000000>;
+		status = "disabled";
+		u-boot,dm-pre-reloc;
+	};
+
+	uart1: serial@18010000 {
+		compatible = "telechips,telechips-pl011", "arm,pl011", "arm,primecell";
+		reg = <0x18010000 0x1000 0x180C0000 0x8>;
+		interrupts = <GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_peri PERI_UART1>, <&clk_fbus FBUS_UART>;
+		clock = <48000000>;
+		status = "disabled";
+		u-boot,dm-pre-reloc;
+	};
+
+	uart2: serial@18020000 {
+		compatible = "telechips,telechips-pl011", "arm,pl011", "arm,primecell";
+		reg = <0x18020000 0x1000 0x180C0000 0x8>;
+		interrupts = <GIC_SPI 53 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_peri PERI_UART2>, <&clk_fbus FBUS_UART>;
+		clock = <48000000>;
+		status = "disabled";
+		u-boot,dm-pre-reloc;
+	};
+};

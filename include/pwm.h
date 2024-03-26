@@ -7,17 +7,19 @@
  * Donghwa Lee <dh09.lee@samsung.com>
  */
 
-/*
- * Modified by Telechips Inc. (date: 2020-05)
- */
-
 #ifndef _pwm_h_
 #define _pwm_h_
+
+struct udevice;
 
 /* struct pwm_ops: Operations for the PWM uclass */
 struct pwm_ops {
 	/**
 	 * set_config() - Set the PWM configuration
+	 *
+	 * Change both the PWM device's period and it's duty period if
+	 * possible. Otherwise, set an appropriate duty period that best
+	 * matches the given period_ns / duty_ns ratio for the device.
 	 *
 	 * @dev:	PWM device to update
 	 * @channel:	PWM channel to update
@@ -52,6 +54,10 @@ struct pwm_ops {
 
 /**
  * pwm_set_config() - Set the PWM configuration
+ *
+ * Change both the PWM device's period and it's duty period if
+ * possible. Otherwise, set an appropriate duty period that best
+ * matches the given period_ns / duty_ns ratio for the device.
  *
  * @dev:	PWM device to update
  * @channel:	PWM channel to update

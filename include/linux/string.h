@@ -35,6 +35,9 @@ extern char * strcat(char *, const char *);
 #ifndef __HAVE_ARCH_STRNCAT
 extern char * strncat(char *, const char *, __kernel_size_t);
 #endif
+#ifndef __HAVE_ARCH_STRLCAT
+size_t strlcat(char *, const char *, size_t);
+#endif
 #ifndef __HAVE_ARCH_STRCMP
 extern int strcmp(const char *,const char *);
 #endif
@@ -91,10 +94,15 @@ extern __kernel_size_t strnlen(const char *,__kernel_size_t);
 size_t strcspn(const char *s, const char *reject);
 #endif
 
+#ifdef CONFIG_SANDBOX
+# define strdup		sandbox_strdup
+# define strndup		sandbox_strndup
+#endif
+
 #ifndef __HAVE_ARCH_STRDUP
 extern char * strdup(const char *);
-#endif
 extern char * strndup(const char *, size_t);
+#endif
 #ifndef __HAVE_ARCH_STRSWAB
 extern char * strswab(const char *);
 #endif
@@ -120,6 +128,19 @@ extern void * memchr(const void *,int,__kernel_size_t);
 #ifndef __HAVE_ARCH_MEMCHR_INV
 void *memchr_inv(const void *, int, size_t);
 #endif
+
+/**
+ * memdup() - allocate a buffer and copy in the contents
+ *
+ * Note that this returns a valid pointer even if @len is 0
+ *
+ * @src: data to copy in
+ * @len: number of bytes to copy
+ * @return allocated buffer with the copied contents, or NULL if not enough
+ *	memory is available
+ *
+ */
+char *memdup(const void *src, size_t len);
 
 unsigned long ustrtoul(const char *cp, char **endp, unsigned int base);
 unsigned long long ustrtoull(const char *cp, char **endp, unsigned int base);

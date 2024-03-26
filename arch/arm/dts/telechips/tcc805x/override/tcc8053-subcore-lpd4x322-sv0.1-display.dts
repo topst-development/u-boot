@@ -1,0 +1,49 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/display/tcc8053-lpd4x322-sv0.1-panel.h>
+#include "tcc805x-disp.dtsi"
+/*==============================================================================
+ * TCC805x DISPLAY PATH
+ * ---------------------------
+ * FB2 : fb0<fb2_display_out> -> <fb_lvds_dual_input_0>fb_tm123xdhp90
+ *	 RDMA8 - WMIX2 - DISP2 -> MUX2 -> LVDS (dual-ldi)
+==============================================================================*/
+
+/* FB2: CLUSTER */
+&tcc_fb_dm2 {
+	status = "okay";
+	fb-buf-id = <0>;
+	fb-buf-addr = <0x4A800000>;
+};
+
+/* FB2: fb2_display_out -> LVDS: fb_lvds_dual_input_0 */
+&fb2_out {
+	fb2_display_out: endpoint {
+		remote-endpoint = <&fb_lvds_dual_input_0>;
+	};
+};
+
+/* LVDS (dual ldi) */
+&fb_tm123xdhp90 {
+	status = "okay";
+	#if defined(LCD_PORT3_PWR) && defined(LCD_PORT3_RST) && \
+		defined(LCD_PORT3_BLK)
+	pinctrl-0 = <&lcd_port_default3>;
+	pinctrl-1 = <&lcd_port_power_on3>;
+	pinctrl-2 = <&lcd_port_reset_off3>;
+	pinctrl-3 = <&lcd_port_blk_on3>;
+	pinctrl-4 = <&lcd_port_blk_off3>;
+	pinctrl-5 = <&lcd_port_reset_on3 &lcd_port_power_off3>;
+	#endif
+};
+
+/* FB2: fb2_display_out -> LVDS: fb_lvds_dual_input_0 */
+&tm123_in {
+	fb_lvds_dual_input_0: endpoint@0 {
+		reg = <0>;
+		remote-endpoint = <&fb2_display_out>;
+	};
+};

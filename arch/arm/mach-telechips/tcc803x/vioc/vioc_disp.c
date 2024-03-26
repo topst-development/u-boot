@@ -5,9 +5,9 @@
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/vioc_disp.h>
-#include <asm/telechips/vioc/vioc_global.h>
-#include <asm/telechips/vioc/reg_physical.h>
+#include <asm/arch/vioc/vioc_disp.h>
+#include <asm/arch/vioc/vioc_global.h>
+#include <asm/arch/vioc/reg_physical.h>
 
 void VIOC_DISP_SetSwapbf(void __iomem *reg, unsigned int swapbf)
 {
@@ -205,7 +205,7 @@ void VIOC_DISP_SetClippingEnable(void __iomem *reg,
 
 	/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
 	/* coverity[misra_c_2012_rule_18_4_violation : FALSE] */
-	value = (__raw_readl(reg + DCTRL) & DCTRL_CLEN_MASK);
+	value = (__raw_readl(reg + DCTRL) & ~(DCTRL_CLEN_MASK));
 	value |= (enable << DCTRL_CLEN_SHIFT);
 	__raw_writel(value, reg + DCTRL);
 }
@@ -499,6 +499,10 @@ int vioc_disp_get_turn_onoff(void __iomem *reg)
 void VIOC_DISP_TurnOn(void __iomem *reg)
 {
 	u32 value;
+
+#if CONFIG_IS_ENABLED(EARLYCAMERA_SOLUTION_BOOTSTAGE)
+	bootstage_mark_name(BOOTSTAGE_ID_LCDC_ON, "[earlycam]display_lcdc_on");
+#endif
 
 	/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
 	/* coverity[misra_c_2012_rule_18_4_violation : FALSE] */

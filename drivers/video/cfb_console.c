@@ -65,39 +65,18 @@
  */
 
 #include <common.h>
+#include <command.h>
 #include <cpu_func.h>
 #include <env.h>
 #include <fdtdec.h>
 #include <gzip.h>
-#include <version.h>
+#include <log.h>
+#include <version_string.h>
 #include <malloc.h>
 #include <video.h>
+#include <asm/global_data.h>
+#include <dm/ofnode.h>
 #include <linux/compiler.h>
-
-#if defined(CONFIG_VIDEO_MXS)
-#define VIDEO_FB_16BPP_WORD_SWAP
-#endif
-
-/*
- * Defines for the MB862xx driver
- */
-#ifdef CONFIG_VIDEO_MB862xx
-
-#ifdef CONFIG_VIDEO_CORALP
-#define VIDEO_FB_LITTLE_ENDIAN
-#endif
-#ifdef CONFIG_VIDEO_MB862xx_ACCEL
-#define VIDEO_HW_RECTFILL
-#define VIDEO_HW_BITBLT
-#endif
-#endif
-
-/*
- * Defines for the i.MX31 driver (mx3fb.c)
- */
-#if defined(CONFIG_VIDEO_MX3) || defined(CONFIG_VIDEO_IPUV3)
-#define VIDEO_FB_16BPP_WORD_SWAP
-#endif
 
 /*
  * Include video_fb.h after definitions of VIDEO_HW_RECTFILL etc.
@@ -119,7 +98,6 @@
  * Console device
  */
 
-#include <version.h>
 #include <linux/types.h>
 #include <stdio_dev.h>
 #include <video_font.h>
@@ -1710,7 +1688,8 @@ static void logo_black(void)
 			1);
 }
 
-static int do_clrlogo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_clrlogo(struct cmd_tbl *cmdtp, int flag, int argc,
+		      char *const argv[])
 {
 	if (argc != 1)
 		return cmd_usage(cmdtp);
@@ -1867,7 +1846,7 @@ static void *video_logo(void)
 		ret = splash_screen_prepare();
 		if (ret < 0)
 			return video_fb_address;
-		addr = simple_strtoul(s, NULL, 16);
+		addr = hextoul(s, NULL);
 
 		if (video_display_bitmap(addr,
 					video_logo_xpos,
@@ -1979,9 +1958,7 @@ static void *video_logo(void)
 
 static int cfb_fb_is_in_dram(void)
 {
-	bd_t *bd = gd->bd;
-#if defined(CONFIG_ARM) || defined(CONFIG_NDS32) || \
-defined(CONFIG_SANDBOX) || defined(CONFIG_X86)
+	struct bd_info *bd = gd->bd;
 	ulong start, end;
 	int i;
 
@@ -1992,11 +1969,7 @@ defined(CONFIG_SANDBOX) || defined(CONFIG_X86)
 		    (ulong)video_fb_address < end)
 			return 1;
 	}
-#else
-	if ((ulong)video_fb_address >= bd->bi_memstart &&
-	    (ulong)video_fb_address < bd->bi_memstart + bd->bi_memsize)
-		return 1;
-#endif
+
 	return 0;
 }
 
@@ -2154,8 +2127,7 @@ int drv_video_init(void)
 #if defined(CONFIG_VGA_AS_SINGLE_DEVICE)
 	have_keyboard = false;
 #elif defined(CONFIG_OF_CONTROL)
-	have_keyboard = !fdtdec_get_config_bool(gd->fdt_blob,
-						"u-boot,no-keyboard");
+	have_keyboard = !ofnode_conf_read_bool("u-boot,no-keyboard");
 #else
 	have_keyboard = true;
 #endif

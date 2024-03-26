@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
 #ifndef TCC_SC_PROTOCOL
@@ -46,30 +46,34 @@ struct tcc_sc_reg_req_data {
 
 struct tcc_sc_fw_mmc_proxy_ops {
 	int (*request_command)(const struct tcc_sc_fw_handle *handle,
-			struct mmc_cmd *cmd, struct mmc_data *data,
+			struct mmc_cmd *cmd, const struct mmc_data *data,
 			unsigned char part_num);
 	int (*prot_info)(const struct tcc_sc_fw_handle *handle,
 			struct tcc_sc_fw_prot_mmc *mmc_info);
 };
 
+#if defined(CONFIG_TCC_SC_UFS)
 struct tcc_sc_fw_ufs_proxy_ops {
 	int (*request_command)(const struct tcc_sc_fw_handle *handle,
-				struct scsi_cmd *cmd);
+				const struct scsi_cmd *cmd);
 	int (*request_query)(const struct tcc_sc_fw_handle *handle,
-				struct ufs_query_sc *q);
+				const struct ufs_query_sc *q);
 };
+#endif
 
 struct tcc_sc_fw_reg_proxy_ops {
 	int (*request_reg_set)(const struct tcc_sc_fw_handle *handle,
 				uint32_t address, uint32_t bit_number,
 				uint32_t width, uint32_t value);
 	int (*request_reg_set_multi)(const struct tcc_sc_fw_handle *handle,
-				struct tcc_sc_reg_req_data *reg_req_data);
+				const struct tcc_sc_reg_req_data *reg_req_data);
 };
 
 struct tcc_sc_fw_ops {
 	struct tcc_sc_fw_mmc_proxy_ops mmc_ops;
+#if defined(CONFIG_TCC_SC_UFS)
 	struct tcc_sc_fw_ufs_proxy_ops ufs_ops;
+#endif
 	struct tcc_sc_fw_reg_proxy_ops reg_ops;
 };
 
@@ -79,7 +83,7 @@ struct tcc_sc_fw_handle {
 	void *priv;
 };
 
-const struct tcc_sc_fw_handle *tcc_sc_fw_get_handle(struct udevice *dev);
+const struct tcc_sc_fw_handle *tcc_sc_fw_get_handle(const struct udevice *dev);
 const struct tcc_sc_fw_handle *tcc_sc_fw_get_handle_by_name(void);
 
 #endif /* TCC_SC_PROTOCOL */

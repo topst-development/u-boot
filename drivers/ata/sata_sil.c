@@ -7,6 +7,7 @@
 
 #include <common.h>
 #include <cpu_func.h>
+#include <log.h>
 #include <pci.h>
 #include <command.h>
 #include <asm/byteorder.h>
@@ -16,15 +17,17 @@
 #include <sata.h>
 #include <libata.h>
 #include <sata.h>
+#include <linux/delay.h>
 
 #if CONFIG_IS_ENABLED(BLK)
 #include <dm.h>
 #include <blk.h>
+#include <dm/device-internal.h>
 #endif
 
 #include "sata_sil.h"
 
-#define virt_to_bus(devno, v)	pci_virt_to_mem(devno, (void *) (v))
+#define virt_to_bus(devno, v)	dm_pci_virt_to_mem(devno, (void *) (v))
 
 /* just compatible ahci_ops */
 struct sil_ops {
@@ -485,7 +488,7 @@ ulong sata_read(int dev, ulong blknr, lbaint_t blkcnt, void *buffer)
 static ulong sata_read(struct udevice *dev, lbaint_t blknr, lbaint_t blkcnt,
 		       void *buffer)
 {
-	struct sil_sata_priv *priv = dev_get_platdata(dev);
+	struct sil_sata_priv *priv = dev_get_plat(dev);
 	int port_number = priv->port_num;
 	struct sil_sata *sata = priv->sil_sata_desc[port_number];
 #endif
@@ -510,7 +513,7 @@ ulong sata_write(int dev, ulong blknr, lbaint_t blkcnt, const void *buffer)
 ulong sata_write(struct udevice *dev, lbaint_t blknr, lbaint_t blkcnt,
 		 const void *buffer)
 {
-	struct sil_sata_priv *priv = dev_get_platdata(dev);
+	struct sil_sata_priv *priv = dev_get_plat(dev);
 	int port_number = priv->port_num;
 	struct sil_sata *sata = priv->sil_sata_desc[port_number];
 #endif
@@ -535,7 +538,7 @@ static int sil_init_sata(int dev)
 #else
 static int sil_init_sata(struct udevice *uc_dev, int dev)
 {
-	struct sil_sata_priv *priv = dev_get_platdata(uc_dev);
+	struct sil_sata_priv *priv = dev_get_plat(uc_dev);
 #endif
 	struct sil_sata *sata;
 	void *port;
@@ -605,13 +608,14 @@ static int sil_init_sata(struct udevice *uc_dev, int dev)
 	/* Save the private struct to block device struct */
 #if !CONFIG_IS_ENABLED(BLK)
 	sata_dev_desc[dev].priv = (void *)sata;
+	sata->devno = sata_info.devno;
 #else
 	priv->sil_sata_desc[dev] = sata;
 	priv->port_num = dev;
+	sata->devno = uc_dev->parent;
 #endif
 	sata->id = dev;
 	sata->port = port;
-	sata->devno = sata_info.devno;
 	sprintf(sata->name, "SATA#%d", dev);
 	sil_cmd_soft_reset(sata);
 	tmp = readl(port + PORT_SSTATUS);
@@ -696,8 +700,8 @@ int scan_sata(int dev)
 #else
 static int scan_sata(struct udevice *blk_dev, int dev)
 {
-	struct blk_desc *desc = dev_get_uclass_platdata(blk_dev);
-	struct sil_sata_priv *priv = dev_get_platdata(blk_dev);
+	struct blk_desc *desc = dev_get_uclass_plat(blk_dev);
+	struct sil_sata_priv *priv = dev_get_plat(blk_dev);
 	struct sil_sata *sata = priv->sil_sata_desc[dev];
 #endif
 	unsigned char serial[ATA_ID_SERNO_LEN + 1];
@@ -760,17 +764,35 @@ U_BOOT_DRIVER(sata_sil_driver) = {
 	.name = "sata_sil_blk",
 	.id = UCLASS_BLK,
 	.ops = &sata_sil_blk_ops,
-	.platdata_auto_alloc_size = sizeof(struct sil_sata_priv),
+	.plat_auto	= sizeof(struct sil_sata_priv),
 };
+
+static int sil_unbind_device(struct udevice *dev)
+{
+	int ret;
+
+	ret = device_remove(dev, DM_REMOVE_NORMAL);
+	if (ret)
+		return ret;
+
+	ret = device_unbind(dev);
+	if (ret)
+		return ret;
+
+	return 0;
+}
 
 static int sil_pci_probe(struct udevice *dev)
 {
 	struct udevice *blk;
+	int failed_number;
 	char sata_name[10];
 	pci_dev_t devno;
 	u16 word;
 	int ret;
 	int i;
+
+	failed_number = 0;
 
 	/* Get PCI device number */
 	devno = dm_pci_get_bdf(dev);
@@ -824,12 +846,44 @@ static int sil_pci_probe(struct udevice *dev)
 		}
 
 		ret = sil_init_sata(blk, i);
-		if (ret)
-			return -ENODEV;
+		if (ret) {
+			ret = sil_unbind_device(blk);
+			if (ret)
+				return ret;
+
+			failed_number++;
+			continue;
+		}
 
 		ret = scan_sata(blk, i);
-		if (ret)
-			return -ENODEV;
+		if (ret) {
+			ret = sil_unbind_device(blk);
+			if (ret)
+				return ret;
+
+			failed_number++;
+			continue;
+		}
+	}
+
+	if (failed_number == sata_info.maxport)
+		return -ENODEV;
+	else
+		return 0;
+}
+
+static int sil_pci_remove(struct udevice *dev)
+{
+	int i;
+	struct sil_sata *sata;
+	struct sil_sata_priv *priv;
+
+	priv = dev_get_priv(dev);
+
+	for (i = sata_info.portbase; i < sata_info.maxport; i++) {
+		sata = priv->sil_sata_desc[i];
+		if (sata)
+			free(sata);
 	}
 
 	return 0;
@@ -857,7 +911,8 @@ U_BOOT_DRIVER(sil_ahci_pci) = {
 	.of_match = sil_pci_ids,
 	.ops = &sata_sil_ops,
 	.probe = sil_pci_probe,
-	.priv_auto_alloc_size = sizeof(struct sil_sata_priv),
+	.remove = sil_pci_remove,
+	.priv_auto	= sizeof(struct sil_sata_priv),
 };
 
 U_BOOT_PCI_DEVICE(sil_ahci_pci, supported);

@@ -3,21 +3,21 @@
  * Copyright (C) 2015 Alexey Brodkin <abrodkin@synopsys.com>
  */
 
-/*
- * Modified by Telechips Inc. (date: 2020-03)
- */
-
 #include <common.h>
 #include <clk.h>
+#include <log.h>
+#include <dm/device_compat.h>
+#include <dm/devres.h>
 #include <dm/ofnode.h>
+#include <dm/pinctrl.h>
 #include <generic-phy.h>
 #include <reset.h>
 #include <asm/io.h>
 #include <dm.h>
 #include "ehci.h"
 #include <power/regulator.h>
-#include <asm/gpio.h>
 #include <dm/pinctrl.h>
+#include <asm/gpio.h>
 
 /*
  * Even though here we don't explicitly use "struct ehci_ctrl"
@@ -29,16 +29,52 @@ struct generic_ehci {
 	struct clk *clocks;
 	struct reset_ctl *resets;
 	struct phy phy;
+#ifdef CONFIG_DM_REGULATOR
+	struct udevice *vbus_supply;
+#endif
 	int clock_count;
 	int reset_count;
 	bool use_expander;
 	struct gpio_desc vbus_gpio;
 };
 
+#ifdef CONFIG_DM_REGULATOR
 static int ehci_enable_vbus_supply(struct udevice *dev)
 {
-	int ret;
 	struct generic_ehci *priv = dev_get_priv(dev);
+	int ret;
+
+	ret = device_get_supply_regulator(dev, "vbus-supply",
+					  &priv->vbus_supply);
+	if (ret && ret != -ENOENT)
+		return ret;
+
+	if (priv->vbus_supply) {
+		ret = regulator_set_enable(priv->vbus_supply, true);
+		if (ret) {
+			dev_err(dev, "Error enabling VBUS supply\n");
+			return ret;
+		}
+	} else {
+		dev_dbg(dev, "No vbus supply\n");
+	}
+
+	return 0;
+}
+
+static int ehci_disable_vbus_supply(struct generic_ehci *priv)
+{
+	if (priv->vbus_supply)
+		return regulator_set_enable(priv->vbus_supply, false);
+	else
+		return 0;
+}
+#else
+#if defined(CONFIG_TELECHIPS_EHCI_PHY)
+static int ehci_enable_vbus_supply(struct udevice *dev)
+{
+	struct generic_ehci *priv = dev_get_priv(dev);
+	int ret;
 
 	if (priv->use_expander) {
 		ret = gpio_request_by_name(dev, "gpios", 0,
@@ -59,20 +95,19 @@ static int ehci_enable_vbus_supply(struct udevice *dev)
 		dm_gpio_free(dev, &priv->vbus_gpio);
 	} else {
 		ret = pinctrl_select_state(dev, "vbus_on");
+
 		if (ret) {
-			dev_err(dev, "pinctrl_select_state failed... err:%d\n",
-					ret);
-			return ret;
+			dev_err(dev, "pinctrl_select_state failed... err:%d\n", ret);
 		}
 	}
 
-	return 0;
+	return ret;
 }
 
 static int ehci_disable_vbus_supply(struct udevice *dev)
 {
-	int ret;
 	struct generic_ehci *priv = dev_get_priv(dev);
+	int ret;
 
 	if (priv->use_expander) {
 		ret = gpio_request_by_name(dev, "gpios",
@@ -93,14 +128,26 @@ static int ehci_disable_vbus_supply(struct udevice *dev)
 		dm_gpio_free(dev, &priv->vbus_gpio);
 	} else {
 		ret = pinctrl_select_state(dev, "vbus_off");
+
 		if (ret) {
-			dev_err(dev, "pinctrl_select_state_failed... err:%d\n",
-					ret);
-			return ret;
+			dev_err(dev, "pinctrl_select_state failed... err:%d\n", ret);
 		}
 	}
+
+	return ret;
+}
+#else /* CONFIG_TELECHIPS_EHCI_PHY */
+static int ehci_enable_vbus_supply(struct udevice *dev)
+{
 	return 0;
 }
+
+static int ehci_disable_vbus_supply(struct generic_ehci *priv)
+{
+	return 0;
+}
+#endif /* !defiend(CONFIG_TELECHIPS_EHCI_PHY) */
+#endif
 
 static int ehci_usb_probe(struct udevice *dev)
 {
@@ -112,7 +159,7 @@ static int ehci_usb_probe(struct udevice *dev)
 	err = 0;
 	priv->clock_count = 0;
 	clock_nb = ofnode_count_phandle_with_args(dev_ofnode(dev), "clocks",
-						  "#clock-cells");
+						  "#clock-cells", 0);
 	if (clock_nb > 0) {
 		priv->clocks = devm_kcalloc(dev, clock_nb, sizeof(struct clk),
 					    GFP_KERNEL);
@@ -142,7 +189,7 @@ static int ehci_usb_probe(struct udevice *dev)
 
 	priv->reset_count = 0;
 	reset_nb = ofnode_count_phandle_with_args(dev_ofnode(dev), "resets",
-						  "#reset-cells");
+						  "#reset-cells", 0);
 	if (reset_nb > 0) {
 		priv->resets = devm_kcalloc(dev, reset_nb,
 					    sizeof(struct reset_ctl),
@@ -198,7 +245,11 @@ phy_err:
 		dev_err(dev, "failed to shutdown usb phy\n");
 
 regulator_err:
+#if defined(CONFIG_TELECHIPS_EHCI_PHY)
 	ret = ehci_disable_vbus_supply(dev);
+#else /* CONFIG_TELECHIPS_EHCI_PHY */
+	ret = ehci_disable_vbus_supply(priv);
+#endif /* !defiend(CONFIG_TELECHIPS_EHCI_PHY) */
 	if (ret)
 		dev_err(dev, "failed to disable VBUS supply\n");
 
@@ -227,9 +278,13 @@ static int ehci_usb_remove(struct udevice *dev)
 	if (ret)
 		return ret;
 
+#if defined(CONFIG_TELECHIPS_EHCI_PHY)
 	ret = ehci_disable_vbus_supply(dev);
-	//if (ret)
-	//	return ret;
+#else /* CONFIG_TELECHIPS_EHCI_PHY */
+	ret = ehci_disable_vbus_supply(priv);
+#endif /* !defined(CONFIG_TELECHIPS_EHCI_PHY) */
+	if (ret)
+		return ret;
 
 	ret =  reset_release_all(priv->resets, priv->reset_count);
 	if (ret)
@@ -251,6 +306,6 @@ U_BOOT_DRIVER(ehci_generic) = {
 	.probe = ehci_usb_probe,
 	.remove = ehci_usb_remove,
 	.ops	= &ehci_usb_ops,
-	.priv_auto_alloc_size = sizeof(struct generic_ehci),
+	.priv_auto	= sizeof(struct generic_ehci),
 	.flags	= DM_FLAG_ALLOC_PRIV_DMA,
 };

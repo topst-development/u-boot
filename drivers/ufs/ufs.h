@@ -2,10 +2,9 @@
 #ifndef __UFS_H
 #define __UFS_H
 
-#include <asm/io.h>
-#include <dm.h>
-
 #include "unipro.h"
+
+struct udevice;
 
 #define UFS_CDB_SIZE	16
 #define UPIU_TRANSACTION_UIC_CMD 0x1F
@@ -554,17 +553,23 @@ struct uic_command {
 #define UIC_ARG_MPHY_TX_GEN_SEL_INDEX(lane) (lane)
 #define UIC_ARG_MPHY_RX_GEN_SEL_INDEX(lane) (PA_MAXDATALANES + (lane))
 
-#define UIC_ARG_MIB_SEL(attr, sel)	((((attr) & 0xFFFFU) << 16U) |\
-					 ((sel) & 0xFFFFU))
-#define UIC_ARG_MIB(attr)		UIC_ARG_MIB_SEL(attr, 0U)
-#define UIC_ARG_ATTR_TYPE(t)		(((t) & 0xFFU) << 16U)
-#define UIC_GET_ATTR_ID(v)		(((v) >> 16U) & 0xFFFFU)
+#define UIC_ARG_MIB_SEL(attr, sel)	((((attr) & 0xFFFF) << 16) |\
+					 ((sel) & 0xFFFF))
+#define UIC_ARG_MIB(attr)		UIC_ARG_MIB_SEL(attr, 0)
+#define UIC_ARG_ATTR_TYPE(t)		(((t) & 0xFF) << 16)
+#define UIC_GET_ATTR_ID(v)		(((v) >> 16) & 0xFFFF)
 
 /* Link Status*/
 enum link_status {
 	UFSHCD_LINK_IS_DOWN	= 1,
 	UFSHCD_LINK_IS_UP	= 2,
 };
+
+#define UIC_ARG_MIB_SEL(attr, sel)	((((attr) & 0xFFFF) << 16) |\
+					 ((sel) & 0xFFFF))
+#define UIC_ARG_MIB(attr)		UIC_ARG_MIB_SEL(attr, 0)
+#define UIC_ARG_ATTR_TYPE(t)		(((t) & 0xFF) << 16)
+#define UIC_GET_ATTR_ID(v)		(((v) >> 16) & 0xFFFF)
 
 /* UIC Commands */
 enum uic_cmd_dme {
@@ -694,7 +699,6 @@ struct ufs_hba_ops {
 	int (*link_startup_notify)(struct ufs_hba *hba,
 				   enum ufs_notify_change_status);
 	int (*phy_initialization)(struct ufs_hba *hba);
-	int (*smu_setting)(struct ufs_hba *hba);
 };
 
 struct ufs_hba {
@@ -756,12 +760,6 @@ static inline int ufshcd_ops_link_startup_notify(struct ufs_hba *hba,
 {
 	if (hba->ops && hba->ops->link_startup_notify)
 		return hba->ops->link_startup_notify(hba, status);
-	return 0;
-}
-static inline int ufshcd_ops_smu_setting(struct ufs_hba *hba)
-{
-	if (hba->ops && hba->ops->smu_setting)
-		return hba->ops->smu_setting(hba);
 
 	return 0;
 }
@@ -825,10 +823,6 @@ enum {
 	REG_UFS_CRYPTOCAP			= 0x104,
 
 	UFSHCI_CRYPTO_REG_SPACE_SIZE		= 0x400,
-	REG_HCI_TXPRDT_ENTRY_SIZE	= 0x1100,
-	REG_HCI_RXPRDT_ENTRY_SIZE	= 0x1104,
-	REG_UTRL_NEXUS_TYPE			= 0x1140,
-	HCI_MPHY_REFCLK_SEL			= 0x1208
 };
 
 /* Controller capability masks */

@@ -9,6 +9,9 @@
  */
 
 #ifndef __UBOOT__
+#include <log.h>
+#include <dm/device_compat.h>
+#include <dm/devres.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/timer.h>
@@ -20,6 +23,9 @@
 #include <linux/slab.h>
 #else
 #include <common.h>
+#include <dm.h>
+#include <dm/device_compat.h>
+#include <linux/bug.h>
 #include <linux/usb/ch9.h>
 #include "linux-compat.h"
 #endif
@@ -989,8 +995,8 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 				&& (musb_ep->dma->actual_len
 					== musb_ep->packet_sz)) {
 			/* In double buffer case, continue to unload fifo if
- 			 * there is Rx packet in FIFO.
- 			 **/
+			 * there is Rx packet in FIFO.
+			 **/
 			csr = musb_readw(epio, MUSB_RXCSR);
 			if ((csr & MUSB_RXCSR_RXPKTRDY) &&
 				hw_ep->rx_double_buffered)

@@ -1,7 +1,17 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) 2023 Telechips Inc.
+
 if TCC805X
 
 config SYS_SOC
 	default "tcc805x"
+
+config SYS_CONFIG_NAME
+	default "tcc805x"
+
+config SYS_BOARD
+	default "tcc805x_evb"
 
 source "board/telechips/tcc805x_evb/Kconfig"
 

@@ -6,15 +6,16 @@
 #include <common.h>
 #include <asm/io.h>
 #include <irq.h>
+#include <irq_func.h>
 
-#include <asm/telechips/vioc/vioc_rdma.h>
-#include <asm/telechips/vioc/vioc_intr.h>
-#include <asm/telechips/vioc/vioc_config.h>
-#include <asm/telechips/vioc/vioc_rdma.h>
-#include <asm/telechips/vioc/vioc_wdma.h>
-#include <asm/telechips/vioc/vioc_disp.h>
-#include <asm/telechips/vioc/vioc_vin.h>
-#include <asm/telechips/vioc/vioc_global.h>
+#include <asm/arch/vioc/vioc_rdma.h>
+#include <asm/arch/vioc/vioc_intr.h>
+#include <asm/arch/vioc/vioc_config.h>
+#include <asm/arch/vioc/vioc_rdma.h>
+#include <asm/arch/vioc/vioc_wdma.h>
+#include <asm/arch/vioc/vioc_disp.h>
+#include <asm/arch/vioc/vioc_vin.h>
+#include <asm/arch/vioc/vioc_global.h>
 
 static int vioc_base_irq_num[4] = {0,};
 
@@ -24,6 +25,7 @@ struct vioc_irq_handler {
 	void (*m_func)(void *data);
 };
 
+#if defined(CONFIG_TCC_APPB_VERIFICATION)
 static struct vioc_irq_handler VIOC_IRQ_HANDLER[VIOC_INTR_NUM];
 		// __attribute__ ((section(".data")));
 static int vioc_irq_installed[4] = {0,};
@@ -32,7 +34,7 @@ static void tcc_vioc_irq_handler(void *data)
 {
 	int i;
 	/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
-	int vioc_irq = *((int *)data);
+	long vioc_irq = (long)data;
 	void *tmp_pINTR = NULL; /* avoid MISRA C-2012 Rule 8.13 */
 
 	/* avoid MISRA C-2012 Rule 8.13 */
@@ -48,7 +50,7 @@ static void tcc_vioc_irq_handler(void *data)
 	}
 }
 
-int tcc_vioc_irq_install_handler(int vioc_irq, int id,
+int tcc_vioc_irq_install_handler(long vioc_irq, int id,
 					void *handle_irq, void *data)
 {
 	int i;
@@ -59,7 +61,7 @@ int tcc_vioc_irq_install_handler(int vioc_irq, int id,
 		/* coverity[misra_c_2012_rule_12_1_violation : FALSE] */
 		/* coverity[misra_c_2012_rule_20_7_violation : FALSE] */
 		/* coverity[misra_c_2012_rule_21_6_violation : FALSE] */
-		pr_err("[ERR][VIOC_INTR] %s: vioc_irq(%d) is wrong.\n",
+		pr_err("[ERR][VIOC_INTR] %s: vioc_irq(%lx) is wrong.\n",
 				__func__, vioc_irq);
 		ret = -1;
 		/* coverity[misra_c_2012_rule_15_1_violation : FALSE] */
@@ -93,7 +95,7 @@ int tcc_vioc_irq_install_handler(int vioc_irq, int id,
 			//pr_info("[DBG][IRQ] install
 			//vioc interrupt handler for irq<%d>\r\n", irq);
 			irq_install_handler(vioc_irq,
-				(interrupt_handler_t *)tcc_vioc_irq_handler, (void *)&vioc_irq);
+				(interrupt_handler_t *)tcc_vioc_irq_handler, (void *)vioc_irq);
 			irq_unmask(vioc_irq);
 			vioc_irq_installed[(unsigned int)vioc_irq-INT_VIOC0] = 1;
 		}
@@ -146,6 +148,7 @@ void tcc_vioc_irq_free_handler(int vioc_irq, unsigned int id)
 FUNC_EXIT:
 	return;
 }
+#endif
 
 int vioc_intr_enable(int vioc_irq, int id, unsigned int mask)
 {
@@ -322,7 +325,8 @@ int vioc_intr_enable(int vioc_irq, int id, unsigned int mask)
 				WDMAIRQMSK_OFFSET;
 		/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
 		/* coverity[misra_c_2012_rule_18_4_violation : FALSE] */
-		__raw_writel(__raw_readl(reg) & ~(mask & VIOC_WDMA_INT_MASK), reg);
+		val = __raw_readl(reg);
+		__raw_writel(val & ~(mask & VIOC_WDMA_INT_MASK), reg);
 		ret = 0;
 		break;
 #endif
@@ -345,7 +349,8 @@ int vioc_intr_enable(int vioc_irq, int id, unsigned int mask)
 		/* clera irq status */
 		/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
 		/* coverity[misra_c_2012_rule_18_4_violation : FALSE] */
-		__raw_writel((__raw_readl(reg) | (mask & VIOC_VIN_INT_MASK)), reg);
+		val = __raw_readl(reg);
+		__raw_writel((val | (mask & VIOC_VIN_INT_MASK)), reg);
 
 		/* enable irq */
 		/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
@@ -1364,7 +1369,7 @@ int vioc_intr_clear(int id, unsigned int mask)
 #if !defined(CONFIG_TCC805X)
 		reg = VIOC_DISP_GetAddress((unsigned int)id);
 		if (reg == NULL) {
-			ret = false;
+			ret = -1;
 			/* coverity[misra_c_2012_rule_15_1_violation : FALSE] */
 			goto FUNC_EXIT;
 		}

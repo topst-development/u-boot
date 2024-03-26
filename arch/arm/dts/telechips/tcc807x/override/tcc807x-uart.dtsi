@@ -1,0 +1,413 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+&chosen {
+	stdout-path = &uart0;
+};
+
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart42_data>;
+	status = "okay";
+};
+
+&pinctrl {
+	/omit-if-no-ref/
+	uart0_data: uart0_data {
+		telechips,pins = "gpsd0-11", "gpc-12";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart1_data: uart0_data {
+		telechips,pins = "gpsd1-0", "gpsd1-1";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart2_data: uart2_data {
+		telechips,pins = "gpsd1-6", "gpsd1-7";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart3_data: uart3_data {
+		telechips,pins = "gpsd2-0", "gpsd2-1";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart4_data: uart4_data {
+		telechips,pins = "gpsd2-6", "gpc-7";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart5_data: uart5_data {
+		telechips,pins = "gpa-0", "gpa-1";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart6_data: uart6_data {
+		telechips,pins = "gpa-6", "gpa-7";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart7_data: uart7_data {
+		telechips,pins = "gpa-12", "gpa-13";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart8_data: uart8_data {
+		telechips,pins = "gpa-18", "gpa-19";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart9_data: uart9_data {
+		telechips,pins = "gpa-24", "gpa-25";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart10_data: uart10_data {
+		telechips,pins = "gpb-0", "gpb-1";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart11_data: uart11_data {
+		telechips,pins = "gpb-6", "gpb-7";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart12_data: uart12_data {
+		telechips,pins = "gpb-12", "gpb-13";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart13_data: uart13_data {
+		telechips,pins = "gpb-19", "gpb-20";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart14_data: uart14_data {
+		telechips,pins = "gpb-25", "gpb-26";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart15_data: uart15_data {
+		telechips,pins = "gpc-0", "gpc-1";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart16_data: uart16_data {
+		telechips,pins = "gpc-4", "gpc-5";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart17_data: uart17_data {
+		telechips,pins = "gpc-8", "gpc-9";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart18_data: uart18_data {
+		telechips,pins = "gpc-10", "gpc-11";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart19_data: uart19_data {
+		telechips,pins = "gpc-12", "gpc-13";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	dp_hpd_gpio: dp_hpd_gpio {
+		telechips,pins = "gpc-14";
+		telechips,pin-function = <1>;
+		telechips,input-enable;
+		telechips,pull-down;
+	};
+
+	serdes_intb_sv01:serdes_intb_sv01 {
+		telechips,pins = "gpa-18";
+		telechips,pin-function = <0>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	serdes_lock:serdes_lock {
+		telechips,pins = "gpa-19";
+		telechips,pin-function = <0>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	uart20_data: uart20_data {
+		telechips,pins = "gpc-16", "gpc-17";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart21_data: uart21_data {
+		telechips,pins = "gpc-20", "gpc-21";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart22_data: uart22_data {
+		telechips,pins = "gpc-26", "gpc-27";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart23_data: uart23_data {
+		telechips,pins = "gpg-0", "gpg-1";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart24_data: uart24_data {
+		telechips,pins = "gpg-7", "gpg-8";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart25_data: uart25_data {
+		telechips,pins = "gpe-5", "gpe-6";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart26_data: uart26_data {
+		telechips,pins = "gpe-11", "gpe-12";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart27_data: uart27_data {
+		telechips,pins = "gpe-16", "gpe-17";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart28_data: uart28_data {
+		telechips,pins = "gph-4", "gph-5";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart29_data: uart29_data {
+		telechips,pins = "gph-6", "gph-7";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart30_data: uart30_data {
+		telechips,pins = "gph-0", "gph-1";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart31_data: uart31_data {
+		telechips,pins = "gpma-0", "gpma-1";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart32_data: uart32_data {
+		telechips,pins = "gpma-6", "gpma-7";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart33_data: uart33_data {
+		telechips,pins = "gpma-12", "gpma-13";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart34_data: uart34_data {
+		telechips,pins = "gpma-18", "gpma-19";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart35_data: uart35_data {
+		telechips,pins = "gpma-24", "gpma-25";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart36_data: uart36_data {
+		telechips,pins = "gpk-9", "gpk-10";
+		telechips,pin-function = <2>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart37_data: uart37_data {
+		telechips,pins = "gpmb-0", "gpmb-1";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart38_data: uart38_data {
+		telechips,pins = "gpmb-6", "gpmb-7";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart39_data: uart39_data {
+		telechips,pins = "gpmb-12", "gpmb-13";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart40_data: uart40_data {
+		telechips,pins = "gpmb-18", "gpmb-19";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart41_data: uart41_data {
+		telechips,pins = "gpmb-24", "gpmb-25";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart42_data: uart42_data {
+		telechips,pins = "gpmc-0", "gpmc-1";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart43_data: uart43_data {
+		telechips,pins = "gpmc-6", "gpmc-7";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart44_data: uart44_data {
+		telechips,pins = "gpmc-12", "gpmc-13";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart45_data: uart45_data {
+		telechips,pins = "gpmc-18", "gpmc-19";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+
+	/omit-if-no-ref/
+	uart46_data: uart46_data {
+		telechips,pins = "gpmc-24", "gpmc-25";
+		telechips,pin-function = <7>;
+		telechips,input-enable;
+		u-boot,dm-pre-reloc;
+	};
+};

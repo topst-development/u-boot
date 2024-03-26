@@ -3,11 +3,17 @@
  * Copyright (C) 2018, STMicroelectronics - All Rights Reserved
  */
 
+#define LOG_CATEGORY UCLASS_HWSPINLOCK
+
 #include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <hwspinlock.h>
+#include <log.h>
 #include <dm/device-internal.h>
+#include <dm/device_compat.h>
+#include <linux/compat.h>
+#include <asm/global_data.h>
 
 static inline const struct hwspinlock_ops *
 hwspinlock_dev_ops(struct udevice *dev)

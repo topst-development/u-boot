@@ -18,7 +18,7 @@
 int cpu_status(u32 nr);
 int cpu_reset(u32 nr);
 int cpu_disable(u32 nr);
-int cpu_release(u32 nr, int argc, char * const argv[]);
+int cpu_release(u32 nr, int argc, char *const argv[]);
 
 static inline int cpumask_next(int cpu, unsigned int mask)
 {
@@ -59,6 +59,7 @@ int dcache_status(void);
 void dcache_enable(void);
 void dcache_disable(void);
 void mmu_disable(void);
+int mmu_status(void);
 
 /* arch/$(ARCH)/lib/cache.c */
 void enable_caches(void);
@@ -83,5 +84,7 @@ enum {
  * @param flags		Flags to control what is done
  */
 int cleanup_before_linux_select(int flags);
-;
+
+void reset_cpu(void);
+
 #endif

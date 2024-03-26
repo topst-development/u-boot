@@ -5,19 +5,27 @@
  *
  * Copy the startup prototype, previously defined in common.h
  * Copyright (C) 2018, STMicroelectronics - All Rights Reserved
- */
-
-/*
- * Modified by Telechips Inc. (date : 2020-04)
+ *
+ * Modified by Copyright Telechips Inc.
+ * Modified date : 2022-06
  * Description : Add a declaration for timer_irq_init()
  */
 
 #ifndef __INIT_H_
 #define __INIT_H_	1
 
+#ifndef __ASSEMBLY__		/* put C only stuff in this section */
+
 #include <linux/types.h>
 
-#ifndef __ASSEMBLY__		/* put C only stuff in this section */
+/* Avoid using CONFIG_EFI_STUB directly as we may boot from other loaders */
+#ifdef CONFIG_EFI_STUB
+#define ll_boot_init()	false
+#else
+#include <asm/global_data.h>
+
+#define ll_boot_init()	(!(gd->flags & GD_FLG_SKIP_LL_INIT))
+#endif
 
 /*
  * Function Prototypes
@@ -72,6 +80,17 @@ int mach_cpu_init(void);
  */
 int arch_fsp_init(void);
 
+/**
+ * arch_fsp_init() - perform post-relocation firmware support package init
+ *
+ * Where U-Boot relies on binary blobs to handle part of the system init, this
+ * function can be used to set up the blobs. This is used on some Intel
+ * platforms.
+ *
+ * Return: 0
+ */
+int arch_fsp_init_r(void);
+
 int dram_init(void);
 
 /**
@@ -90,6 +109,11 @@ int dram_init(void);
  * Return: 0 if OK, -ve on error
  */
 int dram_init_banksize(void);
+
+long get_ram_size(long *base, long size);
+phys_size_t get_effective_memsize(void);
+
+int testdram(void);
 
 /**
  * arch_reserve_stacks() - Reserve all necessary stacks
@@ -110,6 +134,75 @@ int dram_init_banksize(void);
 int arch_reserve_stacks(void);
 
 /**
+ * arch_reserve_mmu() - Reserve memory for MMU TLB table
+ *
+ * Architecture-specific routine for reserving memory for the MMU TLB table.
+ * This is used in generic board init sequence in common/board_f.c.
+ *
+ * If an implementation is not provided, it will just be a nop stub.
+ *
+ * Return: 0 if OK
+ */
+int arch_reserve_mmu(void);
+
+/**
+ * arch_setup_bdinfo() - Architecture dependent boardinfo setup
+ *
+ * Architecture-specific routine for populating various boardinfo fields of
+ * gd->bd. It is called during the generic board init sequence.
+ *
+ * If an implementation is not provided, it will just be a nop stub.
+ *
+ * Return: 0 if OK
+ */
+int arch_setup_bdinfo(void);
+
+/**
+ * setup_bdinfo() - Generic boardinfo setup
+ *
+ * Routine for populating various generic boardinfo fields of
+ * gd->bd. It is called during the generic board init sequence.
+ *
+ * Return: 0 if OK
+ */
+int setup_bdinfo(void);
+
+/**
+ * cpu_secondary_init_r() - CPU-specific secondary initialization
+ *
+ * After non-volatile devices, environment and cpu code are setup, have
+ * another round to deal with any initialization that might require
+ * full access to the environment or loading of some image (firmware)
+ * from a non-volatile device.
+ *
+ * It is called during the generic post-relocation init sequence.
+ *
+ * Return: 0 if OK
+ */
+int cpu_secondary_init_r(void);
+
+/**
+ * pci_ep_init() - Initialize pci endpoint devices
+ *
+ * It is called during the generic post-relocation init sequence.
+ *
+ * Return: 0 if OK
+ */
+int pci_ep_init(void);
+
+/**
+ * pci_init() - Enumerate pci devices
+ *
+ * It is called during the generic post-relocation init sequence to enumerate
+ * pci buses. This is needed, for instance, in the case of DM PCI-based
+ * Ethernet devices, which will not be detected without having the enumeration
+ * performed earlier.
+ *
+ * Return: 0 if OK
+ */
+int pci_init(void);
+
+/**
  * init_cache_f_r() - Turn on the cache in preparation for relocation
  *
  * Return: 0 if OK, -ve on error
@@ -128,7 +221,6 @@ int timer_init(void);
 #if defined(CONFIG_DM_TIMER_IRQ)
 s32 timer_irq_init(void);
 #endif
-int reserve_mmu(void);
 int misc_init_f(void);
 
 #if defined(CONFIG_DTB_RESELECT)
@@ -184,7 +276,6 @@ int mac_read_from_eeprom(void);
 int set_cpu_clk_info(void);
 int update_flash_size(int flash_size);
 int arch_early_init_r(void);
-void pci_init(void);
 int misc_init_r(void);
 #if defined(CONFIG_VID)
 int init_func_vid(void);
@@ -213,10 +304,42 @@ int board_late_init(void);
 int board_postclk_init(void); /* after clocks/timebase, before env/serial */
 int board_early_init_r(void);
 
-/* TODO(sjg@chromium.org): Drop this when DM_PCI migration is completed */
-void pci_init_board(void);
+/**
+ * arch_initr_trap() - Init traps
+ *
+ * Arch specific routine for initializing traps. It is called during the
+ * generic board init sequence, after relocation.
+ *
+ * Return: 0 if OK
+ */
+int arch_initr_trap(void);
 
-void trap_init(unsigned long reloc_addr);
+/**
+ * main_loop() - Enter the main loop of U-Boot
+ *
+ * This normally runs the command line.
+ */
+void main_loop(void);
+
+#if defined(CONFIG_ARM)
+void relocate_code(ulong addr_moni);
+#else
+void relocate_code(ulong start_addr_sp, struct global_data *new_gd,
+		   ulong relocaddr)
+	__attribute__ ((noreturn));
+#endif
+
+/* Print a numeric value (for use in arch_print_bdinfo()) */
+void bdinfo_print_num_l(const char *name, ulong value);
+void bdinfo_print_num_ll(const char *name, unsigned long long value);
+
+/* Print a clock speed in MHz */
+void bdinfo_print_mhz(const char *name, unsigned long hz);
+
+/* Show arch-specific information for the 'bd' command */
+void arch_print_bdinfo(void);
+
+int do_bdinfo(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]);
 
 #endif	/* __ASSEMBLY__ */
 /* Put only stuff here that the assembler can digest */

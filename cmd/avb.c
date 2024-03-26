@@ -1,10 +1,8 @@
-// SPDX-License-Identifier: GPL-2.0+
-/*
- * (C) Copyright 2018, Linaro Limited
- */
 
 /*
- * Modified by Telechips Inc. (date: 2020-04)
+ * (C) Copyright 2018, Linaro Limited
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <avb_verify.h>
@@ -15,22 +13,21 @@
 #include <mmc.h>
 
 #define AVB_BOOTARGS	"avb_bootargs"
-static AvbOps *avb_ops;
+static struct AvbOps *avb_ops;
 
-int do_avb_init(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_avb_init(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
-	struct blk_desc *dev_desc;
+	unsigned long mmc_dev;
 
-	if (argc != 3)
+	if (argc != 2)
 		return CMD_RET_USAGE;
 
-	if (blk_get_device_by_str(argv[1], argv[2], &dev_desc) < 0)
-		return CMD_RET_FAILURE;
+	mmc_dev = hextoul(argv[1], NULL);
 
 	if (avb_ops)
 		avb_ops_free(avb_ops);
 
-	avb_ops = avb_ops_alloc(dev_desc);
+	avb_ops = avb_ops_alloc(mmc_dev);
 	if (avb_ops)
 		return CMD_RET_SUCCESS;
 
@@ -39,7 +36,8 @@ int do_avb_init(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return CMD_RET_FAILURE;
 }
 
-int do_avb_read_part(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_avb_read_part(struct cmd_tbl *cmdtp, int flag, int argc,
+		     char *const argv[])
 {
 	const char *part;
 	s64 offset;
@@ -55,9 +53,9 @@ int do_avb_read_part(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		return CMD_RET_USAGE;
 
 	part = argv[1];
-	offset = simple_strtoul(argv[2], NULL, 16);
-	bytes = simple_strtoul(argv[3], NULL, 16);
-	buffer = (void *)simple_strtoul(argv[4], NULL, 16);
+	offset = hextoul(argv[2], NULL);
+	bytes = hextoul(argv[3], NULL);
+	buffer = (void *)hextoul(argv[4], NULL);
 
 	if (avb_ops->read_from_partition(avb_ops, part, offset, bytes,
 					 buffer, &bytes_read) ==
@@ -71,7 +69,7 @@ int do_avb_read_part(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return CMD_RET_FAILURE;
 }
 
-int do_avb_read_part_hex(cmd_tbl_t *cmdtp, int flag, int argc,
+int do_avb_read_part_hex(struct cmd_tbl *cmdtp, int flag, int argc,
 			 char *const argv[])
 {
 	const char *part;
@@ -88,8 +86,8 @@ int do_avb_read_part_hex(cmd_tbl_t *cmdtp, int flag, int argc,
 		return CMD_RET_USAGE;
 
 	part = argv[1];
-	offset = simple_strtoul(argv[2], NULL, 16);
-	bytes = simple_strtoul(argv[3], NULL, 16);
+	offset = hextoul(argv[2], NULL);
+	bytes = hextoul(argv[3], NULL);
 
 	buffer = malloc(bytes);
 	if (!buffer) {
@@ -117,7 +115,8 @@ int do_avb_read_part_hex(cmd_tbl_t *cmdtp, int flag, int argc,
 	return CMD_RET_FAILURE;
 }
 
-int do_avb_write_part(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_avb_write_part(struct cmd_tbl *cmdtp, int flag, int argc,
+		      char *const argv[])
 {
 	const char *part;
 	s64 offset;
@@ -133,9 +132,9 @@ int do_avb_write_part(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		return CMD_RET_USAGE;
 
 	part = argv[1];
-	offset = simple_strtoul(argv[2], NULL, 16);
-	bytes = simple_strtoul(argv[3], NULL, 16);
-	buffer = (void *)simple_strtoul(argv[4], NULL, 16);
+	offset = hextoul(argv[2], NULL);
+	bytes = hextoul(argv[3], NULL);
+	buffer = (void *)hextoul(argv[4], NULL);
 
 	if (avb_ops->write_to_partition(avb_ops, part, offset, bytes, buffer) ==
 	    AVB_IO_RESULT_OK) {
@@ -148,7 +147,8 @@ int do_avb_write_part(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return CMD_RET_FAILURE;
 }
 
-int do_avb_read_rb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_avb_read_rb(struct cmd_tbl *cmdtp, int flag, int argc,
+		   char *const argv[])
 {
 	size_t index;
 	u64 rb_idx;
@@ -161,7 +161,7 @@ int do_avb_read_rb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	if (argc != 2)
 		return CMD_RET_USAGE;
 
-	index = (size_t)simple_strtoul(argv[1], NULL, 16);
+	index = (size_t)hextoul(argv[1], NULL);
 
 	if (avb_ops->read_rollback_index(avb_ops, index, &rb_idx) ==
 	    AVB_IO_RESULT_OK) {
@@ -174,7 +174,8 @@ int do_avb_read_rb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return CMD_RET_FAILURE;
 }
 
-int do_avb_write_rb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_avb_write_rb(struct cmd_tbl *cmdtp, int flag, int argc,
+		    char *const argv[])
 {
 	size_t index;
 	u64 rb_idx;
@@ -187,8 +188,8 @@ int do_avb_write_rb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	if (argc != 3)
 		return CMD_RET_USAGE;
 
-	index = (size_t)simple_strtoul(argv[1], NULL, 16);
-	rb_idx = simple_strtoul(argv[2], NULL, 16);
+	index = (size_t)hextoul(argv[1], NULL);
+	rb_idx = hextoul(argv[2], NULL);
 
 	if (avb_ops->write_rollback_index(avb_ops, index, rb_idx) ==
 	    AVB_IO_RESULT_OK)
@@ -199,8 +200,8 @@ int do_avb_write_rb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return CMD_RET_FAILURE;
 }
 
-int do_avb_get_uuid(cmd_tbl_t *cmdtp, int flag,
-		    int argc, char * const argv[])
+int do_avb_get_uuid(struct cmd_tbl *cmdtp, int flag,
+		    int argc, char *const argv[])
 {
 	const char *part;
 	char buffer[UUID_STR_LEN + 1];
@@ -227,40 +228,7 @@ int do_avb_get_uuid(cmd_tbl_t *cmdtp, int flag,
 	return CMD_RET_FAILURE;
 }
 
-#if defined(CONFIG_OPTEE_TA_AVB) || defined(CONFIG_AVB_ALLOW_VERIFICATION_ERROR)
-static bool avb_allow_slot_on_unlocked_device(AvbSlotVerifyResult result)
-{
-	/*
-	 * Accept verification errors and any root of trust,
-	 * on unlocked device. Refer to:
-	 * https://source.android.com/security/verifiedboot/boot-flow
-	 */
-
-	const char *res_str;
-
-	switch (result) {
-	case AVB_SLOT_VERIFY_RESULT_OK:
-	case AVB_SLOT_VERIFY_RESULT_ERROR_VERIFICATION:
-	case AVB_SLOT_VERIFY_RESULT_ERROR_ROLLBACK_INDEX:
-	case AVB_SLOT_VERIFY_RESULT_ERROR_PUBLIC_KEY_REJECTED:
-		res_str = avb_slot_verify_result_to_string(result);
-		break;
-	default:
-		return false;
-	}
-
-	printf("UNLOCKED: Allow slot with verification result %s\n", res_str);
-
-	return true;
-}
-#else
-static bool avb_allow_slot_on_unlocked_device(AvbSlotVerifyResult result)
-{
-	return false;
-}
-#endif
-
-int do_avb_verify_part(cmd_tbl_t *cmdtp, int flag,
+int do_avb_verify_part(struct cmd_tbl *cmdtp, int flag,
 		       int argc, char *const argv[])
 {
 	const char * const requested_partitions[] = {"boot", NULL};
@@ -268,7 +236,7 @@ int do_avb_verify_part(cmd_tbl_t *cmdtp, int flag,
 	AvbSlotVerifyData *out_data;
 	char *cmdline;
 	char *extra_args;
-	char slot_suffix[3];
+	char *slot_suffix = "";
 
 	bool unlocked = false;
 	int res = CMD_RET_FAILURE;
@@ -281,12 +249,8 @@ int do_avb_verify_part(cmd_tbl_t *cmdtp, int flag,
 	if (argc < 1 || argc > 2)
 		return CMD_RET_USAGE;
 
-	slot_suffix[0] = '\0';
-	if (argc == 2 && *argv[1] != '-') {
-		slot_suffix[0] = '_';
-		slot_suffix[1] = *argv[1];
-		slot_suffix[2] = '\0';
-	}
+	if (argc == 2)
+		slot_suffix = argv[1];
 
 	printf("## Android Verified Boot 2.0 version %s\n",
 	       avb_version_string());
@@ -304,26 +268,6 @@ int do_avb_verify_part(cmd_tbl_t *cmdtp, int flag,
 				unlocked,
 				AVB_HASHTREE_ERROR_MODE_RESTART_AND_INVALIDATE,
 				&out_data);
-
-	if (unlocked) {
-		bool allowed = avb_allow_slot_on_unlocked_device(slot_result);
-
-		/* export additional bootargs to AVB_BOOTARGS env var */
-		if (allowed) {
-			extra_args = avb_set_state(avb_ops, AVB_ORANGE);
-			if (extra_args)
-				cmdline = append_cmd_line(out_data->cmdline,
-							  extra_args);
-			else
-				cmdline = out_data->cmdline;
-
-			env_set(AVB_BOOTARGS, cmdline);
-
-			res = CMD_RET_SUCCESS;
-
-			return res;
-		}
-	}
 
 	switch (slot_result) {
 	case AVB_SLOT_VERIFY_RESULT_OK:
@@ -378,8 +322,8 @@ int do_avb_verify_part(cmd_tbl_t *cmdtp, int flag,
 	return res;
 }
 
-int do_avb_is_unlocked(cmd_tbl_t *cmdtp, int flag,
-		       int argc, char * const argv[])
+int do_avb_is_unlocked(struct cmd_tbl *cmdtp, int flag,
+		       int argc, char *const argv[])
 {
 	bool unlock;
 
@@ -404,33 +348,8 @@ int do_avb_is_unlocked(cmd_tbl_t *cmdtp, int flag,
 	return CMD_RET_FAILURE;
 }
 
-int do_avb_lock(cmd_tbl_t *cmdtp, int flag,
-		int argc, char * const argv[])
-{
-	int state;
-
-	if (!avb_ops) {
-		printf("AVB 2.0 is not initialized, run 'avb init' first\n");
-		return CMD_RET_FAILURE;
-	}
-
-	if (argc != 2)
-		return CMD_RET_USAGE;
-
-	state = simple_strtoul(argv[1], NULL, 0);
-	if (avb_ops->write_device_lock_state(avb_ops, state) ==
-	    AVB_IO_RESULT_OK) {
-		printf("Device is %s\n", state == 0 ? "unlocked" : "locked");
-		return CMD_RET_SUCCESS;
-	}
-
-	printf("Can't set device lock status.\n");
-
-	return CMD_RET_FAILURE;
-}
-
-int do_avb_read_pvalue(cmd_tbl_t *cmdtp, int flag, int argc,
-		       char * const argv[])
+int do_avb_read_pvalue(struct cmd_tbl *cmdtp, int flag, int argc,
+		       char *const argv[])
 {
 	const char *name;
 	size_t bytes;
@@ -447,7 +366,7 @@ int do_avb_read_pvalue(cmd_tbl_t *cmdtp, int flag, int argc,
 		return CMD_RET_USAGE;
 
 	name = argv[1];
-	bytes = simple_strtoul(argv[2], &endp, 10);
+	bytes = dectoul(argv[2], &endp);
 	if (*endp && *endp != '\n')
 		return CMD_RET_USAGE;
 
@@ -470,8 +389,8 @@ int do_avb_read_pvalue(cmd_tbl_t *cmdtp, int flag, int argc,
 	return CMD_RET_FAILURE;
 }
 
-int do_avb_write_pvalue(cmd_tbl_t *cmdtp, int flag, int argc,
-			char * const argv[])
+int do_avb_write_pvalue(struct cmd_tbl *cmdtp, int flag, int argc,
+			char *const argv[])
 {
 	const char *name;
 	const char *value;
@@ -499,12 +418,11 @@ int do_avb_write_pvalue(cmd_tbl_t *cmdtp, int flag, int argc,
 	return CMD_RET_FAILURE;
 }
 
-static cmd_tbl_t cmd_avb[] = {
-	U_BOOT_CMD_MKENT(init, 3, 0, do_avb_init, "", ""),
+static struct cmd_tbl cmd_avb[] = {
+	U_BOOT_CMD_MKENT(init, 2, 0, do_avb_init, "", ""),
 	U_BOOT_CMD_MKENT(read_rb, 2, 0, do_avb_read_rb, "", ""),
 	U_BOOT_CMD_MKENT(write_rb, 3, 0, do_avb_write_rb, "", ""),
 	U_BOOT_CMD_MKENT(is_unlocked, 1, 0, do_avb_is_unlocked, "", ""),
-	U_BOOT_CMD_MKENT(lock, 2, 0, do_avb_lock, "", ""),
 	U_BOOT_CMD_MKENT(get_uuid, 2, 0, do_avb_get_uuid, "", ""),
 	U_BOOT_CMD_MKENT(read_part, 5, 0, do_avb_read_part, "", ""),
 	U_BOOT_CMD_MKENT(read_part_hex, 4, 0, do_avb_read_part_hex, "", ""),
@@ -516,9 +434,9 @@ static cmd_tbl_t cmd_avb[] = {
 #endif
 };
 
-static int do_avb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_avb(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
-	cmd_tbl_t *cp;
+	struct cmd_tbl *cp;
 
 	cp = find_cmd_tbl(argv[1], cmd_avb, ARRAY_SIZE(cmd_avb));
 
@@ -537,11 +455,10 @@ static int do_avb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 U_BOOT_CMD(
 	avb, 29, 0, do_avb,
 	"Provides commands for testing Android Verified Boot 2.0 functionality",
-	"init <interface> <dev> - initialize avb2 on device type 'interface' instance 'dev'\n"
+	"init <dev> - initialize avb2 for <dev>\n"
 	"avb read_rb <num> - read rollback index at location <num>\n"
 	"avb write_rb <num> <rb> - write rollback index <rb> to <num>\n"
 	"avb is_unlocked - returns unlock status of the device\n"
-	"avb lock <state> - write lock state of the device\n"
 	"avb get_uuid <partname> - read and print uuid of partition <part>\n"
 	"avb read_part <partname> <offset> <num> <addr> - read <num> bytes from\n"
 	"    partition <partname> to buffer <addr>\n"

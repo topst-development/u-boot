@@ -5,3 +5,4 @@
 obj-$(CONFIG_DM_IRQ) += irq-uclass.o
 
 obj-$(CONFIG_ARM_GIC) += irq_gic.o
+obj-$(CONFIG_ARM_GICV3) += irq-gic-v3.o

@@ -20,13 +20,17 @@
 
 #include <common.h>
 #include <command.h>
+#include <log.h>
 #include <watchdog.h>
 #include <malloc.h>
 #include <memalign.h>
 #include <div64.h>
+#include <asm/cache.h>
+#include <dm/devres.h>
 
 #include <linux/errno.h>
 #include <linux/mtd/mtd.h>
+#include <linux/mtd/rawnand.h>
 #include <nand.h>
 #include <jffs2/jffs2.h>
 
@@ -186,7 +190,7 @@ int nand_erase_opts(struct mtd_info *mtd,
 
 #define NAND_CMD_LOCK_TIGHT     0x2c
 #define NAND_CMD_LOCK_STATUS    0x7a
- 
+
 /******************************************************************************
  * Support for locking / unlocking operations of some NAND devices
  *****************************************************************************/
@@ -542,8 +546,6 @@ int nand_verify(struct mtd_info *mtd, loff_t ofs, size_t len, u_char *buf)
 	return rval ? -EIO : 0;
 }
 
-
-
 /**
  * nand_write_skip_bad:
  *
@@ -632,14 +634,14 @@ int nand_write_skip_bad(struct mtd_info *mtd, loff_t offset, size_t *length,
 	}
 
 	while (left_to_write > 0) {
+		loff_t block_start = offset & ~(loff_t)(mtd->erasesize - 1);
 		size_t block_offset = offset & (mtd->erasesize - 1);
 		size_t write_size, truncated_write_size;
 
 		WATCHDOG_RESET();
 
-		if (nand_block_isbad(mtd, offset & ~(mtd->erasesize - 1))) {
-			printf("Skip bad block 0x%08llx\n",
-				offset & ~(mtd->erasesize - 1));
+		if (nand_block_isbad(mtd, block_start)) {
+			printf("Skip bad block 0x%08llx\n", block_start);
 			offset += mtd->erasesize - block_offset;
 			continue;
 		}

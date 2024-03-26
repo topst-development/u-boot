@@ -8,6 +8,7 @@
  * SCSI support.
  */
 #include <common.h>
+#include <blk.h>
 #include <command.h>
 #include <scsi.h>
 
@@ -16,7 +17,8 @@ static int scsi_curr_dev; /* current device */
 /*
  * scsi boot command intepreter. Derived from diskboot
  */
-static int do_scsiboot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+static int do_scsiboot(struct cmd_tbl *cmdtp, int flag, int argc,
+		       char *const argv[])
 {
 	return common_diskboot(cmdtp, "scsi", argc, argv);
 }
@@ -24,7 +26,8 @@ static int do_scsiboot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 /*
  * scsi command intepreter
  */
-static int do_scsi(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+static int do_scsi(struct cmd_tbl *cmdtp, int flag, int argc,
+		   char *const argv[])
 {
 	int ret;
 
@@ -46,6 +49,18 @@ static int do_scsi(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 			return ret;
 		}
 	}
+#if defined(CONFIG_SUPPORT_UFS_REFRESH)
+	else if (argc == 3) {
+		if (strncmp(argv[1], "ufsfreq", 7) == 0) {
+			int freq = (int)simple_strtoul(argv[2], NULL, 10);
+			printf("ufs freq set %d\n", freq);
+			ret = scsi_set_refresh_freq(freq);
+			if (ret)
+				return CMD_RET_FAILURE;
+			return ret;
+		}
+	}
+#endif
 
 	return blk_common_cmd(argc, argv, IF_TYPE_SCSI, &scsi_curr_dev);
 }
@@ -61,7 +76,10 @@ U_BOOT_CMD(
 	"scsi read addr blk# cnt - read `cnt' blocks starting at block `blk#'\n"
 	"     to memory address `addr'\n"
 	"scsi write addr blk# cnt - write `cnt' blocks starting at block\n"
-	"     `blk#' from memory address `addr'"
+	"     `blk#' from memory address `addr'\n"
+#if defined(CONFIG_SUPPORT_UFS_REFRESH)
+	"scsi ufsfreq freq - set ufs refresh freq\n"
+#endif
 );
 
 U_BOOT_CMD(

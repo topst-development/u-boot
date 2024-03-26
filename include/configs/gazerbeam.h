@@ -20,8 +20,6 @@
  * Memory test
  * TODO: Migrate!
  */
-#define CONFIG_SYS_MEMTEST_START	0x00001000 /* memtest region */
-#define CONFIG_SYS_MEMTEST_END		0x07e00000
 
 /*
  * The reserved memory
@@ -29,7 +27,6 @@
 #define CONFIG_SYS_MONITOR_BASE	CONFIG_SYS_TEXT_BASE /* start of monitor */
 
 #define CONFIG_SYS_MONITOR_LEN	(512 * 1024) /* Reserve 512 kB for Mon */
-#define CONFIG_SYS_MALLOC_LEN	(512 * 1024) /* Reserved for malloc */
 
 /*
  * Initial RAM Base Address Setup
@@ -62,8 +59,6 @@
 /*
  * Miscellaneous configurable options
  */
-#define CONFIG_SYS_LOAD_ADDR		0x2000000 /* default load address */
-#define CONFIG_SYS_HZ		1000	/* decrementer freq: 1ms ticks */
 
 #define CONFIG_SYS_CBSIZE	1024 /* Console I/O Buffer Size */
 
@@ -82,12 +77,9 @@
 /*
  * Environment Configuration
  */
-#define CONFIG_ENV_OVERWRITE
 
 #define CONFIG_HAS_ETH0
 #define CONFIG_HAS_ETH1
-
-#define CONFIG_LOADADDR	800000	/* default location for tftp and bootm */
 
 /* TODO: Turn into string option and migrate to Kconfig */
 #define CONFIG_HOSTNAME		"gazerbeam"
@@ -108,7 +100,7 @@
 		__stringify(CONFIG_SYS_MONITOR_BASE) " ${filesize}\0"	\
 	"upd=run load update\0"						\
 
-#define CONFIG_NFSBOOTCOMMAND						\
+#define NFSBOOTCOMMAND						\
 	"setenv bootargs root=/dev/nfs rw "				\
 	"nfsroot=$serverip:$rootpath "					\
 	"ip=$ipaddr:$serverip:$gatewayip:$netmask:$hostname:$netdev:off " \
@@ -117,13 +109,13 @@
 	"tftp ${fdt_addr} $fdtfile;"					\
 	"bootm ${kernel_addr} - ${fdt_addr}"
 
-#define CONFIG_MMCBOOTCOMMAND						\
+#define MMCBOOTCOMMAND						\
 	"setenv bootargs root=/dev/mmcblk0p3 rw rootwait "		\
 	"console=$consoledev,$baudrate $othbootargs;"			\
 	"ext2load mmc 0:2 ${kernel_addr} $bootfile;"			\
 	"ext2load mmc 0:2 ${fdt_addr} $fdtfile;"			\
 	"bootm ${kernel_addr} - ${fdt_addr}"
 
-#define CONFIG_BOOTCOMMAND		CONFIG_MMCBOOTCOMMAND
+#define CONFIG_BOOTCOMMAND		MMCBOOTCOMMAND
 
 #endif	/* __CONFIG_H */

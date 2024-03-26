@@ -1,54 +1,50 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
-# Copyright (c) 2014-2018, ARM Limited and Contributors. All rights reserved.
-#
-# SPDX-License-Identifier: BSD-3-Clause
-#
+# Copyright (C) 2023 Telechips Inc.
 
-ALL-y += tcmkimage
-CLEAN_FILES += tcmktool
+# Define below in arch/arm/mach-telechips/$(SOC)/config.mk
+# - BODY_OFFSET
+# - SOC_NAME
+# - ROM_NAME
+# - IMAGE_NAME
 
-SOC_NAME := $(subst tcc,,$(CONFIG_SYS_SOC))
+INPUTS-y	+= tcmkimage
+CLEAN_FILES	+= tcmktool
 
-ifeq ($(CONFIG_TCC805X), y)
-ifeq ($(CONFIG_TCC_MAINCORE), y)
-IMAGE_NAME := A72-BL3
-ROM_NAME := ca72_bl3.rom
-else
-IMAGE_NAME := A53-BL3
-ROM_NAME := ca53_bl3.rom
-endif
-endif
-
-ifeq ($(CONFIG_TCC803X), y)
-ifeq ($(CONFIG_TCC_MAINCORE), y)
-IMAGE_NAME := A53-BL3
-ROM_NAME = u-boot.rom
-else
-endif
-endif
-
-IMAGE_VERSION := 0.0.0
-TARGET_ADDRESS := $(CONFIG_SYS_TEXT_BASE)
+BUILD_VERSION	:= ""
+BUILD_COMMIT	:= ""
+TARGET_ADDRESS	:= $(CONFIG_SYS_TEXT_BASE)
 
 ifeq ($(CONFIG_ARM64), y)
-EXEC_STATE := 0x64
+EXEC_STATE	:= 0x64
 else
-EXEC_STATE := 0x32
+EXEC_STATE	:= 0x32
+endif
+
+ifeq ($(KBUILD_OUTPUT),)
+OUTPUT_DIR	:= .
+else
+OUTPUT_DIR	:= $(KBUILD_OUTPUT)
 endif
 
 # tcmktool build
-ifeq (${KBUILD_SRC},)
-	tcmktool := ./tcmktool
-else
-	tcmktool := ${KBUILD_SRC}/tcmktool
-endif
-
+tcmktool := $(OUTPUT_DIR)/tcmktool
 $(tcmktool): tools/tcmkimage/tcmktool.c
-	@gcc -DSOC_NAME=\"$(SOC_NAME)\" -DUSE_HOSTCC -idirafterinclude -idirafter../include -I./tools/tcmkimage $^ -o $@
-	@echo "Built $@ successfully"
+	$(Q)$(HOSTCC) -DBODY_OFFSET=$(BODY_OFFSET) -DSOC_NAME=\"$(SOC_NAME)\" \
+		      -DUSE_HOSTCC -idirafter $(srctree)/include $^ -o $@
+	@echo "  Built $@ successfully"
 
+# tcmktool command
+define MAKE_ROM
+	$(Q)$(tcmktool) $(1) $(2) $(3) \
+			$(BUILD_VERSION) $(BUILD_COMMIT) $(4) $(EXEC_STATE) \
+			>> /dev/null
+	@echo "  Built $(2) successfully"
+endef
+
+# tcmktool command
 tcmkimage: u-boot.bin $(tcmktool)
-	$(tcmktool) $(UBOOT_BIN) $(ROM_NAME) $(IMAGE_NAME) $(IMAGE_VERSION) \
-		$(TARGET_ADDRESS) $(EXEC_STATE) >> /dev/null
-	@echo "Built $@ successfully"
-
+	$(call MAKE_ROM, $(UBOOT_BIN), \
+			 $(OUTPUT_DIR)/$(ROM_NAME), \
+			 $(IMAGE_NAME), \
+			 $(TARGET_ADDRESS))

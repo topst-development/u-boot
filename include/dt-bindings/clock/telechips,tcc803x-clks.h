@@ -1,6 +1,6 @@
-/* SPDX-License-Identifier: (GPL-2.0+ OR MIT) */
+/* SPDX-License-Identifier: (GPL-2.0-or-later OR MIT) */
 /*
- * Copyright (C) 2018, 2019 Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
 #ifndef __DT_TELECHIPS_TCC803X_CLKS_H__

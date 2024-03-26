@@ -3,12 +3,16 @@
  * Aquantia PHY drivers
  *
  * Copyright 2014 Freescale Semiconductor, Inc.
- * Copyright 2018 NXP
+ * Copyright 2018, 2021 NXP
  */
 #include <config.h>
 #include <common.h>
 #include <dm.h>
+#include <log.h>
+#include <net.h>
 #include <phy.h>
+#include <linux/bitops.h>
+#include <linux/delay.h>
 #include <u-boot/crc.h>
 #include <malloc.h>
 #include <asm/byteorder.h>
@@ -304,32 +308,31 @@ struct {
 } aquantia_syscfg[PHY_INTERFACE_MODE_COUNT] = {
 	[PHY_INTERFACE_MODE_SGMII] =      {0x04b, AQUANTIA_VND1_GSYSCFG_1G,
 					   AQUANTIA_VND1_GSTART_RATE_1G},
-	[PHY_INTERFACE_MODE_SGMII_2500] = {0x144, AQUANTIA_VND1_GSYSCFG_2_5G,
+	[PHY_INTERFACE_MODE_2500BASEX]  = {0x144, AQUANTIA_VND1_GSYSCFG_2_5G,
 					   AQUANTIA_VND1_GSTART_RATE_2_5G},
-	[PHY_INTERFACE_MODE_XGMII] =      {0x100, AQUANTIA_VND1_GSYSCFG_10G,
-					   AQUANTIA_VND1_GSTART_RATE_10G},
-	[PHY_INTERFACE_MODE_XFI] =        {0x100, AQUANTIA_VND1_GSYSCFG_10G,
+	[PHY_INTERFACE_MODE_10GBASER] =   {0x100, AQUANTIA_VND1_GSYSCFG_10G,
 					   AQUANTIA_VND1_GSTART_RATE_10G},
 	[PHY_INTERFACE_MODE_USXGMII] =    {0x080, AQUANTIA_VND1_GSYSCFG_10G,
 					   AQUANTIA_VND1_GSTART_RATE_10G},
 };
 
-static int aquantia_set_proto(struct phy_device *phydev)
+static int aquantia_set_proto(struct phy_device *phydev,
+			      phy_interface_t interface)
 {
 	int i;
 
-	if (!aquantia_syscfg[phydev->interface].cnt)
+	if (!aquantia_syscfg[interface].cnt)
 		return 0;
 
 	/* set the default rate to enable the SI link */
 	phy_write(phydev, MDIO_MMD_VEND1, AQUANTIA_VND1_GSTART_RATE,
-		  aquantia_syscfg[phydev->interface].start_rate);
+		  aquantia_syscfg[interface].start_rate);
 
 	/* set selected protocol for all relevant line side link speeds */
-	for (i = 0; i <= aquantia_syscfg[phydev->interface].cnt; i++)
+	for (i = 0; i <= aquantia_syscfg[interface].cnt; i++)
 		phy_write(phydev, MDIO_MMD_VEND1,
 			  AQUANTIA_VND1_GSYSCFG_BASE + i,
-			  aquantia_syscfg[phydev->interface].syscfg);
+			  aquantia_syscfg[interface].syscfg);
 	return 0;
 }
 
@@ -425,9 +428,9 @@ int aquantia_config(struct phy_device *phydev)
 	fault = phy_read(phydev, MDIO_MMD_VEND1, GLOBAL_FAULT);
 
 	if (id != 0)
-		printf("%s running firmware version %X.%X.%X\n",
-		       phydev->dev->name, (id >> 8), id & 0xff,
-		       (rstatus >> 4) & 0xf);
+		debug("%s running firmware version %X.%X.%X\n",
+		      phydev->dev->name, (id >> 8), id & 0xff,
+		      (rstatus >> 4) & 0xf);
 
 	if (fault != 0)
 		printf("%s fault 0x%04x detected\n", phydev->dev->name, fault);
@@ -440,16 +443,18 @@ int aquantia_config(struct phy_device *phydev)
 			return ret;
 	}
 	/*
-	 * for backward compatibility convert XGMII into either XFI or USX based
-	 * on FW config
+	 * for backward compatibility convert XGMII into either 10GBase-R or
+	 * USXGMII based on FW config
 	 */
 	if (interface == PHY_INTERFACE_MODE_XGMII) {
+		debug("use 10GBase-R or USXGMII SI protos, XGMII is not valid\n");
+
 		reg_val1 = phy_read(phydev, MDIO_MMD_PHYXS,
 				    AQUANTIA_SYSTEM_INTERFACE_SR);
 		if ((reg_val1 & AQUANTIA_SI_IN_USE_MASK) == AQUANTIA_SI_USXGMII)
 			interface = PHY_INTERFACE_MODE_USXGMII;
 		else
-			interface = PHY_INTERFACE_MODE_XFI;
+			interface = PHY_INTERFACE_MODE_10GBASER;
 	}
 
 	/*
@@ -466,7 +471,7 @@ int aquantia_config(struct phy_device *phydev)
 		mdelay(10);
 
 		/* configure protocol based on phydev->interface */
-		aquantia_set_proto(phydev);
+		aquantia_set_proto(phydev, interface);
 		/* apply custom configuration based on DT */
 		aquantia_dts_config(phydev);
 
@@ -489,7 +494,7 @@ int aquantia_config(struct phy_device *phydev)
 	case PHY_INTERFACE_MODE_USXGMII:
 		usx_an = 1;
 		/* FALLTHROUGH */
-	case PHY_INTERFACE_MODE_XFI:
+	case PHY_INTERFACE_MODE_10GBASER:
 		/* 10GBASE-T mode */
 		phydev->advertising = SUPPORTED_10000baseT_Full;
 		phydev->supported = phydev->advertising;
@@ -506,18 +511,18 @@ int aquantia_config(struct phy_device *phydev)
 
 		if (usx_an) {
 			reg_val1 |= AQUANTIA_USX_AUTONEG_CONTROL_ENA;
-			printf("%s: system interface USXGMII\n",
-			       phydev->dev->name);
+			debug("%s: system interface USXGMII\n",
+			      phydev->dev->name);
 		} else {
 			reg_val1 &= ~AQUANTIA_USX_AUTONEG_CONTROL_ENA;
-			printf("%s: system interface XFI\n",
-			       phydev->dev->name);
+			debug("%s: system interface 10GBase-R\n",
+			      phydev->dev->name);
 		}
 
 		phy_write(phydev, MDIO_MMD_PHYXS,
 			  AQUANTIA_VENDOR_PROVISIONING_REG, reg_val1);
 		break;
-	case PHY_INTERFACE_MODE_SGMII_2500:
+	case PHY_INTERFACE_MODE_2500BASEX:
 		/* 2.5GBASE-T mode */
 		phydev->advertising = SUPPORTED_1000baseT_Full;
 		phydev->supported = phydev->advertising;
@@ -538,19 +543,20 @@ int aquantia_config(struct phy_device *phydev)
 	val = phy_read(phydev, MDIO_MMD_VEND1, AQUANTIA_RESERVED_STATUS);
 	reg_val1 = phy_read(phydev, MDIO_MMD_VEND1, AQUANTIA_FIRMWARE_ID);
 
-	printf("%s: %s Firmware Version %x.%x.%x\n", phydev->dev->name,
-	       phydev->drv->name,
-	       (reg_val1 & AQUANTIA_FIRMWARE_MAJOR_MASK) >> 8,
-	       reg_val1 & AQUANTIA_FIRMWARE_MINOR_MASK,
-	       (val & AQUANTIA_FIRMWARE_BUILD_MASK) >> 4);
+	debug("%s: %s Firmware Version %x.%x.%x\n", phydev->dev->name,
+	      phydev->drv->name,
+	      (reg_val1 & AQUANTIA_FIRMWARE_MAJOR_MASK) >> 8,
+	      reg_val1 & AQUANTIA_FIRMWARE_MINOR_MASK,
+	      (val & AQUANTIA_FIRMWARE_BUILD_MASK) >> 4);
 
 	return 0;
 }
 
 int aquantia_startup(struct phy_device *phydev)
 {
-	u32 reg, speed;
+	u32 speed;
 	int i = 0;
+	int reg;
 
 	phydev->duplex = DUPLEX_FULL;
 
@@ -675,6 +681,20 @@ struct phy_driver aqr112_driver = {
 	.data = AQUANTIA_GEN3,
 };
 
+struct phy_driver aqr113c_driver = {
+	.name = "Aquantia AQR113C",
+	.uid = 0x31c31c12,
+	.mask = 0xfffffff0,
+	.features = PHY_10G_FEATURES,
+	.mmds = (MDIO_MMD_PMAPMD | MDIO_MMD_PCS |
+		 MDIO_MMD_PHYXS | MDIO_MMD_AN |
+		 MDIO_MMD_VEND1),
+	.config = &aquantia_config,
+	.startup = &aquantia_startup,
+	.shutdown = &gen10g_shutdown,
+	.data = AQUANTIA_GEN3,
+};
+
 struct phy_driver aqr405_driver = {
 	.name = "Aquantia AQR405",
 	.uid = 0x3a1b4b2,
@@ -711,6 +731,7 @@ int phy_aquantia_init(void)
 	phy_register(&aqr106_driver);
 	phy_register(&aqr107_driver);
 	phy_register(&aqr112_driver);
+	phy_register(&aqr113c_driver);
 	phy_register(&aqr405_driver);
 	phy_register(&aqr412_driver);
 

@@ -27,10 +27,6 @@
 
 #define CONFIG_SYS_L2_PL310
 
-#ifdef CONFIG_SPL_BUILD
-#define CONFIG_SKIP_LOWLEVEL_INIT	/* disable board lowlevel_init */
-#endif
-
 /*
  * By default the generated mvebu kwbimage.cfg is used
  * If for some board, different configuration file need to be used,
@@ -52,7 +48,6 @@
  * Ethernet Driver configuration
  */
 #ifdef CONFIG_CMD_NET
-#define CONFIG_ENV_OVERWRITE	/* ethaddr can be reprogrammed */
 #define CONFIG_ARP_TIMEOUT	200
 #define CONFIG_NET_RETRY_COUNT	50
 #endif /* CONFIG_CMD_NET */
@@ -64,8 +59,6 @@
 #ifndef CONFIG_SYS_I2C_SOFT
 #define CONFIG_I2C_MVTWSI
 #endif
-#define CONFIG_SYS_I2C_SLAVE		0x0
-#define CONFIG_SYS_I2C_SPEED		100000
 #endif
 
 /* Use common timer */

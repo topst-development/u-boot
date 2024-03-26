@@ -6,10 +6,6 @@
  * USB OTG (On The Go) defines
  */
 
-/*
- * Modified by Telechips Inc. (date: 2020-05)
- */
-
 #ifndef __LINUX_USB_OTG_H
 #define __LINUX_USB_OTG_H
 

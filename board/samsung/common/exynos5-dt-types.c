@@ -9,6 +9,8 @@
 #include <dm.h>
 #include <errno.h>
 #include <fdtdec.h>
+#include <asm/global_data.h>
+#include <linux/delay.h>
 #include <power/pmic.h>
 #include <power/regulator.h>
 #include <power/s2mps11.h>
@@ -45,18 +47,6 @@ struct odroid_rev_info odroid_info[] = {
 	{ EXYNOS5_BOARD_ODROID_UNKNOWN, 0, 4095, "unknown" },
 };
 
-static unsigned int odroid_get_rev(void)
-{
-	int i;
-
-	for (i = 0; i < ARRAY_SIZE(odroid_info); i++) {
-		if (odroid_info[i].board_type == gd->board_type)
-			return odroid_info[i].board_rev;
-	}
-
-	return 0;
-}
-
 /*
  * Read ADC at least twice and check the resuls.  If regulator providing voltage
  * on to measured point was just turned on, first reads might require time
@@ -67,7 +57,7 @@ static int odroid_get_adc_val(unsigned int *adcval)
 	unsigned int adcval_prev = 0;
 	int ret, retries = 20;
 
-	ret = adc_channel_single_shot("adc", CONFIG_ODROID_REV_AIN,
+	ret = adc_channel_single_shot("adc@12D10000", CONFIG_ODROID_REV_AIN,
 				      &adcval_prev);
 	if (ret)
 		return ret;
@@ -75,8 +65,8 @@ static int odroid_get_adc_val(unsigned int *adcval)
 	while (retries--) {
 		mdelay(5);
 
-		ret = adc_channel_single_shot("adc", CONFIG_ODROID_REV_AIN,
-					      adcval);
+		ret = adc_channel_single_shot("adc@12D10000",
+					      CONFIG_ODROID_REV_AIN, adcval);
 		if (ret)
 			return ret;
 
@@ -129,7 +119,7 @@ static const char *odroid_get_type_str(void)
 	if (gd->board_type != EXYNOS5_BOARD_ODROID_XU3_REV02)
 		goto exit;
 
-	ret = pmic_get("s2mps11", &dev);
+	ret = pmic_get("s2mps11_pmic@66", &dev);
 	if (ret)
 		goto exit;
 
@@ -198,6 +188,19 @@ bool board_is_generic(void)
 	return false;
 }
 
+#ifdef CONFIG_REVISION_TAG
+static unsigned int odroid_get_rev(void)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(odroid_info); i++) {
+		if (odroid_info[i].board_type == gd->board_type)
+			return odroid_info[i].board_rev;
+	}
+
+	return 0;
+}
+
 /**
  * get_board_rev() - return detected board revision.
  *
@@ -210,6 +213,7 @@ u32 get_board_rev(void)
 
 	return odroid_get_rev();
 }
+#endif
 
 /**
  * get_board_type() - returns board type string.

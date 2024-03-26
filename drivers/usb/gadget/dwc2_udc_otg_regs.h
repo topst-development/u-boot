@@ -11,6 +11,7 @@
 #define __ASM_ARCH_REGS_USB_OTG_HS_H
 
 /* USB2.0 OTG Controller register */
+#include <linux/bitops.h>
 struct dwc2_usbotg_phy {
 	u32 phypwr;
 	u32 phyclk;
@@ -93,6 +94,8 @@ struct dwc2_usbotg_reg {
 #define B_VALOEN			BIT(6)
 #define A_VALOVAL			BIT(5)
 #define A_VALOEN			BIT(4)
+#define VB_VALOVAL			BIT(3)
+#define VB_VALOEN			BIT(2)
 
 /* DWC2_UDC_OTG_GOTINT */
 #define GOTGINT_SES_END_DET		(1<<2)
@@ -115,6 +118,7 @@ struct dwc2_usbotg_reg {
 /* DWC2_UDC_OTG_GRSTCTL */
 #define AHB_MASTER_IDLE		(1u<<31)
 #define CORE_SOFT_RESET		(0x1<<0)
+#define CORE_SOFT_RESET_DONE	(0x1<<29)
 
 /* DWC2_UDC_OTG_GINTSTS/DWC2_UDC_OTG_GINTMSK core interrupt register */
 #define INT_RESUME			(1u<<31)

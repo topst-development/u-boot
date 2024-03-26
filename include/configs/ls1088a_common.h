@@ -35,15 +35,7 @@
 #endif
 
 /* Link Definitions */
-#ifdef CONFIG_TFABOOT
 #define CONFIG_SYS_FSL_QSPI_BASE	0x20000000
-#else
-#ifdef CONFIG_QSPI_BOOT
-#define CONFIG_SYS_FSL_QSPI_BASE	0x20000000
-#endif
-#endif
-
-#define CONFIG_SKIP_LOWLEVEL_INIT
 
 #define CONFIG_VERY_BIG_RAM
 #define CONFIG_SYS_DDR_SDRAM_BASE	0x80000000UL
@@ -54,28 +46,22 @@
 /*
  * SMP Definitinos
  */
-#define CPU_RELEASE_ADDR		secondary_boot_func
+#define CPU_RELEASE_ADDR		secondary_boot_addr
 
-#ifdef CONFIG_PCI
-#define CONFIG_CMD_PCI
+/* GPIO */
+#ifdef CONFIG_DM_GPIO
+#ifndef CONFIG_MPC8XXX_GPIO
+#define CONFIG_MPC8XXX_GPIO
 #endif
-
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + 2048 * 1024)
+#endif
 
 /* I2C */
-#ifndef CONFIG_DM_I2C
-#define CONFIG_SYS_I2C
-#endif
 
 
 /* Serial Port */
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE     1
 #define CONFIG_SYS_NS16550_CLK          (get_bus_freq(0) / 2)
-
-#define CONFIG_BAUDRATE			115200
-#define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
 
 #if !defined(SPL_NO_IFC) || defined(CONFIG_TARGET_LS1088AQDS)
 /* IFC */
@@ -149,11 +135,8 @@ unsigned long long get_qixis_addr(void);
 #if defined(CONFIG_FSL_MC_ENET)
 #define CONFIG_SYS_LS_MC_DRAM_BLOCK_MIN_SIZE		(128UL * 1024 * 1024)
 #endif
-/* Command line configuration */
-#define CONFIG_CMD_CACHE
 
 /* Miscellaneous configurable options */
-#define CONFIG_SYS_LOAD_ADDR	(CONFIG_SYS_DDR_SDRAM_BASE + 0x10000000)
 
 /* SATA */
 #ifdef CONFIG_SCSI
@@ -175,9 +158,6 @@ unsigned long long get_qixis_addr(void);
 /* #define CONFIG_DISPLAY_CPUINFO */
 
 #ifndef SPL_NO_ENV
-/* Allow to overwrite serial and ethaddr */
-#define CONFIG_ENV_OVERWRITE
-
 /* Initial environment variables */
 #define CONFIG_EXTRA_ENV_SETTINGS		\
 	"hwconfig=fsl_ddr:bank_intlv=auto\0"	\
@@ -224,7 +204,6 @@ unsigned long long get_qixis_addr(void);
 #ifdef CONFIG_SPL
 #define CONFIG_SPL_BSS_START_ADDR      0x80100000
 #define CONFIG_SPL_BSS_MAX_SIZE                0x00100000
-#define CONFIG_SPL_LDSCRIPT "arch/arm/cpu/armv8/u-boot-spl.lds"
 #define CONFIG_SPL_MAX_SIZE            0x16000
 #define CONFIG_SPL_STACK               (CONFIG_SYS_FSL_OCRAM_BASE + 0x9ff0)
 #define CONFIG_SPL_TARGET              "u-boot-with-spl.bin"

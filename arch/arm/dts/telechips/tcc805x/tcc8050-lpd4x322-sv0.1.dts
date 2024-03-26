@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+/dts-v1/;
+
+#include "tcc805x.dts"
+
+/ {
+	model = "Telechips TCC8050 LPD4X322 0.1 Main Core";
+};
+
+#include "override/tcc805x-uart.dtsi"
+#include "override/tcc805x-mbox.dtsi"
+#include "override/tcc805x-scfw.dtsi"
+#include "override/tcc805x-hsmfw.dtsi"
+#include "override/tcc805x-mmc.dtsi"
+#include "override/tcc8050_53-usb-lpd4x322-sv0.1.dtsi"
+#include "override/tcc805x-ufs.dtsi"
+#include "override/tcc805x-sv0.1-i2c.dtsi"
+#include "override/tcc805x-pwm.dtsi"
+#include "override/tcc805x-sv0.1-pcie.dtsi"
+#include "override/tcc8050-lpd4x322-sv0.1-display.dts"

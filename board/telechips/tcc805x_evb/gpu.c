@@ -5,9 +5,11 @@
 
 #include <common.h>
 #include <linux/io.h>
+#include <linux/delay.h>
 #include <mach/gpu.h>
 #include <mach/reboot.h>
 
+#ifdef CONFIG_POWERVR_VZ
 static void wait_for_gpu_ready(void)
 {
 	unsigned long reg = RGX_VIRTUALIZATION_REG_BASE;
@@ -33,6 +35,7 @@ static void wait_for_gpu_ready(void)
 				__func__, count);
 	}
 }
+#endif
 
 void gpu_init(void)
 {

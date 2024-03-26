@@ -2,6 +2,7 @@
 
 #include <common.h>
 #include <env.h>
+#include <part.h>
 #include <spl.h>
 #include <asm/u-boot.h>
 #include <ext4fs.h>
@@ -15,7 +16,7 @@ int spl_load_image_ext(struct spl_image_info *spl_image,
 	s32 err;
 	struct image_header *header;
 	loff_t filelen, actlen;
-	disk_partition_t part_info = {};
+	struct disk_partition part_info = {};
 
 	header = spl_get_load_buffer(-sizeof(*header), sizeof(*header));
 
@@ -31,7 +32,7 @@ int spl_load_image_ext(struct spl_image_info *spl_image,
 #ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
 		printf("%s: ext4fs mount err - %d\n", __func__, err);
 #endif
-		goto end;
+		return -1;
 	}
 
 	err = ext4fs_open(filename, &filelen);
@@ -63,13 +64,13 @@ end:
 	return err < 0;
 }
 
-#ifdef CONFIG_SPL_OS_BOOT
+#if CONFIG_IS_ENABLED(OS_BOOT)
 int spl_load_image_ext_os(struct spl_image_info *spl_image,
 			  struct blk_desc *block_dev, int partition)
 {
 	int err;
 	__maybe_unused loff_t filelen, actlen;
-	disk_partition_t part_info = {};
+	struct disk_partition part_info = {};
 	__maybe_unused char *file;
 
 	if (part_get_info(block_dev, partition, &part_info)) {

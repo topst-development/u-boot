@@ -18,7 +18,6 @@
  */
 #define CONFIG_MCFTMR
 
-#define CONFIG_MCFUART
 #define CONFIG_SYS_UART_PORT		(0)
 
 #undef CONFIG_WATCHDOG
@@ -39,20 +38,11 @@
  */
 #define CONFIG_BOOTP_BOOTFILESIZE
 
-/*
- * Command line configuration.
- */
-
-#define CONFIG_MCFFEC
 #ifdef CONFIG_MCFFEC
 #	define CONFIG_MII_INIT		1
 #	define CONFIG_SYS_DISCOVER_PHY
 #	define CONFIG_SYS_RX_ETH_BUFFER	8
 #	define CONFIG_SYS_FAULT_ECHO_LINK_DOWN
-
-#	define CONFIG_SYS_FEC0_PINMUX		0
-#	define CONFIG_SYS_FEC0_MIIBASE		CONFIG_SYS_FEC0_IOBASE
-#	define MCFFEC_TOUT_LOOP		50000
 /* If CONFIG_SYS_DISCOVER_PHY is not defined - hardcoded */
 #	ifndef CONFIG_SYS_DISCOVER_PHY
 #		define FECDUPLEX	FULL
@@ -84,9 +74,6 @@
 	"save\0"				\
 	""
 
-#define CONFIG_SYS_LOAD_ADDR		0x20000
-#define CONFIG_SYS_MEMTEST_START	0x400
-#define CONFIG_SYS_MEMTEST_END		0x380000
 #define CONFIG_SYS_CLK			66000000
 
 /*
@@ -122,7 +109,6 @@
 #endif
 
 #define CONFIG_SYS_MONITOR_LEN		0x20000
-#define CONFIG_SYS_MALLOC_LEN		(256 << 10)
 #define CONFIG_SYS_BOOTPARAMS_LEN	64*1024
 
 /*
@@ -145,7 +131,6 @@
 /*-----------------------------------------------------------------------
  * Cache Configuration
  */
-#define CONFIG_SYS_CACHELINE_SIZE	16
 
 #define ICACHE_STATUS			(CONFIG_SYS_INIT_RAM_ADDR + \
 					 CONFIG_SYS_INIT_RAM_SIZE - 8)

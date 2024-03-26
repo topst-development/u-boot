@@ -5,9 +5,9 @@
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/vioc_global.h>
-#include <asm/telechips/vioc/vioc_outcfg.h>
-#include <asm/telechips/vioc/reg_physical.h>
+#include <asm/arch/vioc/vioc_global.h>
+#include <asm/arch/vioc/vioc_outcfg.h>
+#include <asm/arch/vioc/reg_physical.h>
 
 /*
  * b00 : Display Device 0 Component
@@ -73,7 +73,7 @@ void VIOC_OUTCFG_SetOutConfig(unsigned int nType, unsigned int nDisp)
 			/* coverity[misra_c_2012_rule_10_3_violation : FALSE] */
 			/* coverity[misra_c_2012_rule_14_4_violation : FALSE] */
 			/* coverity[misra_c_2012_rule_15_6_violation : FALSE] */
-			WARN_ON(1);
+			//WARN_ON(1);
 			ret = -1;
 			break;
 		}

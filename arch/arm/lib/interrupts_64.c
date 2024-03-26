@@ -2,49 +2,63 @@
 /*
  * (C) Copyright 2013
  * David Feng <fenghua@phytium.com.cn>
- */
-
-/*
- * Modified by Telechips Inc. (date: 2020-04)
+ *
+ * Modified by Copyright Telechips Inc.
+ * Modified date : 2022-06
  */
 
 #include <common.h>
+#include <asm/global_data.h>
+#include <asm/ptrace.h>
 #include <irq_func.h>
-#include <irq.h>
 #include <linux/compiler.h>
 #include <efi_loader.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 #ifdef CONFIG_USE_IRQ
+__weak int arch_interrupt_init(void)
+{
+	return 0;
+}
+
 int interrupt_init(void)
 {
-	return arch_interrupt_init();
+	int ret;
+
+	ret = arch_interrupt_init();
+	if (ret == 0) {
+		enable_interrupts();
+	}
+
+	return ret;
 }
 
 void enable_interrupts(void)
 {
-	__asm__ __volatile__("msr daifclr, #2\n"
-			:
-			:
-			: "memory");
+	asm volatile("msr daifclr, #2\n"
+		     :
+		     :
+		     : "memory");
 }
 
 int disable_interrupts(void)
 {
 	unsigned long old;
 
-	__asm__ __volatile__("mrs %0, daif\n"
-			"msr daifset, #2\n"
-			: "=r" (old)
-			:
-			: "memory");
+	asm volatile("mrs %0, daif\n"
+		     "msr daifset, #2\n"
+		     : "=r" (old)
+		     :
+		     : "memory");
 
 	return (old & 0x2) == 0;
 }
 #else
 int interrupt_init(void)
 {
+	enable_interrupts();
+
 	return 0;
 }
 
@@ -152,11 +166,14 @@ void do_sync(struct pt_regs *pt_regs, unsigned int esr)
 	panic("Resetting CPU ...\n");
 }
 
-#ifndef CONFIG_USE_IRQ
 /*
  * do_irq handles the Irq exception.
  */
+#ifdef CONFIG_USE_IRQ
+__weak void do_irq(struct pt_regs *pt_regs, unsigned int esr)
+#else
 void do_irq(struct pt_regs *pt_regs, unsigned int esr)
+#endif
 {
 	efi_restore_gd();
 	printf("\"Irq\" handler, esr 0x%08x\n", esr);
@@ -164,7 +181,6 @@ void do_irq(struct pt_regs *pt_regs, unsigned int esr)
 	show_efi_loaded_images(pt_regs);
 	panic("Resetting CPU ...\n");
 }
-#endif
 
 /*
  * do_fiq handles the Fiq exception.

@@ -1,14 +1,16 @@
-// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/* SPDX-License-Identifier: (GPL-2.0-or-later OR MIT) */
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
-#ifndef __DT_BINDINGS_TELECHIPS_CLK_COMMON_H
-#define __DT_BINDINGS_TELECHIPS_CLK_COMMON_H
+#ifndef DT_BINDINGS_TELECHIPS_CLK_COMMON_H
+#define DT_BINDINGS_TELECHIPS_CLK_COMMON_H
 
 #ifndef BIT
 #define BIT(nr)			(1 << (nr))
 #endif
+
+#define U32(x)			((uint32_t)(x))
 
 #define CLK_SET_RATE_GATE	BIT(0) /* must be gated across rate change */
 #define CLK_SET_PARENT_GATE	BIT(1) /* must be gated across re-parent */

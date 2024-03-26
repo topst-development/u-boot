@@ -5,9 +5,10 @@
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/lvds_phy.h>
-#include <asm/telechips/vioc/reg_physical.h>
+#include <asm/arch/vioc/lvds_phy.h>
+#include <asm/arch/vioc/reg_physical.h>
 #include <mach/chipinfo.h>
+#include <linux/delay.h>
 
 #ifndef HwLVDS_PHY_D
 #define HwLVDS_PHY_D (HwVIOC_BASE + 0x360000) // 16 word

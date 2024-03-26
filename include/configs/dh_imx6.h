@@ -27,16 +27,6 @@
 
 /* Miscellaneous configurable options */
 
-#define CONFIG_CMDLINE_TAG
-#define CONFIG_SETUP_MEMORY_TAGS
-#define CONFIG_INITRD_TAG
-#define CONFIG_REVISION_TAG
-
-#define CONFIG_BZIP2
-
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(4 * SZ_1M)
-
 /* Bootcounter */
 #define CONFIG_SYS_BOOTCOUNT_BE
 
@@ -50,34 +40,22 @@
 /* MMC Configs */
 #define CONFIG_SYS_FSL_ESDHC_ADDR	0
 #define CONFIG_SYS_FSL_USDHC_NUM	3
-#define CONFIG_SYS_MMC_ENV_DEV		2 /* 1 = SDHC3, 2 = SDHC4 (eMMC) */
 
 /* SATA Configs */
 #define CONFIG_LBA48
 
-/* SPI Flash Configs */
-#if defined(CONFIG_SPL_BUILD)
-#undef CONFIG_DM_SPI
-#undef CONFIG_DM_SPI_FLASH
-#endif
-
 /* UART */
-#define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE		UART1_BASE
-#define CONFIG_BAUDRATE			115200
 
 /* USB Configs */
 #ifdef CONFIG_CMD_USB
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
-#define CONFIG_USB_HOST_ETHER
-#define CONFIG_USB_ETHER_ASIX
 #define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
 #define CONFIG_MXC_USB_FLAGS		0
 #define CONFIG_USB_MAX_CONTROLLER_COUNT	2 /* Enabled USB controller number */
 
 /* USB Gadget (DFU, UMS) */
 #if defined(CONFIG_CMD_DFU) || defined(CONFIG_CMD_USB_MASS_STORAGE)
-#define CONFIG_SYS_DFU_DATA_BUF_SIZE	(16 * 1024 * 1024)
 #define DFU_DEFAULT_POLL_TIMEOUT	300
 
 /* USB IDs */
@@ -87,12 +65,11 @@
 #endif
 
 /* Watchdog */
-
-/* allow to overwrite serial and ethaddr */
-#define CONFIG_ENV_OVERWRITE
-
-#define CONFIG_LOADADDR			0x12000000
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
+#if defined(CONFIG_SPL_BUILD)
+#undef CONFIG_WDT
+#undef CONFIG_WATCHDOG
+#define CONFIG_HW_WATCHDOG
+#endif
 
 #ifndef CONFIG_SPL_BUILD
 #define CONFIG_EXTRA_ENV_SETTINGS	\
@@ -131,10 +108,6 @@
 
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
-
-#define CONFIG_SYS_MEMTEST_START	0x10000000
-#define CONFIG_SYS_MEMTEST_END		0x20000000
-#define CONFIG_SYS_MEMTEST_SCRATCH	0x10800000
 
 /* Environment */
 

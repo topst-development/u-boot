@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/display/tcc7500-lpd4x322-panel.h>
+#include "tcc750x-disp.dtsi"
+/*==============================================================================
+ * TCC750x DISPLAY PATH
+ * ---------------------------
+ * FB0 : tcc_fb_dm0<fb0_display_out> -> <fb_dsi_input_0>fb_dsi_0
+ *       RDMA0 -> WMIX0 -> DISP0 -> DIS0
+ =============================================================================*/
+&tcc_fb_dm0 {
+	status = "okay";
+        fb-buf-id = <0>;
+        fb-buf-addr = <0x2A000000>;
+};
+
+&fb0_display_out {
+	remote-endpoint = <&fb_dsi_input_0>;
+};
+
+&fb_dsi_0 {
+	status = "okay";
+	#if defined(LCD_PORT1_PWDN) && defined(LCD_PORT1_RST) && \
+	defined(LCD_PORT1_BLK) && defined(LCD_PORT1_PWR)
+	pinctrl-0 = <&lcd_port_default1>;
+	pinctrl-1 = <&lcd_port_power_on1>;
+	pinctrl-2 = <&lcd_port_reset_off1>;
+	pinctrl-3 = <&lcd_port_blk_on1>;
+	pinctrl-4 = <&lcd_port_blk_off1>;
+	pinctrl-5 = <&lcd_port_reset_on1 &lcd_port_power_off1>;
+	pinctrl-6 = <&lcd_port_pwdn_on>;
+	#endif
+};
+
+&fb_dsi_input_0 {
+	remote-endpoint = <&fb0_display_out>;
+};

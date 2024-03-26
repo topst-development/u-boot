@@ -5,7 +5,12 @@
  */
 
 #include <common.h>
+#include <cpu_func.h>
+#include <env.h>
 #include <errno.h>
+#include <init.h>
+#include <asm/global_data.h>
+#include <linux/delay.h>
 #include <linux/libfdt.h>
 #include <asm/io.h>
 #include <asm/gpio.h>
@@ -107,15 +112,10 @@ int board_init(void)
 	return 0;
 }
 
-void detail_board_ddr_info(void)
-{
-	puts("\nDDR    ");
-}
-
 /*
  * Board specific reset that is system reset.
  */
-void reset_cpu(ulong addr)
+void reset_cpu(void)
 {
 	/* TODO */
 }

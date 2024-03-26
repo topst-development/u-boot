@@ -1,0 +1,105 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) 2023 Telechips Inc.
+
+menu "Telechips commands"
+	depends on ARCH_TELECHIPS
+
+config CMD_BLKREAD
+	bool "blkread - Command to read partitions or images from block device"
+	depends on PARTITIONS
+	default y
+
+config CMD_BOOT_SUBCORE
+	bool "boot_subcore - Command to boot sub-core system"
+	depends on BOOT_SUBCORE_BY_MAINCORE
+	default y
+
+config CMD_TIMER_TEST
+	bool "timer_test - Command to do Telechips timer test"
+	default n
+	help
+	  Enable 'timer_test' command for testing the timer interrupt and udelay.
+
+config CMD_TCC_SECURE_BOOT
+	bool "Command for TCC secureboot"
+	depends on TCC_SECUREBOOT && USE_MAINCORE
+	default y
+	help
+	  This command is for Telechips Secure Boot.
+
+config CMD_TCC_OTP
+	bool "Enable commands for TCC OTP Wrapper"
+	depends on USE_MAINCORE && (TCC805X || TCC803X)
+	select MISC
+	select TCC_OTP
+	default y
+	help
+	  This command provide to control tcc OTP wrapper.
+
+config CMD_TCC_OTP3
+	bool "Enable commands for TCC OTP Wrapper"
+	depends on USE_MAINCORE && !(TCC805X || TCC803X)
+	select MISC
+	select TCC_OTP
+	default y
+	help
+	  This command provide to control tcc OTP wrapper.
+
+config CMD_TCC_OPTEE
+	bool "Commands for management OPTEE"
+	default n
+	depends on OPTEE
+	help
+	  Smaller management cmd for Telechips OPTEE.
+
+config CMD_TCC_TZC
+	bool "Command for test TZC"
+	help
+	  This command for TZC (with secure wrapper) test"
+
+config CMD_TCC_SMEM
+	bool "Enable commands for TCC Memory Read/Write for Dev"
+	default y
+	help
+	  This command for Memroy Read/Write for Dev.
+
+config CMD_CLK_CHANGER
+	bool "This command provides clock frequency configuration method on CPU, GPU"
+	depends on TCC805X
+	default y
+	help
+	  This command provides to change CPU and GPU clock frequency on Telechips System.
+
+config CMD_TCC_PWM
+	bool "Enable commands for TCC PWM"
+	help
+	  This command provide to control tcc PWM.
+
+config CMD_TCC_MMC_TUNING
+	bool "Enable commands for TCC MMC Tuning"
+	depends on MMC_SDHCI
+	select MMC_TCC_NO_RETRY_INIT
+	help
+	  This command provide to tune TCC MMC signals.
+
+config CMD_TCC_CAN_TEST
+	bool "CAN test driver"
+	default n
+	help
+	  CAN test driver
+
+config CMD_TEST_GPIO
+	bool "test telechips GPIO"
+	default n
+	depends on PINCTRL
+	help
+	 test GPIO
+
+config CMD_TCC_PCIE_SIGTEST
+	bool "sigtest - Command to control PCIe Signal Quality"
+	depends on PCIE_TELECHIPS
+	default n
+	select GETOPT
+
+endmenu

@@ -15,19 +15,15 @@
  */
 #define CONFIG_USE_INTERRUPT
 
-#define CONFIG_SKIP_LOWLEVEL_INIT
-
 #define CONFIG_SKIP_TRUNOFF_WATCHDOG
 
 #define CONFIG_ARCH_MAP_SYSMEM
 
-#define CONFIG_BOOTP_SEND_HOSTNAME
 #define CONFIG_BOOTP_SERVERIP
 
 #ifdef CONFIG_SKIP_LOWLEVEL_INIT
 #ifdef CONFIG_OF_CONTROL
 #undef CONFIG_OF_SEPARATE
-#define CONFIG_OF_EMBED
 #endif
 #endif
 
@@ -87,7 +83,6 @@
  * Size of malloc() pool
  */
 /* 512kB is suggested, (CONFIG_ENV_SIZE + 128 * 1024) was not enough */
-#define CONFIG_SYS_MALLOC_LEN		(512 << 10)
 
 /*
  * Physical Memory Map
@@ -104,16 +99,6 @@
 
 #define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE + 0xA0000 - \
 					GENERATED_GBL_DATA_SIZE)
-
-/*
- * Load address and memory test area should agree with
- * arch/nds32/config.mk. Be careful not to overwrite U-Boot itself.
- */
-#define CONFIG_SYS_LOAD_ADDR		0x300000
-
-/* memtest works on 63 MB in DRAM */
-#define CONFIG_SYS_MEMTEST_START	PHYS_SDRAM_0
-#define CONFIG_SYS_MEMTEST_END		(PHYS_SDRAM_0 + 0x03F00000)
 
 /*
  * Static memory controller configuration
@@ -201,7 +186,6 @@
 #define CONFIG_SYS_MAX_FLASH_SECT	512
 
 /* environments */
-#define CONFIG_ENV_OVERWRITE
 
 
 /* SPI FLASH */

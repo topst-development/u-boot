@@ -9,6 +9,10 @@
 
 #include <common.h>
 #include <cpu_func.h>
+#include <hang.h>
+#include <log.h>
+#include <asm/cache.h>
+#include <asm/global_data.h>
 #include <asm/system.h>
 #include <asm/armv8/mmu.h>
 
@@ -554,7 +558,7 @@ static u64 set_one_region(u64 start, u64 size, u64 attrs, bool flag, int level)
 void mmu_set_region_dcache_behaviour(phys_addr_t start, size_t size,
 				     enum dcache_option option)
 {
-	u64 attrs = PMD_ATTRINDX(option);
+	u64 attrs = PMD_ATTRINDX(option >> 2);
 	u64 real_start = start;
 	u64 real_size = size;
 
@@ -715,6 +719,11 @@ int icache_status(void)
 	return (get_sctlr() & CR_I) != 0;
 }
 
+int mmu_status(void)
+{
+	return (get_sctlr() & CR_M) != 0;
+}
+
 void invalidate_icache_all(void)
 {
 	__asm_invalidate_icache_all();
@@ -732,6 +741,11 @@ void icache_disable(void)
 }
 
 int icache_status(void)
+{
+	return 0;
+}
+
+int mmu_status(void)
 {
 	return 0;
 }

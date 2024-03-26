@@ -9,15 +9,17 @@
  */
 
 #include <common.h>
+#include <bootstage.h>
 #include <cli.h>
 #include <cli_hush.h>
 #include <command.h>
 #include <console.h>
 #include <env.h>
 #include <fdtdec.h>
+#include <hang.h>
 #include <malloc.h>
-
-DECLARE_GLOBAL_DATA_PTR;
+#include <asm/global_data.h>
+#include <dm/ofnode.h>
 
 #ifdef CONFIG_CMDLINE
 /*
@@ -70,6 +72,13 @@ int run_command_repeatable(const char *cmd, int flag)
 	return 0;
 #endif
 }
+#else
+__weak int board_run_command(const char *cmdline)
+{
+	printf("## Commands are disabled. Please enable CONFIG_CMDLINE.\n");
+
+	return 1;
+}
 #endif /* CONFIG_CMDLINE */
 
 int run_command_list(const char *cmd, int len, int flag)
@@ -120,7 +129,7 @@ int run_command_list(const char *cmd, int len, int flag)
 /****************************************************************************/
 
 #if defined(CONFIG_CMD_RUN)
-int do_run(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_run(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	int i;
 
@@ -147,7 +156,7 @@ int do_run(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 bool cli_process_fdt(const char **cmdp)
 {
 	/* Allow the fdt to override the boot command */
-	char *env = fdtdec_get_config_string(gd->fdt_blob, "bootcmd");
+	const char *env = ofnode_conf_read_str("bootcmd");
 	if (env)
 		*cmdp = env;
 	/*
@@ -155,7 +164,7 @@ bool cli_process_fdt(const char **cmdp)
 	 * Always use 'env' in this case, since bootsecure requres that the
 	 * bootcmd was specified in the FDT too.
 	 */
-	return fdtdec_get_config_int(gd->fdt_blob, "bootsecure", 0) != 0;
+	return ofnode_conf_read_int("bootsecure", 0);
 }
 
 /*
@@ -174,7 +183,7 @@ bool cli_process_fdt(const char **cmdp)
 void cli_secure_boot_cmd(const char *cmd)
 {
 #ifdef CONFIG_CMDLINE
-	cmd_tbl_t *cmdtp;
+	struct cmd_tbl *cmdtp;
 #endif
 	int rc;
 

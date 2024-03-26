@@ -13,10 +13,12 @@
 #include <env.h>
 #include <errno.h>
 #include <init.h>
+#include <log.h>
 #include <spl.h>
 #include <i2c.h>
 #include <watchdog.h>
 #include <debug_uart.h>
+#include <asm/global_data.h>
 #include <dm/ofnode.h>
 #include <power/pmic.h>
 #include <power/regulator.h>
@@ -160,7 +162,7 @@ static void set_mpu_and_core_voltage(void)
 	}
 }
 
-#ifndef CONFIG_SKIP_LOWLEVEL_INIT
+#if !CONFIG_IS_ENABLED(SKIP_LOWLEVEL_INIT)
 static const struct ddr_data ddr2_data = {
 	.datardsratio0 = MT47H128M16RT25E_RD_DQS,
 	.datafwsratio0 = MT47H128M16RT25E_PHY_FIFO_WE,
@@ -233,7 +235,7 @@ void sdram_init(void)
 	config_ddr(266, &ioregs, &ddr2_data,
 		   &ddr2_cmd_ctrl_data, &ddr2_emif_reg_data, 0);
 }
-#endif /* CONFIG_SKIP_LOWLEVEL_INIT */
+#endif /* CONFIG_IS_ENABLED(SKIP_LOWLEVEL_INIT) */
 
 #ifdef CONFIG_DEBUG_UART
 void board_debug_uart_init(void)

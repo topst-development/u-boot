@@ -16,25 +16,32 @@
  *
  * (C) Copyright 2004
  * Philippe Robin, ARM Ltd. <philippe.robin@arm.com>
- */
-
-/*
- * Modified by Telechips Inc. (date: 2020-04)
+ *
+ * Modified by Copyright Telechips Inc.
+ * Modified date : 2022-06
  */
 
 #include <common.h>
+#include <cpu_func.h>
 #include <efi_loader.h>
 #include <irq_func.h>
-#include <irq.h>
+#include <asm/global_data.h>
 #include <asm/proc-armv/ptrace.h>
+#include <asm/ptrace.h>
 #include <asm/u-boot-arm.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 #ifdef CONFIG_USE_IRQ
+__weak int arch_interrupt_init(void)
+{
+	return 0;
+}
+
 int interrupt_init(void)
 {
 	unsigned long cpsr;
+	int ret;
 
 	/*
 	 * setup up stacks if necessary
@@ -43,32 +50,36 @@ int interrupt_init(void)
 	IRQ_STACK_START_IN = gd->irq_sp + 8;
 	FIQ_STACK_START = IRQ_STACK_START - CONFIG_STACKSIZE_IRQ;
 
-	/* TODO: convert assembly source code */
-	__asm__ __volatile__("mrs %0, cpsr\n"
-			     : "=r" (cpsr)
-			     :
-			     : "memory");
+	asm volatile("mrs %0, cpsr\n"
+		     : "=r" (cpsr)
+		     :
+		     : "memory");
 
-	__asm__ __volatile__("msr cpsr_c, %0\n"
-			     "mov sp, %1\n"
-			     :
-			     : "r" (IRQ_MODE | I_BIT | F_BIT | (cpsr & ~FIQ_MODE)),
-			       "r" (IRQ_STACK_START)
-			     : "memory");
+	asm volatile("msr cpsr_c, %0\n"
+		     "mov sp, %1\n"
+		     :
+		     : "r" (IRQ_MODE | I_BIT | F_BIT | (cpsr & ~FIQ_MODE)),
+		       "r" (IRQ_STACK_START)
+		     : "memory");
 
-	__asm__ __volatile__("msr cpsr_c, %0\n"
-			     "mov sp, %1\n"
-			     :
-			     : "r" (FIQ_MODE | I_BIT | F_BIT | (cpsr & ~IRQ_MODE)),
-			       "r" (FIQ_STACK_START)
-			     : "memory");
+	asm volatile("msr cpsr_c, %0\n"
+		     "mov sp, %1\n"
+		     :
+		     : "r" (FIQ_MODE | I_BIT | F_BIT | (cpsr & ~IRQ_MODE)),
+		       "r" (FIQ_STACK_START)
+		     : "memory");
 
-	__asm__ __volatile__("msr cpsr_c, %0"
-			     :
-			     : "r" (cpsr)
-			     : "memory");
+	asm volatile("msr cpsr_c, %0"
+		     :
+		     : "r" (cpsr)
+		     : "memory");
 
-	return arch_interrupt_init();
+	ret = arch_interrupt_init();
+	if (ret == 0) {
+		enable_interrupts();
+	}
+
+	return ret;
 }
 
 /* enable IRQ interrupts */
@@ -76,14 +87,13 @@ void enable_interrupts(void)
 {
 	unsigned long temp;
 
-	__asm__ __volatile__("mrs %0, cpsr\n"
-			     "bic %0, %0, #0x80\n"
-			     "msr cpsr_c, %0"
-			     : "=r" (temp)
-			     :
-			     : "memory");
+	asm volatile("mrs %0, cpsr\n"
+		     "bic %0, %0, #0x80\n"
+		     "msr cpsr_c, %0"
+		     : "=r" (temp)
+		     :
+		     : "memory");
 }
-
 
 /*
  * disable IRQ/FIQ interrupts
@@ -91,14 +101,15 @@ void enable_interrupts(void)
  */
 int disable_interrupts(void)
 {
-	unsigned long old, temp;
+	unsigned long old,temp;
 
-	__asm__ __volatile__("mrs %0, cpsr\n"
-			     "orr %1, %0, #0xc0\n"
-			     "msr cpsr_c, %1"
-			     : "=r" (old), "=r" (temp)
-			     :
-			     : "memory");
+	asm volatile("mrs %0, cpsr\n"
+		     "orr %1, %0, #0xc0\n"
+		     "msr cpsr_c, %1"
+		     : "=r" (old), "=r" (temp)
+		     :
+		     : "memory");
+
 	return (old & 0x80) == 0;
 }
 #else
@@ -108,6 +119,8 @@ int interrupt_init(void)
 	 * setup up stacks if necessary
 	 */
 	IRQ_STACK_START_IN = gd->irq_sp + 8;
+
+	enable_interrupts();
 
 	return 0;
 }
@@ -125,7 +138,7 @@ int disable_interrupts(void)
 void bad_mode (void)
 {
 	panic ("Resetting CPU ...\n");
-	reset_cpu (0);
+	reset_cpu();
 }
 
 static void show_efi_loaded_images(struct pt_regs *regs)
@@ -267,8 +280,11 @@ void do_fiq (struct pt_regs *pt_regs)
 	bad_mode ();
 }
 
-#ifndef CONFIG_USE_IRQ
+#ifdef CONFIG_USE_IRQ
+__weak void do_irq (struct pt_regs *pt_regs)
+#else
 void do_irq (struct pt_regs *pt_regs)
+#endif
 {
 	efi_restore_gd();
 	printf ("interrupt request\n");
@@ -277,4 +293,3 @@ void do_irq (struct pt_regs *pt_regs)
 	show_efi_loaded_images(pt_regs);
 	bad_mode ();
 }
-#endif

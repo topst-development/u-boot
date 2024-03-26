@@ -39,11 +39,19 @@ obj-$(CONFIG_$(SPL_TPL_)FRAMEWORK) += spl.o
 obj-$(CONFIG_SPL_FRAMEWORK) += zimage.o
 obj-$(CONFIG_OF_LIBFDT) += bootm-fdt.o
 endif
+ifdef CONFIG_ARM64
+obj-$(CONFIG_$(SPL_TPL_)USE_ARCH_MEMSET) += memset-arm64.o
+obj-$(CONFIG_$(SPL_TPL_)USE_ARCH_MEMCPY) += memcpy-arm64.o
+else
 obj-$(CONFIG_$(SPL_TPL_)USE_ARCH_MEMSET) += memset.o
 obj-$(CONFIG_$(SPL_TPL_)USE_ARCH_MEMCPY) += memcpy.o
+endif
 obj-$(CONFIG_SEMIHOSTING) += semihosting.o
 
+obj-y	+= bdinfo.o
 obj-y	+= sections.o
+CFLAGS_REMOVE_sections.o := $(LTO_CFLAGS)
+
 obj-y	+= stack.o
 ifdef CONFIG_CPU_V7M
 obj-y	+= interrupts_m.o
@@ -52,16 +60,18 @@ obj-$(CONFIG_FSL_LAYERSCAPE) += ccn504.o
 ifneq ($(CONFIG_GICV2)$(CONFIG_GICV3),)
 obj-y	+= gic_64.o
 endif
+obj-$(CONFIG_GIC_V3_ITS)	+= gic-v3-its.o
 obj-y	+= interrupts_64.o
 else
 obj-y	+= interrupts.o
 endif
-ifndef CONFIG_SYSRESET
+ifndef CONFIG_$(SPL_TPL_)SYSRESET
 obj-y	+= reset.o
 endif
 
 obj-y	+= cache.o
 obj-$(CONFIG_SYS_ARM_CACHE_CP15)	+= cache-cp15.o
+CFLAGS_REMOVE_cache-cp15.o := $(LTO_CFLAGS)
 
 obj-y	+= psci-dt.o
 

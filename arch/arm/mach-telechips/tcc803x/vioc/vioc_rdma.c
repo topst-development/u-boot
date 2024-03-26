@@ -4,11 +4,12 @@
  */
 
 #include <common.h>
-#include <tcc_fb.h>
+#include <telechips/fb_dm.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/vioc_rdma.h>
-#include <asm/telechips/vioc/vioc_global.h>
-#include <asm/telechips/vioc/reg_physical.h>
+#include <asm/arch/vioc/vioc_rdma.h>
+#include <asm/arch/vioc/vioc_global.h>
+#include <asm/arch/vioc/reg_physical.h>
+#include <linux/delay.h>
 
 #define VIOC_RDMA_IREQ_SRC_MAX	7
 

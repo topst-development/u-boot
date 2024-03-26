@@ -6,8 +6,10 @@
  #ifndef _SCSI_H
  #define _SCSI_H
 
+#include <asm/cache.h>
 #include <linux/dma-direction.h>
 #include <ufs.h>
+struct udevice;
 
 struct scsi_cmd {
 	unsigned char		cmd[16];					/* command				   */
@@ -16,7 +18,7 @@ struct scsi_cmd {
 		__attribute__((aligned(ARCH_DMA_MINALIGN)));
 	unsigned char		status;						/* SCSI Status			 */
 	unsigned char		target;						/* Target ID				 */
-	unsigned int		lun;							/* Target LUN        */
+	unsigned char		lun;							/* Target LUN        */
 	unsigned char		cmdlen;						/* command len				*/
 	unsigned long		datalen;					/* Total data length	*/
 	unsigned char	*	pdata;						/* pointer to data		*/
@@ -177,14 +179,14 @@ struct scsi_unmap_parameter {
 #define SCSI_SECURITY_PROTOCOL_IN	0xA2	/* SECURITY PROTOCOL IN */
 #define SCSI_SECURITY_PROTOCOL_OUT	0xB5	/* SECURITY PROTOCOL OUT */
 /**
- * struct scsi_platdata - stores information about SCSI controller
+ * struct scsi_plat - stores information about SCSI controller
  *
  * @base: Controller base address
  * @max_lun: Maximum number of logical units
  * @max_id: Maximum number of target ids
  * @max_bytes_per_req: Maximum number of bytes per read/write request
  */
-struct scsi_platdata {
+struct scsi_plat {
 	unsigned long base;
 	unsigned long max_lun;
 	unsigned long max_id;
@@ -275,8 +277,12 @@ int scsi_ufs_query(struct udevice *dev, struct ufs_query_sc *q);
 int ufs_rpmb_route_frames(struct udevice *dev, void *req, unsigned long reqlen,
 			  void *rsp, unsigned long rsplen);
 #endif
-int scsi_refresh(void);
 
+int scsi_ufs_start_stop(void);
+#if defined(CONFIG_SUPPORT_UFS_REFRESH)
+int scsi_refresh(void);
+int scsi_set_refresh_freq(uint32_t freq);
+#endif
 #ifndef CONFIG_DM_SCSI
 void scsi_low_level_init(int busdevfunc);
 void scsi_init(void);

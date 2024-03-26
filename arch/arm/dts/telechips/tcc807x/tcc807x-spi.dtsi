@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcc807x-clks.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+	aliases: aliases {
+		spi0 = &gpsb0;
+		spi1 = &gpsb1;
+		spi2 = &gpsb2;
+		spi3 = &gpsb3;
+	};
+
+	gpsb0: gpsb0@16900000 {
+		compatible = "telechips,tcc807x-spi";
+		reg = <0x16900000 0x38>, /* base address */
+		      <0x16960000 0x20>, /* Port Configuration register */
+		      <0x16980000 0x20>; /* GPSB_0_AC */
+		interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_peri PERI_GPSB0 &clk_io IOBUS_GPSB0>;
+		status = "disabled";
+
+		//access-control0 = <0x20000000 0xC0000000>; /* DRAM */
+		//access-control1 = <0x00000000 0x00000000>;
+		//access-control2 = <0x00000000 0x00000000>;
+		//access-control3 = <0x00000000 0x00000000>;
+	};
+
+	gpsb1: gpsb1@16910000 {
+		compatible = "telechips,tcc807x-spi";
+		reg = <0x16910000 0x38>, /* base address */
+		      <0x16960000 0x20>, /* Port Configuration register */
+		      <0x16970000 0x84>, /* PID register */
+		      <0x16980020 0x20>; /* GPSB_1_AC */
+		interrupts = <GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_peri PERI_GPSB1 &clk_io IOBUS_GPSB1>;
+		status = "disabled";
+
+		//access-control0 = <0x20000000 0xC0000000>; /* DRAM */
+		//access-control1 = <0x00000000 0x00000000>;
+		//access-control2 = <0x00000000 0x00000000>;
+		//access-control3 = <0x00000000 0x00000000>;
+	};
+
+	gpsb2: gpsb2@16920000 {
+		compatible = "telechips,tcc807x-spi";
+		reg = <0x16920000 0x38>, /* base address */
+		      <0x16960000 0x20>, /* Port Configuration register */
+		      <0x16970000 0x84>, /* PID register */
+		      <0x16980040 0x20>; /* GPSB_2_AC */
+		interrupts = <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_peri PERI_GPSB2 &clk_io IOBUS_GPSB2>;
+		status = "disabled";
+
+		//access-control0 = <0x20000000 0xC0000000>; /* DRAM */
+		//access-control1 = <0x00000000 0x00000000>;
+		//access-control2 = <0x00000000 0x00000000>;
+		//access-control3 = <0x00000000 0x00000000>;
+	};
+
+	gpsb3: gpsb3@16930000 {
+		compatible = "telechips,tcc807x-spi";
+		reg = <0x16930000 0x38 0x16960000 0x20>;
+		interrupts = <GIC_SPI 58 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_peri PERI_GPSB3 &clk_io IOBUS_GPSB3>;
+		status = "disabled";
+	};
+};

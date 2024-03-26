@@ -1,0 +1,74 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) Telechips Inc.
+ */
+
+#ifndef CKC_OFFSET_H
+#define CKC_OFFSET_H
+
+/*
+ * CKC Register Offsets
+ */
+/* Part 1. System */
+#define CKC_CLKCTRL	0x000UL
+#define CKC_PLLPMS	0x080UL
+#define CKC_PLLCON	0x100UL
+#define CKC_PLLMON	0x180UL
+#define CKC_CLKDIVC0	0x200UL
+#define CKC_CLKDIVC1	0x204UL
+#define CKC_BSWRESET	0x284UL
+#define CKC_BCLKMASK	0x290UL
+#define CKC_PSWRESET	0x29CUL
+#define CKC_RSTDIS	0x2A4UL
+
+#define CKC_PCLKCTRL	0x400UL
+
+/* Part 2. CPU */
+#define CPU_CKC_CLKCTRL	0x000UL
+#define CPU_CKC_PLLPMS	0x008UL
+#define CPU_CKC_PLLCON	0x00CUL
+#define CPU_CKC_PLLMON	0x010UL
+#define CPU_CKC_CLKDIV	0x014UL
+
+#define CA53_CLKMASK	0x000UL
+#define CA53_SWRESET	0x004UL
+#define CA53_RSTDIS	0x008UL
+
+#define CPUB_CLKMASK	0x000UL
+#define CPUB_SWRESET	0x004UL
+#define CPUB_RSTDIS	0x008UL
+
+/* Part 3. Memory */
+#define MEM_PHY_PLLPMS	0x000UL
+
+/* Part 7. Camera */
+#define CAM_CKC_CLKCTRL	0x000UL
+#define CAM_CKC_PLLPMS	0x010UL
+#define CAM_CKC_PLLCON	0x014UL
+#define CAM_CKC_PLLMON	0x018UL
+#define CAM_CKC_CLKDIV	0x01CUL
+
+#define CAM_CFG_SWRESET	0x000UL
+#define CAM_CFG_CLKMASK	0x004UL
+
+/* Part 8. Display */
+#define DDI_CFG_CLKEN	0x000UL
+#define DDI_CFG_SWRESET	0x004UL
+
+/* Part 9. NPU */
+#define NPU_CKC_CLKCTRL	0x000UL
+#define NPU_CKC_PLLPMS	0x010UL
+#define NPU_CKC_PLLCON	0x014UL
+#define NPU_CKC_PLLMON	0x018UL
+#define NPU_CKC_SWRESET	0x020UL
+#define NPU_CKC_CLKEN	0x024UL
+#define NPU_CKC_CLKDIV	0x040UL
+
+/* Part 12. Video */
+#define VIDEO_CKC_CLKCTRL	0x000UL
+#define VIDEO_CKC_PLLPMS	0x010UL
+#define VIDEO_CKC_PLLCON	0x014UL
+#define VIDEO_CKC_PLLMON	0x018UL
+#define VIDEO_CKC_CLKDIV	0x030UL
+
+#endif

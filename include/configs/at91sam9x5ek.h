@@ -12,11 +12,6 @@
 #define CONFIG_SYS_AT91_SLOW_CLOCK	32768
 #define CONFIG_SYS_AT91_MAIN_CLOCK	12000000	/* 12 MHz crystal */
 
-#define CONFIG_CMDLINE_TAG		/* enable passing of ATAGs */
-#define CONFIG_SETUP_MEMORY_TAGS
-#define CONFIG_INITRD_TAG
-#define CONFIG_SKIP_LOWLEVEL_INIT
-
 /* general purpose I/O */
 #define CONFIG_ATMEL_LEGACY		/* required until (g)pio is fixed */
 
@@ -65,11 +60,6 @@
 #endif
 #endif
 
-#define CONFIG_SYS_LOAD_ADDR		0x22000000	/* load address */
-
-#define CONFIG_SYS_MEMTEST_START	CONFIG_SYS_SDRAM_BASE
-#define CONFIG_SYS_MEMTEST_END		0x26e00000
-
 #ifdef CONFIG_NAND_BOOT
 /* bootstrap + u-boot + env + linux in nandflash */
 #define CONFIG_BOOTCOMMAND	"nand read " \
@@ -88,11 +78,6 @@
 				"bootm 0x22000000"
 #endif
 
-/*
- * Size of malloc() pool
- */
-#define CONFIG_SYS_MALLOC_LEN		(512 * 1024 + 0x1000)
-
 /* SPL */
 #define CONFIG_SPL_MAX_SIZE		0x6000
 #define CONFIG_SPL_STACK		0x308000
@@ -110,18 +95,7 @@
 #define CONFIG_SYS_MCKR_CSS		0x1302
 
 #ifdef CONFIG_SD_BOOT
-#define CONFIG_SYS_MMCSD_FS_BOOT_PARTITION	1
 #define CONFIG_SPL_FS_LOAD_PAYLOAD_NAME		"u-boot.img"
-#elif CONFIG_NAND_BOOT
-#define CONFIG_SPL_NAND_DRIVERS
-#define CONFIG_SPL_NAND_BASE
 #endif
-#define CONFIG_SYS_NAND_U_BOOT_OFFS	0x40000
-#define CONFIG_SYS_NAND_5_ADDR_CYCLE
-#define CONFIG_SYS_NAND_PAGE_SIZE	0x800
-#define CONFIG_SYS_NAND_PAGE_COUNT	64
-#define CONFIG_SYS_NAND_OOBSIZE		64
-#define CONFIG_SYS_NAND_BLOCK_SIZE	0x20000
-#define CONFIG_SYS_NAND_BAD_BLOCK_POS	0x0
 
 #endif

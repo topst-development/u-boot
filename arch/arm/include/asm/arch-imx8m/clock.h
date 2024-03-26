@@ -9,7 +9,8 @@
 
 #ifdef CONFIG_IMX8MQ
 #include <asm/arch/clock_imx8mq.h>
-#elif defined(CONFIG_IMX8MM) || defined(CONFIG_IMX8MN)
+#elif defined(CONFIG_IMX8MM) || defined(CONFIG_IMX8MN) || \
+	defined(CONFIG_IMX8MP)
 #include <asm/arch/clock_imx8mm.h>
 #else
 #error "Error no clock.h"
@@ -256,6 +257,7 @@ u32 imx_get_uartclk(void);
 int clock_init(void);
 void init_clk_usdhc(u32 index);
 void init_uart_clk(u32 index);
+void init_usb_clk(void);
 void init_wdog_clk(void);
 unsigned int mxc_get_clock(enum mxc_clock clk);
 int clock_enable(enum clk_ccgr_index index, bool enable);
@@ -273,3 +275,5 @@ int set_clk_qspi(void);
 void enable_ocotp_clk(unsigned char enable);
 int enable_i2c_clk(unsigned char enable, unsigned int i2c_num);
 int set_clk_enet(enum enet_freq type);
+int set_clk_eqos(enum enet_freq type);
+void hab_caam_clock_enable(unsigned char enable);

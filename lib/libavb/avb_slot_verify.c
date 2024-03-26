@@ -14,7 +14,8 @@
 #include "avb_util.h"
 #include "avb_vbmeta_image.h"
 #include "avb_version.h"
-#include <memalign.h>
+#include <log.h>
+#include <malloc.h>
 
 /* Maximum number of partitions that can be loaded with avb_slot_verify(). */
 #define MAX_NUMBER_OF_LOADED_PARTITIONS 32
@@ -97,14 +98,7 @@ static AvbSlotVerifyResult load_full_partition(AvbOps* ops,
 
   /* Allocate and copy the partition. */
   if (!*out_image_preloaded) {
-#if CONFIG_IS_ENABLED(UFS)
-    /* XXX: UFS controller requires scsi buffers to be aligned. */
-	*out_image_buf = memalign(4096, image_size);
-#elif defined(CONFIG_SYS_CACHELINE_SIZE)
-	*out_image_buf = memalign(CONFIG_SYS_CACHELINE_SIZE, image_size);
-#else
-	*out_image_buf = avb_malloc(image_size);
-#endif
+    *out_image_buf = avb_malloc(image_size);
     if (*out_image_buf == NULL) {
       return AVB_SLOT_VERIFY_RESULT_ERROR_OOM;
     }
@@ -662,15 +656,7 @@ static AvbSlotVerifyResult load_and_verify_vbmeta(
     }
   }
 
-#if CONFIG_IS_ENABLED(UFS)
-	/* XXX: UFS controller requires scsi buffers to be aligned. */
-	vbmeta_buf = memalign(4096, vbmeta_size);
-#elif defined(CONFIG_SYS_CACHELINE_SIZE)
-	vbmeta_buf = memalign(CONFIG_SYS_CACHELINE_SIZE, vbmeta_size);
-#else
-	vbmeta_buf = avb_malloc(vbmeta_size);
-#endif
-
+  vbmeta_buf = avb_malloc(vbmeta_size);
   if (vbmeta_buf == NULL) {
     ret = AVB_SLOT_VERIFY_RESULT_ERROR_OOM;
     goto out;

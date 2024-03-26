@@ -10,10 +10,6 @@
 
 #include "mx6_common.h"
 
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(3 * SZ_1M)
-
-#define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE		UART1_BASE
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -91,8 +87,6 @@
 	   "else run netboot; fi"
 
 /* Miscellaneous configurable options */
-#define CONFIG_SYS_MEMTEST_START	0x80000000
-#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + 0x10000)
 
 /* Physical Memory Map */
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
@@ -109,32 +103,19 @@
 /* MMC Configuration */
 #define CONFIG_SYS_FSL_ESDHC_ADDR	USDHC3_BASE_ADDR
 
-/* I2C Configs */
-#define CONFIG_SYS_I2C_MXC
-#define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
-#define CONFIG_SYS_I2C_MXC_I2C2		/* enable I2C bus 2 */
-#define CONFIG_SYS_I2C_MXC_I2C3		/* enable I2C bus 3 */
-#define CONFIG_SYS_I2C_SPEED		  100000
-
 /* NAND stuff */
 #define CONFIG_SYS_MAX_NAND_DEVICE     1
 #define CONFIG_SYS_NAND_BASE           0x40000000
-#define CONFIG_SYS_NAND_5_ADDR_CYCLE
-#define CONFIG_SYS_NAND_ONFI_DETECTION
 
 /* DMA stuff, needed for GPMI/MXS NAND support */
 
 /* Network */
-
-#define CONFIG_FEC_MXC
 
 #define IMX_FEC_BASE			ENET2_BASE_ADDR
 #define CONFIG_FEC_MXC_PHYADDR          0x0
 
 #define CONFIG_FEC_XCV_TYPE             RGMII
 #define CONFIG_ETHPRIME                 "FEC"
-
-#define CONFIG_PHY_ATHEROS
 
 #ifdef CONFIG_CMD_USB
 #define CONFIG_EHCI_HCD_INIT_AFTER_RESET
@@ -143,17 +124,6 @@
 #define CONFIG_USB_MAX_CONTROLLER_COUNT 2
 #endif
 
-#define CONFIG_IMX_THERMAL
-
-#ifdef CONFIG_FSL_QSPI
-#define CONFIG_SYS_FSL_QSPI_AHB
-#define FSL_QSPI_FLASH_SIZE		SZ_32M
-#define FSL_QSPI_FLASH_NUM		2
-#endif
-
 #define CONFIG_SYS_FSL_USDHC_NUM	2
-#if defined(CONFIG_ENV_IS_IN_MMC)
-#define CONFIG_SYS_MMC_ENV_DEV		0  /*USDHC3*/
-#endif
 
 #endif				/* __CONFIG_H */

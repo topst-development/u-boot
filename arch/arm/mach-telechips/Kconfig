@@ -1,4 +1,8 @@
-menu "Telechips architecture specifics"
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) 2023 Telechips Inc.
+
+menu "Telechips architecture"
 	depends on ARCH_TELECHIPS
 
 config SYS_VENDOR
@@ -7,9 +11,25 @@ config SYS_VENDOR
 config HAS_SUBCORE
 	bool
 
+config ARCH_SUPPORT_BOOT_SUBCORE_BY_MAINCORE
+	bool
+
 choice
 	prompt "Telechips SoC select"
 	optional
+
+config TCC750X
+	bool "Telechips TCC750x SoC Family"
+	select ARM_SMCCC
+	select USE_IRQ
+
+config TCC803X
+	bool "Telechips TCC803x SoC family"
+	select ARM_SMCCC
+	select USE_IRQ
+	select HAS_SUBCORE
+	select ARCH_REBOOT_INIT
+	select ARCH_SUPPORT_BOOT_SUBCORE_BY_MAINCORE
 
 config TCC805X
 	bool "Telechips TCC805x SoC Family"
@@ -17,51 +37,48 @@ config TCC805X
 	select USE_IRQ
 	select HAS_SUBCORE
 
-config TCC803X
-	bool "Telechips TCC803x SoC Family"
+config TCC807X
+	bool "Telechips TCC807x SoC Family"
 	select ARM_SMCCC
 	select USE_IRQ
+	select HAS_SUBCORE
 
 endchoice
 
 choice
 	prompt "Telechips SoC target core select"
-	default TCC_MAINCORE
+	default USE_MAINCORE
 
-config TCC_MAINCORE
-	bool "Telechips SoC Main-Cores"
+config USE_MAINCORE
+	bool "Telechips SoC main core"
 
-config TCC_SUBCORE
-	bool "Telechips SoC Sub-Cores"
+config USE_SUBCORE
+	bool "Telechips SoC sub-core"
 	depends on HAS_SUBCORE
 
 endchoice
 
-config BOOT_SUBCORE_BY_MAINCORE
-	bool "Boot subcore kernel by maincore"
-choice
-	prompt "Select subcore boot mode"
-	depends on BOOT_SUBCORE_BY_MAINCORE
-config BOOT_SUBCORE_SELF_LOAD_MODE
-	bool "Self load Mode"
-	help
-	  Subcore can load and restore subcore image from backup memory by it self.
-	  Other cores just load backup subcore image to backup memory.
-config BOOT_SUBCORE_LEGACY_MODE
-	bool "Legacy mode"
-	help
-	  Other cores should load and restore subcore image always.
-endchoice
-
-config BOOT_CM4_BY_MAINCORE
-	bool "Boot CM4 firmware by maincore"
-
-config TCC_SLT_BOOT
-	bool "Telechips SLT (System Level Test) boot mode"
+config ARCH_REBOOT_INIT
+	bool "Call arch-specific reboot init"
 	default n
 
-source "board/telechips/common/Kconfig"
-source "arch/arm/mach-telechips/tcc805x/Kconfig"
+config TCC_SECUREBOOT
+	bool "Support Telechips Secure Boot"
+	default y
+
+config TCC_SECUREBOOT_ENABLE
+	bool "Secure Boot Enable"
+	depends on TCC_SECUREBOOT && USE_MAINCORE
+	default y
+
+config TCC_MCERT_UNIQUEKEY_ENC
+	bool "MCERT is encrypted the unique key"
+	depends on TCC_SECUREBOOT && USE_MAINCORE
+	default y
+
+source "arch/arm/mach-telechips/tcc750x/Kconfig"
 source "arch/arm/mach-telechips/tcc803x/Kconfig"
+source "arch/arm/mach-telechips/tcc805x/Kconfig"
+source "arch/arm/mach-telechips/tcc807x/Kconfig"
 
 endmenu

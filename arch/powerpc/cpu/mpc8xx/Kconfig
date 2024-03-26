@@ -19,15 +19,13 @@ choice
 
 config MPC866
 	bool "MPC866"
+	select SYS_CACHE_SHIFT_4
 
 config MPC885
 	bool "MPC885"
+	select SYS_CACHE_SHIFT_4
 
 endchoice
-
-#config MPC8xx_WATCHDOG
-#	bool "Watchdog"
-#	select HW_WATCHDOG
 
 config 8xx_GCLK_FREQ
 	int "CPU GCLK Frequency"

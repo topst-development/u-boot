@@ -1,22 +1,25 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Copyright 2021 Telechips Corporation.
+ * Copyright 2014 Broadcom Corporation.
+ */
+/*
+ * Modified by Telechips Inc. (date: 2021-03)
  */
 
-#ifndef _FB_UFS_H_
-#define _FB_UFS_H_
-
+#ifndef FB_UFS_H_
+#define FB_UFS_H_
+#include <part.h>
 /**
  * fastboot_ufs_get_part_info() - Lookup UFS partion by name
  *
  * @part_name: Named partition to lookup
  * @dev_desc: Pointer to returned blk_desc pointer
- * @part_info: Pointer to returned disk_partition_t
+ * @disk_part_info: Pointer to returned struct disk_partition
  * @response: Pointer to fastboot response buffer
  */
 int fastboot_ufs_get_part_info(const char *part_name,
 			       struct blk_desc **dev_desc,
-			       disk_partition_t *part_info, char *response);
+			       struct disk_partition *disk_part_info, char *response);
 
 /**
  * fastboot_ufs_flash_write() - Write image to UFS for fastboot

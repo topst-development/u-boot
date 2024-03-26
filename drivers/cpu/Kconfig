@@ -21,7 +21,7 @@ config CPU_RISCV
 	  Support CPU cores for RISC-V architecture.
 
 config CPU_ARM_CORTEX
-	bool "Enable ARM Cortex CPU driver"
+	bool "Enable Arm Cortex CPU driver"
 	depends on CPU && ARM
 	help
-	  Support CPU cores for SoCs of the ARM Cortex series.
+	  Support CPU cores for Arm Cortex series.

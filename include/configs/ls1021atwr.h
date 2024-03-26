@@ -1,30 +1,22 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * Copyright 2014 Freescale Semiconductor, Inc.
+ * Copyright 2019 NXP
  */
 
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-#define CONFIG_ARMV7_PSCI_1_0
-
 #define CONFIG_ARMV7_SECURE_BASE	OCRAM_BASE_S_ADDR
 
 #define CONFIG_SYS_FSL_CLK
 
-#define CONFIG_SKIP_LOWLEVEL_INIT
 #define CONFIG_DEEP_SLEEP
-
-/*
- * Size of malloc() pool
- */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + 16 * 1024 * 1024)
 
 #define CONFIG_SYS_INIT_RAM_ADDR	OCRAM_BASE_ADDR
 #define CONFIG_SYS_INIT_RAM_SIZE	OCRAM_SIZE
 
 #define CONFIG_SYS_CLK_FREQ		100000000
-#define CONFIG_DDR_CLK_FREQ		100000000
 
 #define DDR_SDRAM_CFG			0x470c0008
 #define DDR_CS0_BNDS			0x008000bf
@@ -53,19 +45,7 @@
 #define SDRAM_CFG2_FRC_SR		0x80000000
 #define SDRAM_CFG_BI			0x00000001
 
-#ifdef CONFIG_RAMBOOT_PBL
-#define CONFIG_SYS_FSL_PBL_PBI	board/freescale/ls1021atwr/ls102xa_pbi.cfg
-#endif
-
 #ifdef CONFIG_SD_BOOT
-#ifdef CONFIG_SD_BOOT_QSPI
-#define CONFIG_SYS_FSL_PBL_RCW	\
-	board/freescale/ls1021atwr/ls102xa_rcw_sd_qspi.cfg
-#else
-#define CONFIG_SYS_FSL_PBL_RCW	\
-	board/freescale/ls1021atwr/ls102xa_rcw_sd_ifc.cfg
-#endif
-
 #ifdef CONFIG_NXP_ESBC
 /*
  * HDR would be appended at end of image and copied to DDR along
@@ -209,39 +189,21 @@
 /*
  * I2C
  */
-#define CONFIG_SYS_I2C
-#define CONFIG_SYS_I2C_MXC
-#define CONFIG_SYS_I2C_MXC_I2C1		/* enable I2C bus 1 */
-#define CONFIG_SYS_I2C_MXC_I2C2		/* enable I2C bus 2 */
-#define CONFIG_SYS_I2C_MXC_I2C3		/* enable I2C bus 3 */
+
+/* GPIO */
+#ifdef CONFIG_DM_GPIO
+#ifndef CONFIG_MPC8XXX_GPIO
+#define CONFIG_MPC8XXX_GPIO
+#endif
+#endif
 
 /* EEPROM */
-#define CONFIG_ID_EEPROM
 #define CONFIG_SYS_I2C_EEPROM_NXID
 #define CONFIG_SYS_EEPROM_BUS_NUM		1
-#define CONFIG_SYS_I2C_EEPROM_ADDR		0x53
-#define CONFIG_SYS_I2C_EEPROM_ADDR_LEN		1
-#define CONFIG_SYS_EEPROM_PAGE_WRITE_BITS	3
-#define CONFIG_SYS_EEPROM_PAGE_WRITE_DELAY_MS	5
 
 /*
  * MMC
  */
-
-/* SPI */
-#if defined(CONFIG_QSPI_BOOT) || defined(CONFIG_SD_BOOT_QSPI)
-/* QSPI */
-#define QSPI0_AMBA_BASE			0x40000000
-#define FSL_QSPI_FLASH_SIZE		(1 << 24)
-#define FSL_QSPI_FLASH_NUM		2
-
-/* DSPI */
-#endif
-
-/* DM SPI */
-#if defined(CONFIG_FSL_DSPI) || defined(CONFIG_FSL_QSPI)
-#define CONFIG_DM_SPI_FLASH
-#endif
 
 /*
  * Video
@@ -271,8 +233,6 @@
 #define CONFIG_PCI_SCAN_SHOW
 #endif
 
-#define CONFIG_CMDLINE_TAG
-
 #define CONFIG_PEN_ADDR_BIG_ENDIAN
 #define CONFIG_LAYERSCAPE_NS_ACCESS
 #define CONFIG_SMP_PEN_ADDR		0x01ee0200
@@ -291,9 +251,9 @@
 
 #ifdef CONFIG_LPUART
 #define CONFIG_EXTRA_ENV_SETTINGS       \
-	"bootargs=root=/dev/ram0 rw console=ttyLP0,115200\0" \
+	"bootargs=root=/dev/ram0 rw console=ttyLP0,115200 "	\
+		"cma=64M@0x0-0xb0000000\0" \
 	"initrd_high=0xffffffff\0"      \
-	"fdt_high=0xffffffff\0"		\
 	"fdt_addr=0x64f00000\0"		\
 	"kernel_addr=0x65000000\0"	\
 	"scriptaddr=0x80000000\0"	\
@@ -307,6 +267,7 @@
 	"kernel_size=0x2800000\0"	\
 	"kernel_addr_sd=0x8000\0"	\
 	"kernel_size_sd=0x14000\0"	\
+	"othbootargs=cma=64M@0x0-0xb0000000\0"	\
 	BOOTENV				\
 	"boot_scripts=ls1021atwr_boot.scr\0"	\
 	"boot_script_hdr=hdr_ls1021atwr_bs.out\0"	\
@@ -347,9 +308,9 @@
 		"$kernel_size && bootm $load_addr#$board\0"
 #else
 #define CONFIG_EXTRA_ENV_SETTINGS	\
-	"bootargs=root=/dev/ram0 rw console=ttyS0,115200\0" \
+	"bootargs=root=/dev/ram0 rw console=ttyS0,115200 "	\
+		"cma=64M@0x0-0xb0000000\0" \
 	"initrd_high=0xffffffff\0"      \
-	"fdt_high=0xffffffff\0"		\
 	"fdt_addr=0x64f00000\0"		\
 	"kernel_addr=0x61000000\0"	\
 	"kernelheader_addr=0x60800000\0"	\
@@ -367,6 +328,7 @@
 	"kernel_size_sd=0x14000\0"	\
 	"kernelhdr_addr_sd=0x4000\0"		\
 	"kernelhdr_size_sd=0x10\0"		\
+	"othbootargs=cma=64M@0x0-0xb0000000\0"	\
 	BOOTENV				\
 	"boot_scripts=ls1021atwr_boot.scr\0"	\
 	"boot_script_hdr=hdr_ls1021atwr_bs.out\0"	\
@@ -431,11 +393,7 @@
 /*
  * Miscellaneous configurable options
  */
-
-#define CONFIG_SYS_MEMTEST_START	0x80000000
-#define CONFIG_SYS_MEMTEST_END		0x9fffffff
-
-#define CONFIG_SYS_LOAD_ADDR		0x82000000
+#define CONFIG_SYS_BOOTMAPSZ		(256 << 20)
 
 #define CONFIG_LS102XA_STREAM_ID
 
@@ -450,16 +408,9 @@
 #define CONFIG_SYS_MONITOR_BASE CONFIG_SYS_TEXT_BASE    /* start of monitor */
 #endif
 
-#define CONFIG_SYS_QE_FW_ADDR     0x60940000
-
 /*
  * Environment
  */
-#define CONFIG_ENV_OVERWRITE
-
-#if defined(CONFIG_SD_BOOT)
-#define CONFIG_SYS_MMC_ENV_DEV		0
-#endif
 
 #include <asm/fsl_secure_boot.h>
 #define CONFIG_SYS_BOOTM_LEN	(64 << 20) /* Increase max gunzip size */

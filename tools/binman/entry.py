@@ -4,21 +4,17 @@
 # Base class for all entries
 #
 
-from __future__ import print_function
-
 from collections import namedtuple
 import importlib
 import os
 import sys
 
-import fdt_util
-import tools
-from tools import ToHex, ToHexSize
-import tout
+from dtoc import fdt_util
+from patman import tools
+from patman.tools import ToHex, ToHexSize
+from patman import tout
 
 modules = {}
-
-our_path = os.path.dirname(os.path.realpath(__file__))
 
 
 # An argument which can be passed to entries on the command line, in lieu of
@@ -52,20 +48,36 @@ class Entry(object):
         uncomp_size: Size of uncompressed data in bytes, if the entry is
             compressed, else None
         contents_size: Size of contents in bytes, 0 by default
-        align: Entry start offset alignment, or None
+        align: Entry start offset alignment relative to the start of the
+            containing section, or None
         align_size: Entry size alignment, or None
-        align_end: Entry end offset alignment, or None
-        pad_before: Number of pad bytes before the contents, 0 if none
-        pad_after: Number of pad bytes after the contents, 0 if none
-        data: Contents of entry (string of bytes)
+        align_end: Entry end offset alignment relative to the start of the
+            containing section, or None
+        pad_before: Number of pad bytes before the contents when it is placed
+            in the containing section, 0 if none. The pad bytes become part of
+            the entry.
+        pad_after: Number of pad bytes after the contents when it is placed in
+            the containing section, 0 if none. The pad bytes become part of
+            the entry.
+        data: Contents of entry (string of bytes). This does not include
+            padding created by pad_before or pad_after. If the entry is
+            compressed, this contains the compressed data.
+        uncomp_data: Original uncompressed data, if this entry is compressed,
+            else None
         compress: Compression algoithm used (e.g. 'lz4'), 'none' if none
         orig_offset: Original offset value read from node
         orig_size: Original size value read from node
+        missing: True if this entry is missing its contents
+        allow_missing: Allow children of this entry to be missing (used by
+            subclasses such as Entry_section)
+        allow_fake: Allow creating a dummy fake file if the blob file is not
+            available. This is mainly used for testing.
+        external: True if this entry contains an external binary blob
     """
     def __init__(self, section, etype, node, name_prefix=''):
         # Put this here to allow entry-docs and help to work without libfdt
         global state
-        import state
+        from binman import state
 
         self.section = section
         self.etype = etype
@@ -76,6 +88,7 @@ class Entry(object):
         self.pre_reset_size = None
         self.uncomp_size = None
         self.data = None
+        self.uncomp_data = None
         self.contents_size = 0
         self.align = None
         self.align_size = None
@@ -86,60 +99,82 @@ class Entry(object):
         self.image_pos = None
         self._expand_size = False
         self.compress = 'none'
+        self.missing = False
+        self.faked = False
+        self.external = False
+        self.allow_missing = False
+        self.allow_fake = False
 
     @staticmethod
-    def Lookup(node_path, etype):
+    def Lookup(node_path, etype, expanded):
         """Look up the entry class for a node.
 
         Args:
             node_node: Path name of Node object containing information about
                        the entry to create (used for errors)
             etype:   Entry type to use
+            expanded: Use the expanded version of etype
 
         Returns:
-            The entry class object if found, else None
+            The entry class object if found, else None if not found and expanded
+                is True
+
+        Raise:
+            ValueError if expanded is False and the class is not found
         """
         # Convert something like 'u-boot@0' to 'u_boot' since we are only
         # interested in the type.
         module_name = etype.replace('-', '_')
+
         if '@' in module_name:
             module_name = module_name.split('@')[0]
+        if expanded:
+            module_name += '_expanded'
         module = modules.get(module_name)
 
         # Also allow entry-type modules to be brought in from the etype directory.
 
         # Import the module if we have not already done so.
         if not module:
-            old_path = sys.path
-            sys.path.insert(0, os.path.join(our_path, 'etype'))
             try:
-                module = importlib.import_module(module_name)
+                module = importlib.import_module('binman.etype.' + module_name)
             except ImportError as e:
+                if expanded:
+                    return None
                 raise ValueError("Unknown entry type '%s' in node '%s' (expected etype/%s.py, error '%s'" %
                                  (etype, node_path, module_name, e))
-            finally:
-                sys.path = old_path
             modules[module_name] = module
 
         # Look up the expected class name
         return getattr(module, 'Entry_%s' % module_name)
 
     @staticmethod
-    def Create(section, node, etype=None):
+    def Create(section, node, etype=None, expanded=False):
         """Create a new entry for a node.
 
         Args:
-            section: Section object containing this node
-            node:    Node object containing information about the entry to
-                     create
-            etype:   Entry type to use, or None to work it out (used for tests)
+            section:  Section object containing this node
+            node:     Node object containing information about the entry to
+                      create
+            etype:    Entry type to use, or None to work it out (used for tests)
+            expanded: True to use expanded versions of entries, where available
 
         Returns:
             A new Entry object of the correct type (a subclass of Entry)
         """
         if not etype:
             etype = fdt_util.GetString(node, 'type', node.name)
-        obj = Entry.Lookup(node.path, etype)
+        obj = Entry.Lookup(node.path, etype, expanded)
+        if obj and expanded:
+            # Check whether to use the expanded entry
+            new_etype = etype + '-expanded'
+            can_expand = not fdt_util.GetBool(node, 'no-expanded')
+            if can_expand and obj.UseExpanded(node, etype, new_etype):
+                etype = new_etype
+            else:
+                obj = None
+        if not obj:
+            obj = Entry.Lookup(node.path, etype, False)
 
         # Call its constructor to get the object we want.
         return obj(section, etype, node)
@@ -170,6 +205,8 @@ class Entry(object):
         if tools.NotPowerOfTwo(self.align):
             raise ValueError("Node '%s': Alignment %s must be a power of two" %
                              (self._node.path, self.align))
+        if self.section and self.align is None:
+            self.align = self.section.align_default
         self.pad_before = fdt_util.GetInt(self._node, 'pad-before', 0)
         self.pad_after = fdt_util.GetInt(self._node, 'pad-after', 0)
         self.align_size = fdt_util.GetInt(self._node, 'align-size')
@@ -179,6 +216,10 @@ class Entry(object):
         self.align_end = fdt_util.GetInt(self._node, 'align-end')
         self.offset_unset = fdt_util.GetBool(self._node, 'offset-unset')
         self.expand_size = fdt_util.GetBool(self._node, 'expand-size')
+        self.missing_msg = fdt_util.GetString(self._node, 'missing-msg')
+
+        # This is only supported by blobs and sections at present
+        self.compress = fdt_util.GetString(self._node, 'compress', 'none')
 
     def GetDefaultFilename(self):
         return None
@@ -191,19 +232,39 @@ class Entry(object):
             Dict:
                 key: Filename from this entry (without the path)
                 value: Tuple:
-                    Fdt object for this dtb, or None if not available
+                    Entry object for this dtb
                     Filename of file containing this dtb
         """
         return {}
 
     def ExpandEntries(self):
+        """Expand out entries which produce other entries
+
+        Some entries generate subnodes automatically, from which sub-entries
+        are then created. This method allows those to be added to the binman
+        definition for the current image. An entry which implements this method
+        should call state.AddSubnode() to add a subnode and can add properties
+        with state.AddString(), etc.
+
+        An example is 'files', which produces a section containing a list of
+        files.
+        """
         pass
 
-    def AddMissingProperties(self):
-        """Add new properties to the device tree as needed for this entry"""
-        for prop in ['offset', 'size', 'image-pos']:
+    def AddMissingProperties(self, have_image_pos):
+        """Add new properties to the device tree as needed for this entry
+
+        Args:
+            have_image_pos: True if this entry has an image position. This can
+                be False if its parent section is compressed, since compression
+                groups all entries together into a compressed block of data,
+                obscuring the start of each individual child entry
+        """
+        for prop in ['offset', 'size']:
             if not prop in self._node.props:
                 state.AddZeroProp(self._node, prop)
+        if have_image_pos and 'image-pos' not in self._node.props:
+            state.AddZeroProp(self._node, 'image-pos')
         if self.GetImage().allow_repack:
             if self.orig_offset is not None:
                 state.AddZeroProp(self._node, 'orig-offset', True)
@@ -221,7 +282,8 @@ class Entry(object):
         state.SetInt(self._node, 'offset', self.offset)
         state.SetInt(self._node, 'size', self.size)
         base = self.section.GetRootSkipAtStart() if self.section else 0
-        state.SetInt(self._node, 'image-pos', self.image_pos - base)
+        if self.image_pos is not None:
+            state.SetInt(self._node, 'image-pos', self.image_pos - base)
         if self.GetImage().allow_repack:
             if self.orig_offset is not None:
                 state.SetInt(self._node, 'orig-offset', self.orig_offset, True)
@@ -382,6 +444,11 @@ class Entry(object):
         """Convenience function to raise an error referencing a node"""
         raise ValueError("Node '%s': %s" % (self._node.path, msg))
 
+    def Info(self, msg):
+        """Convenience function to log info referencing a node"""
+        tag = "Info '%s'" % self._node.path
+        tout.Detail('%30s: %s' % (tag, msg))
+
     def Detail(self, msg):
         """Convenience function to log detail referencing a node"""
         tag = "Node '%s'" % self._node.path
@@ -410,8 +477,7 @@ class Entry(object):
                 missing.append(prop.name)
             values.append(value)
         if missing:
-            self.Raise('Missing required properties/entry args: %s' %
-                       (', '.join(missing)))
+            self.GetImage().MissingArgs(self, missing)
         return values
 
     def GetPath(self):
@@ -422,9 +488,35 @@ class Entry(object):
         """
         return self._node.path
 
-    def GetData(self):
+    def GetData(self, required=True):
+        """Get the contents of an entry
+
+        Args:
+            required: True if the data must be present, False if it is OK to
+                return None
+
+        Returns:
+            bytes content of the entry, excluding any padding. If the entry is
+                compressed, the compressed data is returned
+        """
         self.Detail('GetData: size %s' % ToHexSize(self.data))
         return self.data
+
+    def GetPaddedData(self, data=None):
+        """Get the data for an entry including any padding
+
+        Gets the entry data and uses its section's pad-byte value to add padding
+        before and after as defined by the pad-before and pad-after properties.
+
+        This does not consider alignment.
+
+        Returns:
+            Contents of the entry along with any pad bytes before and
+            after it (bytes)
+        """
+        if data is None:
+            data = self.GetData()
+        return self.section.GetPaddedDataForEntry(self, data)
 
     def GetOffsets(self):
         """Get the offsets for siblings
@@ -490,7 +582,7 @@ class Entry(object):
         """
         pass
 
-    def CheckOffset(self):
+    def CheckEntries(self):
         """Check that the entry offsets are correct
 
         This is used for entries which have extra offset requirements (other
@@ -592,9 +684,7 @@ features to produce new behaviours.
             modules.remove('_testing')
         missing = []
         for name in modules:
-            if name.startswith('__'):
-                continue
-            module = Entry.Lookup(name, name)
+            module = Entry.Lookup('WriteDocs', name, False)
             docs = getattr(module, '__doc__')
             if test_missing == name:
                 docs = None
@@ -802,3 +892,95 @@ features to produce new behaviours.
             elif self == entries[-1]:
                 return 'end'
         return 'middle'
+
+    def SetAllowMissing(self, allow_missing):
+        """Set whether a section allows missing external blobs
+
+        Args:
+            allow_missing: True if allowed, False if not allowed
+        """
+        # This is meaningless for anything other than sections
+        pass
+
+    def SetAllowFakeBlob(self, allow_fake):
+        """Set whether a section allows to create a fake blob
+
+        Args:
+            allow_fake: True if allowed, False if not allowed
+        """
+        pass
+
+    def CheckMissing(self, missing_list):
+        """Check if any entries in this section have missing external blobs
+
+        If there are missing blobs, the entries are added to the list
+
+        Args:
+            missing_list: List of Entry objects to be added to
+        """
+        if self.missing:
+            missing_list.append(self)
+
+    def CheckFakedBlobs(self, faked_blobs_list):
+        """Check if any entries in this section have faked external blobs
+
+        If there are faked blobs, the entries are added to the list
+
+        Args:
+            fake_blobs_list: List of Entry objects to be added to
+        """
+        # This is meaningless for anything other than blobs
+        pass
+
+    def GetAllowMissing(self):
+        """Get whether a section allows missing external blobs
+
+        Returns:
+            True if allowed, False if not allowed
+        """
+        return self.allow_missing
+
+    def GetHelpTags(self):
+        """Get the tags use for missing-blob help
+
+        Returns:
+            list of possible tags, most desirable first
+        """
+        return list(filter(None, [self.missing_msg, self.name, self.etype]))
+
+    def CompressData(self, indata):
+        """Compress data according to the entry's compression method
+
+        Args:
+            indata: Data to compress
+
+        Returns:
+            Compressed data (first word is the compressed size)
+        """
+        self.uncomp_data = indata
+        if self.compress != 'none':
+            self.uncomp_size = len(indata)
+        data = tools.Compress(indata, self.compress)
+        return data
+
+    @classmethod
+    def UseExpanded(cls, node, etype, new_etype):
+        """Check whether to use an expanded entry type
+
+        This is called by Entry.Create() when it finds an expanded version of
+        an entry type (e.g. 'u-boot-expanded'). If this method returns True then
+        it will be used (e.g. in place of 'u-boot'). If it returns False, it is
+        ignored.
+
+        Args:
+            node:     Node object containing information about the entry to
+                      create
+            etype:    Original entry type being used
+            new_etype: New entry type proposed
+
+        Returns:
+            True to use this entry type, False to use the original one
+        """
+        tout.Info("Node '%s': etype '%s': %s selected" %
+                  (node.path, etype, new_etype))
+        return True

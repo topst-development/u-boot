@@ -9,24 +9,26 @@
 #include <common.h>
 #include <env.h>
 #include <errno.h>
+#include <image.h>
+#include <log.h>
 #include <spl.h>
 #include <net.h>
 #include <linux/libfdt.h>
 
-#if defined(CONFIG_SPL_ETH_SUPPORT) || defined(CONFIG_SPL_USB_ETHER)
+#if defined(CONFIG_SPL_ETH) || defined(CONFIG_SPL_USB_ETHER)
 static ulong spl_net_load_read(struct spl_load_info *load, ulong sector,
 			       ulong count, void *buf)
 {
 	debug("%s: sector %lx, count %lx, buf %lx\n",
 	      __func__, sector, count, (ulong)buf);
-	memcpy(buf, (void *)(load_addr + sector), count);
+	memcpy(buf, (void *)(image_load_addr + sector), count);
 	return count;
 }
 
 static int spl_net_load_image(struct spl_image_info *spl_image,
 			      struct spl_boot_device *bootdev)
 {
-	struct image_header *header = (struct image_header *)load_addr;
+	struct image_header *header = (struct image_header *)image_load_addr;
 	int rv;
 
 	env_init();
@@ -67,7 +69,7 @@ static int spl_net_load_image(struct spl_image_info *spl_image,
 }
 #endif
 
-#ifdef CONFIG_SPL_ETH_SUPPORT
+#ifdef CONFIG_SPL_ETH
 int spl_net_load_image_cpgmac(struct spl_image_info *spl_image,
 			      struct spl_boot_device *bootdev)
 {

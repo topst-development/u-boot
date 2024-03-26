@@ -77,12 +77,14 @@ int pci_unmap_physmem(const void *addr, unsigned long len,
 void sandbox_set_enable_pci_map(int enable);
 
 /**
- * sandbox_read_fdt_from_file() - Read a device tree from a file
+ * sandbox_reset() - reset sandbox
  *
- * Read a device tree file from a host file and set it up for use as the
- * control FDT.
+ * This functions implements the cold reboot of the sandbox. It relaunches the
+ * U-Boot binary with the same command line parameters as the original call.
+ * The PID of the process stays the same. All file descriptors that have not
+ * been opened with O_CLOEXEC stay open including stdin, stdout, stderr.
  */
-int sandbox_read_fdt_from_file(void);
+void sandbox_reset(void);
 
 /* Exit sandbox (quit U-Boot) */
 void sandbox_exit(void);

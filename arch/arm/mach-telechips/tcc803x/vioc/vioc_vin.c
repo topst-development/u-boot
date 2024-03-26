@@ -4,11 +4,10 @@
  */
 
 #include <common.h>
-#include <tcc_fb.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/vioc_vin.h>
-#include <asm/telechips/vioc/vioc_global.h>
-#include <asm/telechips/vioc/reg_physical.h>
+#include <asm/arch/vioc/vioc_vin.h>
+#include <asm/arch/vioc/vioc_global.h>
+#include <asm/arch/vioc/reg_physical.h>
 
 #define VIOC_VIN_IREQ_UPD_MASK 0x00000001U
 #define VIOC_VIN_IREQ_EOF_MASK 0x00000002U

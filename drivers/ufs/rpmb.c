@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2021, Telechips
+ * Copyright 2014, Staubli Faverges
+ * Pierre Aubert
  *
+ * eMMC- Replay Protected Memory Block
+ * According to JEDEC Standard No. 84-A441
+ */
+/*
+ * Modified by Telechips Inc. (date: 2021-08)
+ */
+/*
  * UFS- Replay Protected Memory Block
  */
 

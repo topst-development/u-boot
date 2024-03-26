@@ -4,11 +4,12 @@
  */
 
 #include <common.h>
-#include <tcc_fb.h>
+#include <telechips/fb_dm.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/vioc_rdma.h>
-#include <asm/telechips/vioc/vioc_global.h>
-#include <asm/telechips/vioc/reg_physical.h>
+#include <asm/arch/vioc/vioc_rdma.h>
+#include <asm/arch/vioc/vioc_global.h>
+#include <asm/arch/vioc/reg_physical.h>
+#include <linux/delay.h>
 
 #define VIOC_RDMA_IREQ_SRC_MAX	7
 
@@ -174,14 +175,14 @@ void VIOC_RDMA_SetImageAlphaEnable(
 void VIOC_RDMA_GetImageAlphaEnable(void __iomem *reg,
 				   unsigned int *enable)
 {
-   void *tmp_pRDMA = NULL; /* avoid MISRA C-2012 Rule 8.13 */
+	void *tmp_pRDMA = NULL; /* avoid MISRA C-2012 Rule 8.13 */
 
-   /* avoid MISRA C-2012 Rule 8.13 */
-   tmp_pRDMA = reg;
-   reg = tmp_pRDMA;
+	/* avoid MISRA C-2012 Rule 8.13 */
+	tmp_pRDMA = reg;
+	reg = tmp_pRDMA;
 
-   /* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
-   /* coverity[misra_c_2012_rule_18_4_violation : FALSE] */
+	/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
+	/* coverity[misra_c_2012_rule_18_4_violation : FALSE] */
 	*enable =
 		((__raw_readl(reg + RDMACTRL) & RDMACTRL_AEN_MASK)
 		 >> RDMACTRL_AEN_SHIFT);
@@ -534,14 +535,14 @@ void VIOC_RDMA_SetIreqMask(
 
 void VIOC_RDMA_SetStatus(void __iomem *reg, unsigned int mask)
 {
-   void *tmp_pRDMA = NULL; /* avoid MISRA C-2012 Rule 8.13 */
+	void *tmp_pRDMA = NULL; /* avoid MISRA C-2012 Rule 8.13 */
 
-   /* avoid MISRA C-2012 Rule 8.13 */
-   tmp_pRDMA = reg;
-   reg = tmp_pRDMA;
+	/* avoid MISRA C-2012 Rule 8.13 */
+	tmp_pRDMA = reg;
+	reg = tmp_pRDMA;
 
-   /* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
-   /* coverity[misra_c_2012_rule_18_4_violation : FALSE] */
+	/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
+	/* coverity[misra_c_2012_rule_18_4_violation : FALSE] */
 	__raw_writel(mask, reg + RDMASTAT);
 }
 

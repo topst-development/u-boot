@@ -7,14 +7,14 @@
 #include <asm/io.h>
 #include <irq.h>
 
-#include <asm/telechips/vioc/vioc_rdma.h>
-#include <asm/telechips/vioc/vioc_intr.h>
-#include <asm/telechips/vioc/vioc_config.h>
-#include <asm/telechips/vioc/vioc_rdma.h>
-#include <asm/telechips/vioc/vioc_wdma.h>
-#include <asm/telechips/vioc/vioc_disp.h>
-#include <asm/telechips/vioc/vioc_vin.h>
-#include <asm/telechips/vioc/vioc_global.h>
+#include <asm/arch/vioc/vioc_rdma.h>
+#include <asm/arch/vioc/vioc_intr.h>
+#include <asm/arch/vioc/vioc_config.h>
+#include <asm/arch/vioc/vioc_rdma.h>
+#include <asm/arch/vioc/vioc_wdma.h>
+#include <asm/arch/vioc/vioc_disp.h>
+#include <asm/arch/vioc/vioc_vin.h>
+#include <asm/arch/vioc/vioc_global.h>
 
 static int vioc_base_irq_num[4] = {0,};
 
@@ -24,6 +24,7 @@ struct vioc_irq_handler {
 	void (*m_func)(void *data);
 };
 
+#if defined(CONFIG_TCC_APPB_VERIFICATION)
 static struct vioc_irq_handler VIOC_IRQ_HANDLER[VIOC_INTR_NUM];
 		// __attribute__ ((section(".data")));
 static int vioc_irq_installed[4] = {0,};
@@ -146,6 +147,7 @@ void tcc_vioc_irq_free_handler(int vioc_irq, unsigned int id)
 FUNC_EXIT:
 	return;
 }
+#endif
 
 int vioc_intr_enable(int vioc_irq, int id, unsigned int mask)
 {
@@ -322,7 +324,8 @@ int vioc_intr_enable(int vioc_irq, int id, unsigned int mask)
 				WDMAIRQMSK_OFFSET;
 		/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
 		/* coverity[misra_c_2012_rule_18_4_violation : FALSE] */
-		__raw_writel(__raw_readl(reg) & ~(mask & VIOC_WDMA_INT_MASK), reg);
+		val = __raw_readl(reg);
+		__raw_writel(val & ~(mask & VIOC_WDMA_INT_MASK), reg);
 		ret = 0;
 		break;
 #endif
@@ -345,7 +348,8 @@ int vioc_intr_enable(int vioc_irq, int id, unsigned int mask)
 		/* clera irq status */
 		/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
 		/* coverity[misra_c_2012_rule_18_4_violation : FALSE] */
-		__raw_writel((__raw_readl(reg) | (mask & VIOC_VIN_INT_MASK)), reg);
+		val = __raw_readl(reg);
+		__raw_writel((val | (mask & VIOC_VIN_INT_MASK)), reg);
 
 		/* enable irq */
 		/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
@@ -1364,7 +1368,7 @@ int vioc_intr_clear(int id, unsigned int mask)
 #if !defined(CONFIG_TCC805X)
 		reg = VIOC_DISP_GetAddress((unsigned int)id);
 		if (reg == NULL) {
-			ret = false;
+			ret = -1;
 			/* coverity[misra_c_2012_rule_15_1_violation : FALSE] */
 			goto FUNC_EXIT;
 		}

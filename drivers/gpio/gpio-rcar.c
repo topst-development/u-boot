@@ -6,10 +6,14 @@
 #include <common.h>
 #include <clk.h>
 #include <dm.h>
+#include <malloc.h>
+#include <asm/global_data.h>
+#include <dm/device_compat.h>
 #include <dm/pinctrl.h>
 #include <errno.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
+#include <linux/bitops.h>
 #include "../pinctrl/renesas/sh_pfc.h"
 
 #define GPIO_IOINTSEL	0x00	/* General IO/Interrupt Switching Register */
@@ -24,13 +28,17 @@
 #define GPIO_EDGLEVEL	0x24	/* Edge/level Select Register */
 #define GPIO_FILONOFF	0x28	/* Chattering Prevention On/Off Register */
 #define GPIO_BOTHEDGE	0x4c	/* One Edge/Both Edge Select Register */
+#define GPIO_INEN	0x50	/* General Input Enable Register */
 
 #define RCAR_MAX_GPIO_PER_BANK		32
+
+#define RCAR_GPIO_HAS_INEN		BIT(0)
 
 DECLARE_GLOBAL_DATA_PTR;
 
 struct rcar_gpio_priv {
 	void __iomem		*regs;
+	u32			quirks;
 	int			pfc_offset;
 };
 
@@ -62,9 +70,12 @@ static int rcar_gpio_set_value(struct udevice *dev, unsigned offset,
 	return 0;
 }
 
-static void rcar_gpio_set_direction(void __iomem *regs, unsigned offset,
+static void rcar_gpio_set_direction(struct udevice *dev, unsigned offset,
 				    bool output)
 {
+	struct rcar_gpio_priv *priv = dev_get_priv(dev);
+	void __iomem *regs = priv->regs;
+
 	/*
 	 * follow steps in the GPIO documentation for
 	 * "Setting General Output Mode" and
@@ -73,6 +84,14 @@ static void rcar_gpio_set_direction(void __iomem *regs, unsigned offset,
 
 	/* Configure postive logic in POSNEG */
 	clrbits_le32(regs + GPIO_POSNEG, BIT(offset));
+
+	/* Select "Input Enable/Disable" in INEN */
+	if (priv->quirks & RCAR_GPIO_HAS_INEN) {
+		if (output)
+			clrbits_le32(regs + GPIO_INEN, BIT(offset));
+		else
+			setbits_le32(regs + GPIO_INEN, BIT(offset));
+	}
 
 	/* Select "General Input/Output Mode" in IOINTSEL */
 	clrbits_le32(regs + GPIO_IOINTSEL, BIT(offset));
@@ -86,9 +105,7 @@ static void rcar_gpio_set_direction(void __iomem *regs, unsigned offset,
 
 static int rcar_gpio_direction_input(struct udevice *dev, unsigned offset)
 {
-	struct rcar_gpio_priv *priv = dev_get_priv(dev);
-
-	rcar_gpio_set_direction(priv->regs, offset, false);
+	rcar_gpio_set_direction(dev, offset, false);
 
 	return 0;
 }
@@ -96,11 +113,9 @@ static int rcar_gpio_direction_input(struct udevice *dev, unsigned offset)
 static int rcar_gpio_direction_output(struct udevice *dev, unsigned offset,
 				      int value)
 {
-	struct rcar_gpio_priv *priv = dev_get_priv(dev);
-
 	/* write GPIO value to output before selecting output mode of pin */
 	rcar_gpio_set_value(dev, offset, value);
-	rcar_gpio_set_direction(priv->regs, offset, true);
+	rcar_gpio_set_direction(dev, offset, true);
 
 	return 0;
 }
@@ -128,7 +143,7 @@ static int rcar_gpio_free(struct udevice *dev, unsigned offset)
 
 static const struct dm_gpio_ops rcar_gpio_ops = {
 	.request		= rcar_gpio_request,
-	.free			= rcar_gpio_free,
+	.rfree			= rcar_gpio_free,
 	.direction_input	= rcar_gpio_direction_input,
 	.direction_output	= rcar_gpio_direction_output,
 	.get_value		= rcar_gpio_get_value,
@@ -145,7 +160,8 @@ static int rcar_gpio_probe(struct udevice *dev)
 	int node = dev_of_offset(dev);
 	int ret;
 
-	priv->regs = (void __iomem *)devfdt_get_addr(dev);
+	priv->regs = dev_read_addr_ptr(dev);
+	priv->quirks = dev_get_driver_data(dev);
 	uc_priv->bank_name = dev->name;
 
 	ret = fdtdec_parse_phandle_with_args(gd->fdt_blob, node, "gpio-ranges",
@@ -176,6 +192,7 @@ static const struct udevice_id rcar_gpio_ids[] = {
 	{ .compatible = "renesas,gpio-r8a77970" },
 	{ .compatible = "renesas,gpio-r8a77990" },
 	{ .compatible = "renesas,gpio-r8a77995" },
+	{ .compatible = "renesas,gpio-r8a779a0", .data = RCAR_GPIO_HAS_INEN },
 	{ .compatible = "renesas,rcar-gen2-gpio" },
 	{ .compatible = "renesas,rcar-gen3-gpio" },
 	{ /* sentinel */ }
@@ -186,6 +203,6 @@ U_BOOT_DRIVER(rcar_gpio) = {
 	.id	= UCLASS_GPIO,
 	.of_match = rcar_gpio_ids,
 	.ops	= &rcar_gpio_ops,
-	.priv_auto_alloc_size = sizeof(struct rcar_gpio_priv),
+	.priv_auto	= sizeof(struct rcar_gpio_priv),
 	.probe	= rcar_gpio_probe,
 };

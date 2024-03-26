@@ -5,11 +5,13 @@
  */
 
 #include <common.h>
+#include <log.h>
 #include <asm/io.h>
 #include <linux/errno.h>
 #include <asm/arch/mem.h>
 #include <linux/mtd/omap_gpmc.h>
 #include <linux/mtd/nand_ecc.h>
+#include <linux/mtd/rawnand.h>
 #include <linux/bch.h>
 #include <linux/compiler.h>
 #include <nand.h>

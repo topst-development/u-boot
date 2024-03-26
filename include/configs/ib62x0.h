@@ -13,21 +13,7 @@
  */
 #define CONFIG_FEROCEON_88FR131		/* CPU Core subversion */
 #define CONFIG_KW88F6281		/* SOC Name */
-#define CONFIG_SKIP_LOWLEVEL_INIT	/* disable board lowlevel_init */
 
-/*
- * Compression configuration
- */
-#define CONFIG_BZIP2
-
-/*
- * Commands configuration
- */
-
-/*
- * mv-common.h should be defined after CMD configs since it used them
- * to enable certain macros
- */
 #include "mv-common.h"
 
 /*
@@ -69,9 +55,6 @@
  */
 #ifdef CONFIG_IDE
 #define __io
-#define CONFIG_IDE_PREINIT
-#define CONFIG_MVSATA_IDE_USE_PORT0
-#define CONFIG_MVSATA_IDE_USE_PORT1
 #define CONFIG_SYS_ATA_IDE0_OFFSET	MV_SATA_PORT0_OFFSET
 #define CONFIG_SYS_ATA_IDE1_OFFSET	MV_SATA_PORT1_OFFSET
 #endif /* CONFIG_IDE */

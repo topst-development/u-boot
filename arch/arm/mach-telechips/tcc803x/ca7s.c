@@ -1,60 +1,42 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
 #include <common.h>
-#include <cpu_func.h>
-#include <asm/arch/ca7s.h>
-#include <asm/arch/clock.h>
 #include <android_image.h>
-#include <linux/arm-smccc.h>
+#include <cpu_func.h>
+#include <image.h>
+#include <asm/arch/ca7s.h>
 #include <linux/io.h>
 #include <mach/chipinfo.h>
+#include <mach/clock.h>
 #include <mach/smc.h>
-#include <auth_mod.h>
-#include <image.h>
 
-s32 run_ca7s_firmware(u32 start)
+int run_ca7s_firmware(uint32_t start)
 {
-	struct tc_img_hdr *hdr;
 	struct arm_smccc_res res;
-	s32 ret = 0;
-	ulong img_addr;
-	u32 img_size;
-
-	img_addr = SUBCORE_KERNEL_ADDR;
-	hdr = phys_to_virt(img_addr);
-	img_size = hdr->img_size;
+	int ret = 0;
+	void *ap_irqo_en;
 
 	switch (start) {
 	case 0U:
+		/* Disable CMB_MBOX0 interrupts to Cortex-A7S */
+		ap_irqo_en = phys_to_virt(0x1460000C);
+		writel(0xFFFFFBFFU, ap_irqo_en);
+
+		/* Disable mali0, gc300, g2d interrupts to Cortex-A7S */
+		ap_irqo_en = phys_to_virt(0x14600018);
+		writel(0xFFFFFFC0U, ap_irqo_en);
+
 		arm_smccc_smc(SIP_CORE_END_SUBCORE, 0, 0, 0, 0, 0, 0, 0, &res);
 		break;
 	case 1U:
-
-#ifdef CONFIG_BOOT_SUBCORE_SELF_LOAD_MODE
 		add_boot_time_stamp();
 		arm_smccc_smc(SIP_CORE_PWUP, 0, 0, 0, 0, 0, 0, 0, &res);
-#else
-		ret = tc_verify_img((uintptr_t)img_addr);
-		if (ret == VERIFY_FAIL) {
-			break;
-		} else if (ret == VERIFY_OK) {
-			(void)memcpy(img_addr,
-				     img_addr + IMAGE_CERT_SIZE,
-				     img_size);
-			flush_dcache_range(img_addr, img_addr + img_size +
-					   IMAGE_CERT_SIZE);
-		}
-		add_boot_time_stamp();
-		arm_smccc_smc(SIP_CORE_START_SUBCORE,
-			      img_addr,
-			      SUBCORE_FDT_ADDR,
-			      0, 0, 0, 0, 0, &res);
-#endif
+
 		/* Configure A7S CPU clock aftbr resetting A7S */
-		(void)tcc_set_clkctrl(FBUS_CPU1, true, 1100000000UL);
+		(void)tcc_set_clkctrl(FBUS_CPU1, CKC_ENABLE, 1100000000UL, 0UL);
 		break;
 	default:
 		ret = 1;

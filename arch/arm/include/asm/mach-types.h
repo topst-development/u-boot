@@ -267,7 +267,6 @@
 #define MACH_TYPE_BMS                  259
 #define MACH_TYPE_IXCDP1100            260
 #define MACH_TYPE_PRPMC1100            261
-#define MACH_TYPE_AT91RM9200DK         262
 #define MACH_TYPE_ARMSTICK             263
 #define MACH_TYPE_ARMONIE              264
 #define MACH_TYPE_MPORT1               265
@@ -5051,6 +5050,4 @@
 #define MACH_TYPE_NASM25               5112
 #define MACH_TYPE_TOMATO               5113
 #define MACH_TYPE_OMAP3_MRC3D          5114
-#define MACH_TYPE_TCC805X              5115
-#define MACH_TYPE_TCC803X              5116
 #endif

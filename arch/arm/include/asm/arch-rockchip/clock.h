@@ -6,6 +6,8 @@
 #ifndef _ASM_ARCH_CLOCK_H
 #define _ASM_ARCH_CLOCK_H
 
+struct udevice;
+
 /* define pll mode */
 #define RKCLK_PLL_MODE_SLOW		0
 #define RKCLK_PLL_MODE_NORMAL		1
@@ -153,10 +155,10 @@ void *rockchip_get_cru(void);
  */
 void *rockchip_get_pmucru(void);
 
-struct rk3288_cru;
+struct rockchip_cru;
 struct rk3288_grf;
 
-void rk3288_clk_configure_cpu(struct rk3288_cru *cru, struct rk3288_grf *grf);
+void rk3288_clk_configure_cpu(struct rockchip_cru *cru, struct rk3288_grf *grf);
 
 int rockchip_get_clk(struct udevice **devp);
 

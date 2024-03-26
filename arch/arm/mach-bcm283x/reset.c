@@ -7,6 +7,7 @@
  */
 
 #include <common.h>
+#include <cpu_func.h>
 #include <asm/io.h>
 #include <asm/arch/base.h>
 #include <asm/arch/wdog.h>
@@ -47,7 +48,7 @@ __reset_cpu(struct bcm2835_wdog_regs *wdog_regs, ulong ticks)
 	writel(BCM2835_WDOG_PASSWORD | rstc, &wdog_regs->rstc);
 }
 
-void reset_cpu(ulong ticks)
+void reset_cpu(void)
 {
 	struct bcm2835_wdog_regs *regs =
 		(struct bcm2835_wdog_regs *)BCM2835_WDOG_PHYSADDR;

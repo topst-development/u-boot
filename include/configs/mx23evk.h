@@ -8,9 +8,6 @@
 #ifndef __CONFIGS_MX23EVK_H__
 #define __CONFIGS_MX23EVK_H__
 
-/* System configurations */
-#define CONFIG_MACH_TYPE	MACH_TYPE_MX23EVK
-
 /* U-Boot Commands */
 
 /* Memory configuration */
@@ -19,12 +16,8 @@
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
 
 /* Environment */
-#define CONFIG_ENV_OVERWRITE
 
 /* Environment is in MMC */
-#if defined(CONFIG_CMD_MMC) && defined(CONFIG_ENV_IS_IN_MMC)
-#define CONFIG_SYS_MMC_ENV_DEV	0
-#endif
 
 /* USB */
 #ifdef	CONFIG_CMD_USB
@@ -33,19 +26,13 @@
 #endif
 
 /* Framebuffer support */
-#ifdef CONFIG_VIDEO
+#ifdef CONFIG_DM_VIDEO
 #define CONFIG_VIDEO_LOGO
-#define CONFIG_SPLASH_SCREEN
-#define CONFIG_BMP_16BPP
-#define CONFIG_VIDEO_BMP_RLE8
-#define CONFIG_VIDEO_BMP_GZIP
 #define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE	(512 << 10)
 #endif
 
 /* Boot Linux */
 #define CONFIG_BOOTFILE		"uImage"
-#define CONFIG_LOADADDR		0x42000000
-#define CONFIG_SYS_LOAD_ADDR	CONFIG_LOADADDR
 
 /* Extra Environments */
 #define CONFIG_EXTRA_ENV_SETTINGS \

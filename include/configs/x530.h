@@ -10,10 +10,6 @@
  * High Level Configuration Options (easy to change)
  */
 
-#define CONFIG_DISPLAY_BOARDINFO_LATE
-
-#define CONFIG_SYS_TCLK		250000000	/* 250MHz */
-
 /*
  * NS16550 Configuration
  */
@@ -30,15 +26,7 @@
  * for your console driver.
  */
 
-#define CONFIG_CONS_INDEX	1	/*Console on UART0 */
-
-/*
- * Commands configuration
- */
-#define CONFIG_CMD_PCI
-
 /* NAND */
-#define CONFIG_SYS_NAND_ONFI_DETECTION
 #define CONFIG_SYS_MAX_NAND_DEVICE 1
 
 #define BBT_CUSTOM_SCAN
@@ -55,12 +43,8 @@
 
 /* Additional FS support/configuration */
 
-/* USB/EHCI configuration */
-#define CONFIG_EHCI_IS_TDI
-
 /* Environment in SPI NOR flash */
 
-#define CONFIG_PHY_MARVELL		/* there is a marvell phy */
 #define PHY_ANEG_TIMEOUT	8000	/* PHY needs a longer aneg time */
 
 /* PCIe support */
@@ -69,29 +53,14 @@
 #endif
 
 /* NAND */
-#define CONFIG_SYS_NAND_ONFI_DETECTION
-#define CONFIG_CMD_UBI
-#define CONFIG_CMD_UBIFS
-#define CONFIG_LZO
-#define CONFIG_CMD_MTDPARTS
-
-#define CONFIG_SYS_MALLOC_LEN		(4 << 20)
 
 #include <asm/arch/config.h>
-
-/*
- * Other required minimal configurations
- */
-#define CONFIG_SYS_RESET_ADDRESS 0xffff0000	/* Rst Vector Adr */
-
-#define CONFIG_SYS_ALT_MEMTEST
 
 /* Keep device tree and initrd in low memory so the kernel can access them */
 #define CONFIG_EXTRA_ENV_SETTINGS	\
 	"fdt_high=0x10000000\0"		\
 	"initrd_high=0x10000000\0"
 
-#define CONFIG_SYS_LOAD_ADDR	0x1000000
 #define CONFIG_UBI_PART			user
 #define CONFIG_UBIFS_VOLUME		user
 
@@ -110,8 +79,5 @@
 
 #define CONFIG_SPL_STACK		(0x40000000 + ((192 - 16) << 10))
 #define CONFIG_SPL_BOOTROM_SAVE		(CONFIG_SPL_STACK + 4)
-
-/* SPL related SPI defines */
-#define CONFIG_SYS_U_BOOT_OFFS		CONFIG_SYS_SPI_U_BOOT_OFFS
 
 #endif /* _CONFIG_X530_H */

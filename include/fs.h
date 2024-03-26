@@ -6,6 +6,9 @@
 #define _FS_H
 
 #include <common.h>
+#include <rtc.h>
+
+struct cmd_tbl;
 
 #define FS_TYPE_ANY	0
 #define FS_TYPE_FAT	1
@@ -13,6 +16,32 @@
 #define FS_TYPE_SANDBOX	3
 #define FS_TYPE_UBIFS	4
 #define FS_TYPE_BTRFS	5
+#define FS_TYPE_SQUASHFS 6
+
+struct blk_desc;
+
+/**
+ * do_fat_fsload - Run the fatload command
+ *
+ * @cmdtp: Command information for fatload
+ * @flag: Command flags (CMD_FLAG_...)
+ * @argc: Number of arguments
+ * @argv: List of arguments
+ * @return result (see enum command_ret_t)
+ */
+int do_fat_fsload(struct cmd_tbl *cmdtp, int flag, int argc,
+		  char *const argv[]);
+
+/**
+ * do_ext2load - Run the ext2load command
+ *
+ * @cmdtp: Command information for ext2load
+ * @flag: Command flags (CMD_FLAG_...)
+ * @argc: Number of arguments
+ * @argv: List of arguments
+ * @return result (see enum command_ret_t)
+ */
+int do_ext2load(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]);
 
 /*
  * Tell the fs layer which block device an partition to use for future
@@ -132,13 +161,26 @@ int fs_write(const char *filename, ulong addr, loff_t offset, loff_t len,
 #define FS_DT_REG  8         /* regular file */
 #define FS_DT_LNK  10        /* symbolic link */
 
-/*
- * A directory entry, returned by fs_readdir().  Returns information
+/**
+ * struct fs_dirent - directory entry
+ *
+ * A directory entry, returned by fs_readdir(). Returns information
  * about the file/directory at the current directory entry position.
  */
 struct fs_dirent {
-	unsigned type;       /* one of FS_DT_x (not a mask) */
-	loff_t size;         /* size in bytes */
+	/** @type:		one of FS_DT_x (not a mask) */
+	unsigned int type;
+	/** @size:		file size */
+	loff_t size;
+	/** @flags:		attribute flags (FS_ATTR_*) */
+	u32 attr;
+	/** create_time:	time of creation */
+	struct rtc_time create_time;
+	/** access_time:	time of last access */
+	struct rtc_time access_time;
+	/** change_time:	time of last modification */
+	struct rtc_time change_time;
+	/** name:		file name */
 	char name[256];
 };
 
@@ -202,34 +244,45 @@ int fs_mkdir(const char *filename);
  * Common implementation for various filesystem commands, optionally limited
  * to a specific filesystem type via the fstype parameter.
  */
-int do_size(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
-		int fstype);
-int do_load(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
-		int fstype);
-int do_ls(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
-		int fstype);
+int do_size(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+	    int fstype);
+int do_load(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+	    int fstype);
+int do_ls(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+	  int fstype);
 int file_exists(const char *dev_type, const char *dev_part, const char *file,
 		int fstype);
-int do_save(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
-		int fstype);
-int do_rm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
-		int fstype);
-int do_mkdir(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
-		int fstype);
-int do_ln(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
+int do_save(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+	    int fstype);
+int do_rm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+	  int fstype);
+int do_mkdir(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+	     int fstype);
+int do_ln(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
 	  int fstype);
 
 /*
  * Determine the UUID of the specified filesystem and print it. Optionally it is
  * possible to store the UUID directly in env.
  */
-int do_fs_uuid(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
-		int fstype);
+int do_fs_uuid(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+	       int fstype);
 
 /*
  * Determine the type of the specified filesystem and print it. Optionally it is
  * possible to store the type directly in env.
  */
-int do_fs_type(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+int do_fs_type(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]);
+
+/**
+ * do_fs_types - List supported filesystems.
+ *
+ * @cmdtp: Command information for fstypes
+ * @flag: Command flags (CMD_FLAG_...)
+ * @argc: Number of arguments
+ * @argv: List of arguments
+ * @return result (see enum command_ret_t)
+ */
+int do_fs_types(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[]);
 
 #endif /* _FS_H */

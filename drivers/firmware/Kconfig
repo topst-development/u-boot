@@ -37,6 +37,8 @@ config ZYNQMP_FIRMWARE
 	  Say yes to enable ZynqMP firmware interface driver.
 	  If in doubt, say N.
 
+source "drivers/firmware/scmi/Kconfig"
+
 config TCC_SC_FIRMWARE
 	bool "Telechips Storage Core Firmware interface"
 	depends on ARCH_TELECHIPS
@@ -44,3 +46,18 @@ config TCC_SC_FIRMWARE
 	select FIRMWARE
 	help
 	  Telechips Storage Core Firmware Interface Messaage Protocol.
+
+config TCC_HSM_FIRMWARE
+	bool "Telechips HSM Firmware interface"
+	depends on ARCH_TELECHIPS
+	depends on TCC_MBOX || SSS_MBOX
+	select FIRMWARE
+	help
+	  Telechips HSM Firmware Interface Messaage Protocol.
+
+config TCC_THSM_FIRMWARE
+	bool "Telechips THSM Firmware (TF-A EL3) interface"
+	depends on ARCH_TELECHIPS
+	select FIRMWARE
+	help
+	  Telechips THSM Firmware (TF-A EL3) Interface Messaage Protocol.

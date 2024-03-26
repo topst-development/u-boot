@@ -8,26 +8,24 @@
  * Copyright (C) 2019 Texas Instruments Incorporated - http://www.ti.com
  */
 
-/*
- * Modified by Telechips Inc. (date: 2020-05)
- */
-
 #include <charset.h>
 #include <common.h>
 #include <dm.h>
+#include <log.h>
+#include <dm/device_compat.h>
+#include <dm/devres.h>
 #include <dm/lists.h>
 #include <dm/device-internal.h>
 #include <malloc.h>
 #include <hexdump.h>
 #include <scsi.h>
-#include <linux/io.h>
 #include <asm/io.h>
-#include <ufs.h>
-
 #include <asm/dma-mapping.h>
+#include <linux/bitops.h>
+#include <linux/delay.h>
+#include <linux/dma-mapping.h>
 
 #include "ufs.h"
-#include "tcc-ufs.h"
 
 #define UFSHCD_ENABLE_INTRS	(UTP_TRANSFER_REQ_COMPL |\
 				 UTP_TASK_REQ_COMPL |\
@@ -56,9 +54,7 @@
 /* Expose the flag value from utp_upiu_query.value */
 #define MASK_QUERY_UPIU_FLAG_LOC 0xFF
 
-//#define MAX_PRDT_ENTRY	262144
-#define MAX_PRDT_ENTRY  65536
-//#define MAX_PRDT_ENTRY	4096
+#define MAX_PRDT_ENTRY	262144
 
 /* maximum bytes per request */
 #define UFS_MAX_BYTES	(128 * 256 * 1024)
@@ -67,51 +63,6 @@ static inline bool ufshcd_is_hba_active(struct ufs_hba *hba);
 static inline void ufshcd_hba_stop(struct ufs_hba *hba);
 static int ufshcd_hba_enable(struct ufs_hba *hba);
 
-uint8_t *utf16_to_utf8(uint8_t *dest, const uint16_t *src, size_t size)
-{
-	uint32_t code_high = 0;
-
-	while (size--) {
-		uint32_t code = *src++;
-
-		if (code_high) {
-			if (code >= 0xDC00 && code <= 0xDFFF) {
-				code = ((code_high - 0xD800) << 10) +
-					(code - 0xDC00) + 0x10000;
-				*dest++ = (code >> 18) | 0xF0;
-				*dest++ = ((code >> 12) & 0x3F) | 0x80;
-				*dest++ = ((code >> 6) & 0x3F) | 0x80;
-				*dest++ = (code & 0x3F) | 0x80;
-			} else {
-				*dest++ = '?';
-				src--;
-			}
-			code_high = 0;
-		} else {
-			if (code <= 0x007F) {
-				*dest++ = code;
-			} else if (code <= 0x07FF) {
-				*dest++ = (code >> 6) | 0xC0;
-				*dest++ = (code & 0x3F) | 0x80;
-			} else if (code >= 0xD800 && code <= 0xDBFF) {
-				code_high = code;
-				continue;
-			} else if (code >= 0xDC00 && code <= 0xDFFF) {
-				*dest++ = '?';
-			} else if (code < 0x10000) {
-				*dest++ = (code >> 12) | 0xE0;
-				*dest++ = ((code >> 6) & 0x3F) | 0x80;
-				*dest++ = (code & 0x3F) | 0x80;
-			} else {
-				*dest++ = (code >> 18) | 0xF0;
-				*dest++ = ((code >> 12) & 0x3F) | 0x80;
-				*dest++ = ((code >> 6) & 0x3F) | 0x80;
-				*dest++ = (code & 0x3F) | 0x80;
-			}
-		}
-	}
-	return dest;
-}
 /*
  * ufshcd_wait_for_register - wait for register value to change
  */
@@ -166,7 +117,7 @@ static void ufshcd_print_pwr_info(struct ufs_hba *hba)
 		"INVALID MODE",
 	};
 
-	dev_dbg(hba->dev, "[RX, TX]: gear=[%d, %d], lane[%d, %d], pwr[%s, %s], rate = %d\n",
+	dev_err(hba->dev, "[RX, TX]: gear=[%d, %d], lane[%d, %d], pwr[%s, %s], rate = %d\n",
 		hba->pwr_info.gear_rx, hba->pwr_info.gear_tx,
 		hba->pwr_info.lane_rx, hba->pwr_info.lane_tx,
 		names[hba->pwr_info.pwr_rx],
@@ -369,7 +320,7 @@ static int ufshcd_disable_tx_lcc(struct ufs_hba *hba, bool peer)
 					0);
 		if (err) {
 			dev_err(hba->dev, "%s: TX LCC Disable failed, peer = %d, lane = %d, err = %d",
-					__func__, peer, i, err);
+				__func__, peer, i, err);
 			break;
 		}
 	}
@@ -391,12 +342,11 @@ static int ufshcd_dme_link_startup(struct ufs_hba *hba)
 	struct uic_command uic_cmd = {0};
 	int ret;
 
-	dev_dbg(dev, "%s\n", __func__);
 	uic_cmd.command = UIC_CMD_DME_LINK_STARTUP;
 
 	ret = ufshcd_send_uic_cmd(hba, &uic_cmd);
 	if (ret)
-		dev_err(hba->dev,
+		dev_dbg(hba->dev,
 			"dme-link-startup: error code %d\n", ret);
 	return ret;
 }
@@ -506,7 +456,7 @@ static int ufshcd_link_startup(struct ufs_hba *hba)
 {
 	int ret;
 	int retries = DME_LINKSTARTUP_RETRIES;
-	bool link_startup_again = false; //true;
+	bool link_startup_again = true;
 
 link_startup:
 	do {
@@ -516,8 +466,7 @@ link_startup:
 
 		/* check if device is detected by inter-connect layer */
 		if (!ret && !ufshcd_is_device_present(hba)) {
-			dev_err(hba->dev, "%s: Device not present(%d / %d)\n",
-				__func__, !ret, !ufshcd_is_device_present(hba));
+			dev_err(hba->dev, "%s: Device not present\n", __func__);
 			ret = -ENXIO;
 			goto out;
 		}
@@ -665,22 +614,15 @@ static void ufshcd_host_memory_configure(struct ufs_hba *hba)
 	response_offset = offsetof(struct utp_transfer_cmd_desc, response_upiu);
 	prdt_offset = offsetof(struct utp_transfer_cmd_desc, prd_table);
 
-	//utrdlp->response_upiu_offset = cpu_to_le16(response_offset >> 2);
-	utrdlp->response_upiu_offset = cpu_to_le16(ALIGNED_UPIU_SIZE);
-	utrdlp->prd_table_offset = cpu_to_le16((ALIGNED_UPIU_SIZE*2));
-		//cpu_to_le16(prdt_offset >> 2);
-	utrdlp->response_upiu_length = cpu_to_le16(ALIGNED_UPIU_SIZE);
-	//utrdlp->response_upiu_length = cpu_to_le16(response_offset);
-	//utrdlp->prd_table_length = cpu_to_le16(prdt_offset >> 2);
+	utrdlp->response_upiu_offset = cpu_to_le16(response_offset >> 2);
+	utrdlp->prd_table_offset = cpu_to_le16(prdt_offset >> 2);
+	utrdlp->response_upiu_length = cpu_to_le16(ALIGNED_UPIU_SIZE >> 2);
 
 	hba->ucd_req_ptr = (struct utp_upiu_req *)hba->ucdl;
-	memset(hba->ucd_req_ptr, 0x0, cpu_to_le16(ALIGNED_UPIU_SIZE));
 	hba->ucd_rsp_ptr =
 		(struct utp_upiu_rsp *)&hba->ucdl->response_upiu;
-	memset(hba->ucd_rsp_ptr, 0x0, cpu_to_le16(ALIGNED_UPIU_SIZE));
 	hba->ucd_prdt_ptr =
 		(struct ufshcd_sg_entry *)&hba->ucdl->prd_table;
-	memset(hba->ucd_prdt_ptr, 0x0, cpu_to_le16(ALIGNED_UPIU_SIZE));
 }
 
 /**
@@ -688,12 +630,10 @@ static void ufshcd_host_memory_configure(struct ufs_hba *hba)
  */
 static int ufshcd_memory_alloc(struct ufs_hba *hba)
 {
-	void __iomem    *iobase;
 	/* Allocate one Transfer Request Descriptor
 	 * Should be aligned to 1k boundary.
 	 */
-	//hba->utrdl = memalign(1024, sizeof(struct utp_transfer_req_desc));
-	hba->utrdl = ioremap(0x1D300000, sizeof(struct utp_transfer_req_desc));
+	hba->utrdl = memalign(1024, sizeof(struct utp_transfer_req_desc));
 	if (!hba->utrdl) {
 		dev_err(hba->dev, "Transfer Descriptor memory allocation failed\n");
 		return -ENOMEM;
@@ -702,20 +642,9 @@ static int ufshcd_memory_alloc(struct ufs_hba *hba)
 	/* Allocate one Command Descriptor
 	 * Should be aligned to 1k boundary.
 	 */
-	//hba->ucdl = memalign(1024, sizeof(struct utp_transfer_cmd_desc));
-	hba->ucdl = ioremap(0x1D300200, sizeof(struct utp_transfer_cmd_desc));
+	hba->ucdl = memalign(1024, sizeof(struct utp_transfer_cmd_desc));
 	if (!hba->ucdl) {
 		dev_err(hba->dev, "Command descriptor memory allocation failed\n");
-		return -ENOMEM;
-	}
-	hba->tmp_buf = ioremap(0x1D301000, sizeof(4*1024));
-	if (!hba->tmp_buf) {
-		dev_err(hba->dev, "temp descriptor memory allocation failed\n");
-		return -ENOMEM;
-	}
-	hba->utmrdl = ioremap(0x1D303800, sizeof(struct utp_task_req_desc));
-	if (!hba->utmrdl) {
-		dev_err(hba->dev, "utmrd memory allocation failed\n");
 		return -ENOMEM;
 	}
 
@@ -812,10 +741,7 @@ static void ufshcd_prepare_utp_query_req_upiu(struct ufs_hba *hba,
 	struct utp_upiu_req *ucd_req_ptr = hba->ucd_req_ptr;
 	struct ufs_query *query = &hba->dev_cmd.query;
 	u16 len = be16_to_cpu(query->request.upiu_req.length);
-	u32 reg;
 
-	reg = ufshcd_readl(hba, REG_UTRL_NEXUS_TYPE);
-	ufshcd_writel(hba, reg_clrb(reg, 0), REG_UTRL_NEXUS_TYPE);
 	/* Query request header */
 	ucd_req_ptr->header.dword_0 =
 				UPIU_HEADER_DWORD(UPIU_TRANSACTION_QUERY_REQ,
@@ -844,16 +770,12 @@ static void ufshcd_prepare_utp_query_req_upiu(struct ufs_hba *hba,
 static inline void ufshcd_prepare_utp_nop_upiu(struct ufs_hba *hba)
 {
 	struct utp_upiu_req *ucd_req_ptr = hba->ucd_req_ptr;
-	u32 reg;
 
 	memset(ucd_req_ptr, 0, sizeof(struct utp_upiu_req));
 
-	reg = ufshcd_readl(hba, REG_UTRL_NEXUS_TYPE);
-	ufshcd_writel(hba, reg_clrb(reg, 0), REG_UTRL_NEXUS_TYPE);
 	/* command descriptor fields */
 	ucd_req_ptr->header.dword_0 =
-		UPIU_HEADER_DWORD(UPIU_TRANSACTION_NOP_OUT,
-				0, 0, 0/*0x1f*/);
+			UPIU_HEADER_DWORD(UPIU_TRANSACTION_NOP_OUT, 0, 0, 0x1f);
 	/* clear rest of the fields of basic header */
 	ucd_req_ptr->header.dword_1 = 0;
 	ucd_req_ptr->header.dword_2 = 0;
@@ -894,20 +816,9 @@ static int ufshcd_send_command(struct ufs_hba *hba, unsigned int task_tag)
 	unsigned long start;
 	u32 intr_status;
 	u32 enabled_intr_status;
-	u32 reg;
 
-	ufshcd_writel(hba, ~0, REG_INTERRUPT_STATUS);
-	ufshcd_enable_run_stop_reg(hba);
-	do {
-		reg = ufshcd_readl(hba, REG_UTP_TRANSFER_REQ_LIST_RUN_STOP);
-	} while (reg == 0);
 	ufshcd_writel(hba, 1 << task_tag, REG_UTP_TRANSFER_REQ_DOOR_BELL);
 
-	do {
-		reg = ufshcd_readl(hba, REG_UTP_TRANSFER_REQ_DOOR_BELL);
-	} while (reg == 1);
-
-	__iowmb();
 	start = get_timer(0);
 	do {
 		intr_status = ufshcd_readl(hba, REG_INTERRUPT_STATUS);
@@ -1153,7 +1064,6 @@ static int __ufshcd_query_descriptor(struct ufs_hba *hba,
 	struct ufs_query_req *request = NULL;
 	struct ufs_query_res *response = NULL;
 	int err;
-	uint32_t reg;
 
 	if (!desc_buf) {
 		dev_err(hba->dev, "%s: descriptor buffer required for opcode 0x%x\n",
@@ -1168,8 +1078,6 @@ static int __ufshcd_query_descriptor(struct ufs_hba *hba,
 		err = -EINVAL;
 		goto out;
 	}
-	reg = ufshcd_readl(hba, REG_UTRL_NEXUS_TYPE);
-	ufshcd_writel(hba, reg_setb(reg, 0), REG_UTRL_NEXUS_TYPE);
 
 	ufshcd_init_query(hba, &request, &response, opcode, idn, index,
 			  selector);
@@ -1480,15 +1388,7 @@ void ufshcd_prepare_utp_scsi_cmd_upiu(struct ufs_hba *hba,
 {
 	struct utp_upiu_req *ucd_req_ptr = hba->ucd_req_ptr;
 	unsigned int cdb_len;
-	unsigned int reg;
 
-	dev_dbg(dev, "%s: Lun=%d(op=%x / LBA  = 0x%x / 0x%x / 0x%x / 0x%x), LBACNT = 0x%x / 0x%x\n",
-			__func__, pccb->lun, pccb->cmd[0], pccb->cmd[2],
-			pccb->cmd[3], pccb->cmd[4], pccb->cmd[5],
-			pccb->cmd[7], pccb->cmd[8]);
-
-	reg = ufshcd_readl(hba, REG_UTRL_NEXUS_TYPE);
-	ufshcd_writel(hba, reg_setb(reg, 0), REG_UTRL_NEXUS_TYPE);
 	/* command descriptor fields */
 	ucd_req_ptr->header.dword_0 =
 			UPIU_HEADER_DWORD(UPIU_TRANSACTION_COMMAND, upiu_flags,
@@ -1525,22 +1425,13 @@ static void prepare_prdt_table(struct ufs_hba *hba, struct scsi_cmd *pccb)
 	u8 *buf;
 	int i;
 
-	dev_dbg(dev, "%s - data = 0x%x\n", __func__, datalen);
 	if (!datalen) {
 		req_desc->prd_table_length = 0;
 		return;
 	}
 
 	table_length = DIV_ROUND_UP(pccb->datalen, MAX_PRDT_ENTRY);
-	if ((unsigned int)pccb->pdata & 0xfff) {
-		memcpy(hba->tmp_buf, pccb->pdata, pccb->datalen);
-		buf = hba->tmp_buf;
-		dev_dbg(dev, "org_buff = 0x%p\n", pccb->pdata);
-	} else {
-		buf = pccb->pdata;
-		dev_dbg(dev, "buff = 0x%p\n", pccb->pdata);
-	}
-
+	buf = pccb->pdata;
 	i = table_length;
 	while (--i) {
 		prepare_prdt_desc(&prd_table[table_length - i - 1], buf,
@@ -1551,7 +1442,7 @@ static void prepare_prdt_table(struct ufs_hba *hba, struct scsi_cmd *pccb)
 
 	prepare_prdt_desc(&prd_table[table_length - i - 1], buf, datalen - 1);
 
-	req_desc->prd_table_length = table_length*0x10;
+	req_desc->prd_table_length = table_length;
 }
 
 static int ufs_scsi_exec(struct udevice *scsi_dev, struct scsi_cmd *pccb)
@@ -1561,9 +1452,6 @@ static int ufs_scsi_exec(struct udevice *scsi_dev, struct scsi_cmd *pccb)
 	u32 upiu_flags;
 	int ocs, result = 0;
 	u8 scsi_status;
-
-	ufshcd_writel(hba, 0x00000010, REG_HCI_TXPRDT_ENTRY_SIZE);
-	ufshcd_writel(hba, 0x00000010, REG_HCI_RXPRDT_ENTRY_SIZE);
 
 	ufshcd_prepare_req_desc_hdr(req_desc, &upiu_flags, pccb->dma_dir);
 	ufshcd_prepare_utp_scsi_cmd_upiu(hba, pccb, upiu_flags);
@@ -1601,10 +1489,6 @@ static int ufs_scsi_exec(struct udevice *scsi_dev, struct scsi_cmd *pccb)
 		return -EINVAL;
 	}
 
-	if ((unsigned int)pccb->pdata & 0xfff) {
-		memcpy(pccb->pdata, hba->tmp_buf, pccb->datalen);
-		udelay(50);
-	}
 	return 0;
 }
 
@@ -1855,23 +1739,6 @@ static int ufshcd_change_power_mode(struct ufs_hba *hba,
 	/* Copy new Power Mode to power info */
 	memcpy(&hba->pwr_info, pwr_mode, sizeof(struct ufs_pa_layer_attr));
 
-	//only for single lane
-	if ((pwr_mode->lane_tx == 1) && (pwr_mode->lane_rx == 1)) {
-		ufshcd_dme_set(hba,
-				UIC_ARG_MIB_SEL(0x200,
-					UIC_ARG_MPHY_TX_GEN_SEL_INDEX(0)),
-					0x40);
-		//PCS 1lane booting
-		ufshcd_dme_set(hba,
-				UIC_ARG_MIB_SEL(0x21,
-					UIC_ARG_MPHY_TX_GEN_SEL_INDEX(1)),
-					0x02);
-		ufshcd_dme_set(hba,
-				UIC_ARG_MIB_SEL(0x200,
-					UIC_ARG_MPHY_TX_GEN_SEL_INDEX(0)),
-					0x0);
-	}
-
 	return ret;
 }
 
@@ -1995,53 +1862,10 @@ int ufs_start(struct ufs_hba *hba)
 	return 0;
 }
 
-#if defined (CONFIG_SUPPORT_UFS_RPMB)
-int ufs_get_model_name(struct udevice *ufs_dev, u8 *name, size_t size)
-{
-	struct ufs_hba *hba;
-	struct ufs_dev_desc card = {0};
-
-	if ((name == NULL) || (ufs_dev == NULL) || (size < MAX_MODEL_LEN)) {
-		printf("%s(%d)\n", __func__, __LINE__);
-		return -EINVAL;
-	}
-
-#if (1)
-	memcpy(name, (void *)"THGAFEG8T13BAZZA", size);
-#else
-	hba = dev_get_uclass_priv(ufs_dev);
-	if (!hba) {
-		printf("%s(%d)\n", __func__, __LINE__);
-		return -ENODEV;
-	}
-	if (ufs_get_device_desc(hba, &card)) {
-		printf("%s(%d)\n", __func__, __LINE__);
-		return -ENODEV;
-	}
-	printf("model: %s\n", card.model);
-	memcpy(name, card.model, MAX_MODEL_LEN);
-#endif
-
-	return 0;
-}
-
-u8 ufs_get_rpmb_size_mult(struct udevice *ufs_dev)
-{
-	/* rpmb size = size_mult * 128KB. - eMMC  */
-	return 32;
-}
-
-u8 ufs_get_rpmb_wr_sec_c(struct udevice *ufs_dev)
-{
-	/* rpmb wr_sec_c : max. multi frame count for writing */
-	return 1;
-}
-#endif
-
 int ufshcd_probe(struct udevice *ufs_dev, struct ufs_hba_ops *hba_ops)
 {
 	struct ufs_hba *hba = dev_get_uclass_priv(ufs_dev);
-	struct scsi_platdata *scsi_plat;
+	struct scsi_plat *scsi_plat;
 	struct udevice *scsi_dev;
 	int err;
 
@@ -2049,7 +1873,7 @@ int ufshcd_probe(struct udevice *ufs_dev, struct ufs_hba_ops *hba_ops)
 	if (!scsi_dev)
 		return -ENODEV;
 
-	scsi_plat = dev_get_uclass_platdata(scsi_dev);
+	scsi_plat = dev_get_uclass_plat(scsi_dev);
 	scsi_plat->max_id = UFSHCD_MAX_ID;
 	scsi_plat->max_lun = UFS_MAX_LUNS;
 	scsi_plat->max_bytes_per_req = UFS_MAX_BYTES;
@@ -2104,12 +1928,8 @@ int ufshcd_probe(struct udevice *ufs_dev, struct ufs_hba_ops *hba_ops)
 	}
 
 	err = ufs_start(hba);
-	if (err) {
-		free(hba->utrdl);
-		free(hba->ucdl);
-		free(hba->tmp_buf);
+	if (err)
 		return err;
-	}
 
 	return 0;
 }

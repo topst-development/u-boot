@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+/dts-v1/;
+
+#include "tcc805x-subcore.dts"
+
+/ {
+	model = "Telechips TCC8053 LPD4X322 0.1 Sub-Core";
+};
+
+#include "override/tcc805x-subcore-uart.dtsi"
+#include "override/tcc805x-subcore-mbox.dtsi"
+#include "override/tcc805x-subcore-scfw.dtsi"
+#include "override/tcc805x-subcore-hsmfw.dtsi"
+#include "override/tcc805x-mmc.dtsi"
+#include "override/tcc805x-ufs.dtsi"
+#include "override/tcc805x-subcore-i2c.dtsi"
+#include "override/tcc805x-subcore-pwm.dtsi"
+#include "override/tcc8053-subcore-lpd4x322-sv0.1-display.dts"

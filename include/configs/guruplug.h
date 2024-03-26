@@ -17,7 +17,6 @@
 /*
  * Standard filesystems
  */
-#define CONFIG_BZIP2
 
 /*
  * mv-plug-common.h should be defined after CMD configs since it used them
@@ -66,12 +65,5 @@
 #define CONFIG_MVGBE_PORTS	{1, 1}	/* enable both ports */
 #define CONFIG_PHY_BASE_ADR	0
 #endif /* CONFIG_CMD_NET */
-
-/*
- * SATA Driver configuration
- */
-#ifdef CONFIG_MVSATA_IDE
-#define CONFIG_SYS_ATA_IDE0_OFFSET	MV_SATA_PORT0_OFFSET
-#endif /*CONFIG_MVSATA_IDE*/
 
 #endif /* _CONFIG_GURUPLUG_H */

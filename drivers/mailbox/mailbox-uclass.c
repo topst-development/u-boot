@@ -3,10 +3,14 @@
  * Copyright (c) 2016, NVIDIA CORPORATION.
  */
 
+#define LOG_CATEGORY UCLASS_MAILBOX
+
 #include <common.h>
 #include <dm.h>
+#include <log.h>
 #include <mailbox.h>
 #include <mailbox-uclass.h>
+#include <malloc.h>
 #include <time.h>
 
 static inline struct mbox_ops *mbox_dev_ops(struct udevice *dev)
@@ -105,8 +109,8 @@ int mbox_free(struct mbox_chan *chan)
 
 	debug("%s(chan=%p)\n", __func__, chan);
 
-	if (ops->free)
-		return ops->free(chan);
+	if (ops->rfree)
+		return ops->rfree(chan);
 
 	return 0;
 }

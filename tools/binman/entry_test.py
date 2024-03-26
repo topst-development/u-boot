@@ -9,10 +9,10 @@ import os
 import sys
 import unittest
 
-import entry
-import fdt
-import fdt_util
-import tools
+from binman import entry
+from dtoc import fdt
+from dtoc import fdt_util
+from patman import tools
 
 class TestEntry(unittest.TestCase):
     def setUp(self):
@@ -37,11 +37,11 @@ class TestEntry(unittest.TestCase):
             else:
                 reload(entry)
         else:
-            import entry
+            from binman import entry
 
     def testEntryContents(self):
         """Test the Entry bass class"""
-        import entry
+        from binman import entry
         base_entry = entry.Entry(None, None, None)
         self.assertEqual(True, base_entry.ObtainContents())
 
@@ -87,6 +87,18 @@ class TestEntry(unittest.TestCase):
         base = entry.Entry.Create(None, self.GetNode(), 'blob-dtb')
         self.assertIsNone(base.ReadChildData(base))
 
+    def testExpandedEntry(self):
+        """Test use of an expanded entry when available"""
+        base = entry.Entry.Create(None, self.GetNode())
+        self.assertEqual('u-boot', base.etype)
+
+        expanded = entry.Entry.Create(None, self.GetNode(), expanded=True)
+        self.assertEqual('u-boot-expanded', expanded.etype)
+
+        with self.assertRaises(ValueError) as e:
+            entry.Entry.Create(None, self.GetNode(), 'missing', expanded=True)
+        self.assertIn("Unknown entry type 'missing' in node '/binman/u-boot'",
+                      str(e.exception))
 
 if __name__ == "__main__":
     unittest.main()

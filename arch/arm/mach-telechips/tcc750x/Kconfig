@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) 2023 Telechips Inc.
+
+if TCC750X
+
+config SYS_SOC
+	default "tcc750x"
+
+config SYS_CONFIG_NAME
+	default "tcc750x"
+
+config SYS_BOARD
+	default "tcc750x_evb"
+
+source "board/telechips/tcc750x_evb/Kconfig"
+
+endif

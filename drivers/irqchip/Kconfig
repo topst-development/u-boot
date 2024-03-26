@@ -11,11 +11,22 @@ config DM_IRQ
 	help
 	  Enable driver mdoel for IRQ.
 
+choice
+	prompt "ARM Generic Interrupt Conroller"
+	default ARM_GICV3 if TCC807X
+
 config ARM_GIC
-	bool "ARM GIC interrupt controller"
+	bool "ARM GICv2 interrupt controller"
 	depends on ARM && DM_IRQ
-	default y
 	help
-	  Add support for ARM GIC interrupt controller.
+	  Add support for ARM GICv2 interrupt controller.
+
+config ARM_GICV3
+	bool "ARM GICv3 interrupt controller"
+	depends on ARM && DM_IRQ
+	help
+	  Add support for ARM GICv3 interrupt controller.
+
+endchoice
 
 endmenu

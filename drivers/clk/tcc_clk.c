@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
 #include <clk-uclass.h>
 #include <clk.h>
 #include <dm.h>
-#include <linux/arm-smccc.h>
 #include <mach/clock.h>
 #include <mach/smc.h>
+#include <linux/arm-smccc.h>
 #include <linux/sizes.h>
 #include <linux/io.h>
 
@@ -34,6 +34,12 @@
 #define PERI_FLAGS_SHIFT	0UL
 #define	PERI_FLAGS_MASK		0xFFUL
 
+
+/* [DR]
+ * tcc_dm_set_rate is call back of struct clk_ops.set_rate
+ * function is declare as
+ * ‘ulong (*set_rate)(struct clk *clk, ulong rate)'
+ */
 static unsigned long tcc_dm_set_rate(struct clk *pclk, unsigned long rate)
 {
 	unsigned long mode_bit = ((pclk->data) >>
@@ -134,8 +140,29 @@ static int tcc_clk_probe(struct udevice *dev)
 	return 0;
 }
 
+#define CLK_TFA_VERSION(major, minor, patch)	\
+	((major)*1000000 + (minor)*1000 + (patch))
+
+#define CHECK_TFA_VERSION_MIN(major, minor, patch) \
+	(CLK_TFA_VERSION((major), (minor), (patch)) <= vtfa_clk)
+
+#define CHECK_TFA_VERSION_IS(major, minor, patch) \
+	(CLK_TFA_VERSION((major), (minor), (patch)) == vtfa_clk)
+
+static uint32_t vtfa_clk;
+
+unsigned long tcc_set_swreset(unsigned long id, unsigned long op)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SIP_CLK_SWRESET, id, op, 0, 0, 0, 0, 0, &res);
+
+	return res.a0;
+}
+
 /*
  * User interface function for clock setting
+ * tcc_clk_init();
  * tcc_clk_set_dpll_config();
  * tcc_clk_set_pll();
  * tcc_clk_set_peri();
@@ -146,36 +173,83 @@ static int tcc_clk_probe(struct udevice *dev)
  */
 
 /*
+ * Telechips clock initialize function.
+ */
+void tcc_clk_init(void)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SIP_CLK_INIT, 0, 0, 0, 0, 0, 0, 0, &res);
+
+	vtfa_clk = CLK_TFA_VERSION(res.a0, res.a1, res.a2);
+}
+
+/*
  * Dithered PLL configurateion function.
  *
  * @ id        : Target DPLL ID
  * @ modfreq   : Modulation Frequency
  * @ modrate   : Modulation Rate
- *               Use predefined macros is recommended for modrate.
+ *              The average clock frequency will changed in range of
+ *              -(modrate/2)% ~ +(modrate/2)%
+ *
+ *               Predefined macros.
  *               SSCG_MR0p5 - for 0.5% modulation rate
  *               SSCG_MR1p0 - for 1.0% modulation rate
  *
  * 		 If the user want to use a modulation rate other than the macro,
  * 		 they must multiply by 1000.
  *
+ * @ sel_pf    : Modulation method of SSCG.
+ *              SSCG_DOWN_SPREAD   - The average clock frequency will set about
+ *                                   PLL frequency - (modrate/2)%
+ *              SSCG_UP_SPREAD     - The average clock frequency will set about
+ *                                   PLL frequency
+ *              SSCG_CENTER_SPREAD - The average clock frequency will set about
+ *                                   PLL frequency + (modrate/2)%
+ *
+ *              This parameter only work since tcc807x.
+ *              Before tcc807x, SSCG_CENTER_SPREAD is default.
+ *
  * usage example)
  *   1. 30K modulation frequency & 0.5% modulation rate
- *     tcc_set_dpll_config(PLL_2, 30000UL, SSCG_MR0p5);
+ *     tcc_set_dpll_config(PLL_2, 30000UL, SSCG_MR0p5, SSCG_CENTER_SPREAD);
  *
  *   2. 30K modulation frequency & 1.5% modulation rate
- *     tcc_set_dpll_config(PLL_2, 30000UL, 1500UL);
+ *     tcc_set_dpll_config(PLL_2, 30000UL, 1500UL, SSCG_DOWN_SPREAD);
  */
 unsigned long tcc_set_dpll_config(unsigned long id, unsigned long modfreq,
-				unsigned long modrate)
+				unsigned long modrate, unsigned long sel_pf)
 {
 	struct arm_smccc_res res;
 
 	arm_smccc_smc(SIP_CLK_SET_DPLL_CONFIG,
-		      id, modfreq, modrate, 0, 0, 0, 0, &res);
+		      id, modfreq, modrate, sel_pf, 0, 0, 0, &res);
 
-	return res.a0;
+	return CHECK_TFA_VERSION_IS(1, 1, 0) ? res.a3 : res.a0;
 }
 
+/*
+ * PLL configurateion function.
+ *
+ * @ id        : Target PLL ID
+ *               See arch/arm/mach-telechips/[board]/incluce/tcc_ckc.h
+ * @ en	       : Enable or disable PLL
+ *               Currently, TF-A will ignore disable request of pll.
+ * @ rate      : Target pll rate.
+ *               See chip specification Document section
+ *               Electrical Characteristics for Normal PLL &
+ *               Electrical Characteristics for Dither PLL
+ * @ tcc_div   : Divider value of PLL
+ *               Odd divider value is not guarantee 50:50 duty cycle.
+ *
+ * usage example)
+ *   1. Set PLL_0 Fout to 1200 MHz & set divider to 2
+ *     tcc_set_ll(PLL_0, CKC_ENABLE, 1200000000UL, 2);
+ *
+ *   2. Set PLL_0 Fout to 1200 MHz & disable divider
+ *     tcc_set_ll(PLL_0, CKC_ENABLE, 1200000000UL, 0);
+ */
 unsigned long tcc_set_pll(unsigned long id, unsigned long en,
 				unsigned long rate, unsigned long tcc_div)
 {
@@ -188,6 +262,53 @@ unsigned long tcc_set_pll(unsigned long id, unsigned long en,
 	return 0;
 }
 
+/*
+ * PLL configurateion function.
+ * Some PLL has 2 or more extra dividers.
+ * This function help to set divider value of extra divider.
+ * XXX: This function only work in tcc750x
+ *
+ * @ id        : Target PLL ID
+ *               See arch/arm/mach-telechips/[board]/incluce/tcc_ckc.h
+ * @ tcc_div   : Divider value of PLL
+ *               Odd divider value is not guarantee 50:50 duty cycle.
+ *
+ * usage example)
+ *   1. Set PLL0 divider to 2
+ *     tcc_set_pll_div(PLL_DIV_0, 2);
+ *
+ *   2. Disable PLL0 divider.
+ *     tcc_set_pll_div(PLL_DIV_0, 0);
+ */
+unsigned long tcc_set_pll_div(unsigned long id, unsigned long tcc_div)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SIP_CLK_SET_PLL_DIV,
+		      id, tcc_div, CKC_ENABLE, 0, 0, 0, 0, &res);
+
+	return 0;
+}
+
+/*
+ * Peripheral clock configurateion function.
+ *
+ * @ id        : Target peripheral ID
+ *               See arch/arm/mach-telechips/[board]/include/tcc_ckc.h
+ * @ en	       : Enable or disable Peripheral clock
+ *               Currently, TF-A will ignore disable request of pll.
+ * @ rate      : Target peripheral rate.
+ *               See chip specification Document (Electrical Characteristics)
+ * @ flags     : Clock flags for periphaeral
+ *               See arch/arm/mach-telechips/[board]/include/clock.h
+ *
+ * usage example)
+ *   1. Set timer t clock 12 MHz with no flags
+ *     tcc_set_peri(PERI_TCT, CKC_ENABLE, 12000000UL, 0);
+ *
+ *   2. Set timer t clock 12 MHz with XIN
+ *     tcc_set_peri(PERI_TCT, CKC_ENABLE, 12000000UL, CLK_F_SRC_CLK(SMU_PCLKCTRL_SEL_PLL0));
+ */
 unsigned long tcc_set_peri(unsigned long id, unsigned long en,
 				unsigned long rate, unsigned long flags)
 {
@@ -199,16 +320,42 @@ unsigned long tcc_set_peri(unsigned long id, unsigned long en,
 	return 0;
 }
 
+/*
+ * Bus clock configurateion function.
+ *
+ * @ id        : Target Bus ID
+ *               See arch/arm/mach-telechips/[board]/include/tcc_ckc.h
+ * @ en	       : Enable or disable Peripheral clock
+ *               Currently, TF-A will ignore disable request of pll.
+ * @ rate      : Target peripheral rate.
+ *               See chip specification Document (Electrical Characteristics)
+ * @ flags     : Clock flags for bus
+ *               See arch/arm/mach-telechips/[board]/include/clock.h
+ *               This parameter only work since tc750x.
+ *
+ * usage example)
+ *   1. Set CPU BUS clock 400 MHz with no flags
+ *     tcc_set_clkctrl(FBUS_CPUB, CKC_ENABLE, 400000000UL, 0UL);
+ *
+ *   2. Set timer t clock 400 MHz with PLL0
+ *     tcc_set_clkctrl(FBUS_CPUB, CKC_ENABLE, 400000000UL, CLK_F_SRC_CLK(SMU_CLKCTRL_SEL_PLL0));
+ */
 unsigned long tcc_set_clkctrl(unsigned long id, unsigned long en,
-				unsigned long rate)
+				unsigned long rate, unsigned long flags)
 {
 	struct arm_smccc_res res;
 
-	arm_smccc_smc(SIP_CLK_SET_CLKCTRL, id, en, rate, 0, 0, 0, 0, &res);
+	arm_smccc_smc(SIP_CLK_SET_CLKCTRL, id, en, rate, flags, 0, 0, 0, &res);
 
 	return 0;
 }
 
+/*
+ * Calculate PLL clock function.
+ *
+ * @ id        : Target PLL ID
+ *               See arch/arm/mach-telechips/[board]/include/tcc_ckc.h
+ */
 unsigned long tcc_get_pll(unsigned long id)
 {
 	struct arm_smccc_res res;
@@ -218,6 +365,12 @@ unsigned long tcc_get_pll(unsigned long id)
 	return res.a0;
 }
 
+/*
+ * Calcualte peripheral clock function.
+ *
+ * @ id        : Target Bus ID
+ *               See arch/arm/mach-telechips/[board]/include/tcc_ckc.h
+ */
 unsigned long tcc_get_peri(unsigned long id)
 {
 	struct arm_smccc_res res;
@@ -227,6 +380,12 @@ unsigned long tcc_get_peri(unsigned long id)
 	return res.a0;
 }
 
+/*
+ * Calculate BUS clock function.
+ *
+ * @ id        : Target BUS ID
+ *               See arch/arm/mach-telechips/[board]/include/tcc_ckc.h
+ */
 unsigned long tcc_get_clkctrl(unsigned long id)
 {
 	struct arm_smccc_res res;
@@ -301,6 +460,10 @@ static const struct udevice_id tcc_clk_ids[] = {
 	{}
 };
 
+/*
+ * [DR]
+ * u-boot API U_BOOT_DRIVER has defects it's inside.
+ */
 U_BOOT_DRIVER(tcc_clk) = {
 	.name = "tcc_clk",
 	.id = UCLASS_CLK,

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
 #include <common.h>
@@ -9,47 +9,37 @@
 
 static int ft_rsvm_setup(void *blob, const struct reserved_memory_config *cfg)
 {
-	s32 ret = 0;
+	int ret = 0;
 
 	for ( ; cfg->path != NULL; cfg++) {
 		const char *path = cfg->path;
-		s32 node;
+		int node;
 
-		if (!cfg->enable) {
-			/* Skip if path is empty string */
-			continue;
-		}
+		if (cfg->enable) {
+			node = fdt_path_offset(blob, path);
+			ret = node;
 
-		node = fdt_path_offset(blob, path);
-		ret = node;
-
-		if (node >= 0) {
-			ret = fdt_delprop(blob, node, "status");
-
-			if (ret == -FDT_ERR_NOTFOUND) {
-				/*
-				 * It is okay if there is no 'status' property.
-				 * We attempted to remove it anyway.
-				 */
-				ret = 0;
+			if (node >= 0) {
+				ret = fdt_delprop(blob, node, "status");
+				ret = (ret != -FDT_ERR_NOTFOUND) ? ret : 0;
 			}
-		}
 
-		if (ret != 0) {
-			pr_err("Failed to enable '%s' node.\n", path);
-			break;
+			if (ret != 0) {
+				pr_err("Error: failed to enable %s\n", path);
+				break;
+			}
 		}
 	}
 
 	return ret;
 }
 
-int ft_system_setup(void *blob, bd_t *bd)
+int ft_system_setup(void *blob, struct bd_info *bd)
 {
-	s32 ret = fdt_check_header(blob);
+	int ret = fdt_check_header(blob);
 
 	if (ret != 0) {
-		pr_err("Failed to check FDT header.\n");
+		pr_err("ERROR: invalid fdt format\n");
 	} else {
 		const struct reserved_memory_config *rsvm_cfg;
 

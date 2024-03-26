@@ -8,7 +8,8 @@
 #include <common.h>
 #include <command.h>
 #include <ufs.h>
-#include "ufs.h"
+#include <console.h>
+#include <scsi.h>
 
 #if defined (CONFIG_CMD_UFS_RPMB)
 static int confirm_key_prog(void)
@@ -23,7 +24,7 @@ static int confirm_key_prog(void)
 	return 0;
 }
 
-static int do_ufsrpmb_key(cmd_tbl_t *cmdtp, int flag,
+static int do_ufsrpmb_key(struct cmd_tbl *cmdtp, int flag,
 			  int argc, char * const argv[])
 {
 	void *key_addr;
@@ -42,7 +43,7 @@ static int do_ufsrpmb_key(cmd_tbl_t *cmdtp, int flag,
 	return CMD_RET_SUCCESS;
 }
 
-static int do_ufsrpmb_read(cmd_tbl_t *cmdtp, int flag,
+static int do_ufsrpmb_read(struct cmd_tbl *cmdtp, int flag,
 			   int argc, char * const argv[])
 {
 	u16 blk, cnt;
@@ -70,7 +71,7 @@ static int do_ufsrpmb_read(cmd_tbl_t *cmdtp, int flag,
 		return CMD_RET_FAILURE;
 	return CMD_RET_SUCCESS;
 }
-static int do_ufsrpmb_write(cmd_tbl_t *cmdtp, int flag,
+static int do_ufsrpmb_write(struct cmd_tbl *cmdtp, int flag,
 			    int argc, char * const argv[])
 {
 	u16 blk, cnt;
@@ -96,7 +97,7 @@ static int do_ufsrpmb_write(cmd_tbl_t *cmdtp, int flag,
 		return CMD_RET_FAILURE;
 	return CMD_RET_SUCCESS;
 }
-static int do_ufsrpmb_counter(cmd_tbl_t *cmdtp, int flag,
+static int do_ufsrpmb_counter(struct cmd_tbl *cmdtp, int flag,
 			      int argc, char * const argv[])
 {
 	unsigned long counter;
@@ -108,19 +109,17 @@ static int do_ufsrpmb_counter(cmd_tbl_t *cmdtp, int flag,
 	return CMD_RET_SUCCESS;
 }
 
-static cmd_tbl_t cmd_rpmb[] = {
+static struct cmd_tbl cmd_rpmb[] = {
 	U_BOOT_CMD_MKENT(key, 2, 0, do_ufsrpmb_key, "", ""),
 	U_BOOT_CMD_MKENT(read, 5, 1, do_ufsrpmb_read, "", ""),
 	U_BOOT_CMD_MKENT(write, 5, 0, do_ufsrpmb_write, "", ""),
 	U_BOOT_CMD_MKENT(counter, 1, 1, do_ufsrpmb_counter, "", ""),
 };
 
-static int do_ufsrpmb(cmd_tbl_t *cmdtp, int flag,
+static int do_ufsrpmb(struct cmd_tbl *cmdtp, int flag,
 		      int argc, char * const argv[])
 {
-	cmd_tbl_t *cp;
-	struct mmc *mmc;
-	char original_part;
+	struct cmd_tbl *cp;
 	int ret;
 
 	cp = find_cmd_tbl(argv[1], cmd_rpmb, ARRAY_SIZE(cmd_rpmb));
@@ -144,7 +143,7 @@ static int do_ufsrpmb(cmd_tbl_t *cmdtp, int flag,
 }
 #endif
 
-static int do_ufs_init(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_ufs_init(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	int dev, ret;
 
@@ -168,20 +167,19 @@ static int do_ufs_init(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 	return CMD_RET_USAGE;
 }
 
-static cmd_tbl_t cmd_ufs[] = {
+static struct cmd_tbl cmd_ufs[] = {
 	U_BOOT_CMD_MKENT(init, 1, 0, do_ufs_init, "", ""),
 #if CONFIG_IS_ENABLED(CMD_UFS_RPMB)
 	U_BOOT_CMD_MKENT(rpmb, CONFIG_SYS_MAXARGS, 1, do_ufsrpmb, "", ""),
 #endif
 };
 
-static int do_ufsops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_ufsops(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
-	cmd_tbl_t *cp;
+	struct cmd_tbl *cp;
 
 	cp = find_cmd_tbl(argv[1], cmd_ufs, ARRAY_SIZE(cmd_ufs));
 
-	/* Drop the mmc command */
 	argc--;
 	argv++;
 
@@ -202,5 +200,4 @@ U_BOOT_CMD(ufs, 29, 1, do_ufsops,
 	    "ufs rpmb key <address of auth-key> - program the RPMB authentication key.\n"
 	    "ufs rpmb counter - read the value of the write counter\n"
 #endif
-
 );

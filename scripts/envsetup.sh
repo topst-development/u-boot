@@ -1,147 +1,118 @@
-#!/bin/sh
+#!/bin/bash
 
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-# Copyright (C) Telechips Inc.
+# Copyright (C) 2023 Telechips Inc.
 
 red=`tput setaf 1`
 green=`tput setaf 2`
 yellow=`tput setaf 3`
 reset=`tput sgr0`
 
-function select_platform()
+function _select_file_from_list()
 {
-	echo "${red}[1] Telechips Android Platform"
-	echo "[2] Telechips Android Platform (64bit)"
-	echo "[3] Telechips Linux Platform"
-	echo "[4] Telechips Linux Platform (64bit)${reset}"
-	echo -n "${green}Select platform (default 4):${reset} "
+	selected=
+	list=("$@")
+	desc=${list[-1]}
+
+	unset list[-1]
+
+	echo ""
+	for i in ${!list[*]}; do
+		echo ${red}[$((i + 1))] $(basename ${list[${i}]})${reset}
+	done
+	echo -n "${green}Select ${desc} (default ${#list[@]}):${reset} "
 	read index
 
-	case $index in
-	1 )	export ARCH=arm
-		export CROSS_COMPILE=arm-none-linux-gnueabihf-
+	if [ -z "${index}" ]; then
+		index=${#list[@]}
+	fi
+
+	if [ "${index}" -lt "1" ] || [ -z "${list[$((index - 1))]}" ]; then
+		echo "${red}Invalid ${desc}!${reset}"
+		return 1
+	fi
+
+	selected=$(basename ${list[$((index - 1))]})
+}
+
+function select_build()
+{
+	echo "${red}[1] AArch64 build${reset}"
+	echo -n "${green}Select build (default 1):${reset} "
+	read index
+
+	case ${index} in
+"" |	1 )	ARCH=arm64
+		CROSS_COMPILE=aarch64-none-linux-gnu-
 		;;
-	2 )	export ARCH=arm64
-		export CROSS_COMPILE=aarch64-none-linux-gnu-
-		;;
-	3 )	export ARCH=arm
-		export CROSS_COMPILE=arm-none-linux-gnueabihf-
-		;;
-"" |	4 )	export ARCH=arm64
-		export CROSS_COMPILE=aarch64-none-linux-gnu-
-		;;
-	* )	export CROSS_COMPILE=
-		echo "${red}Invalid platform !!${reset}"
+	* )	echo "${red}Invalid build!${reset}"
 		return 1
 		;;
 	esac
 }
 
-function select_soc_family()
+function select_chip()
 {
-	echo "${red}"
-	echo "[1] TCC805x"
-	echo "[2] TCC803x"
-	echo -n "${green}Select SoC family (default 1):${reset} "
-	read index
+	chips=($(ls -d arch/arm/dts/telechips/*/ | sort))
 
-	case $index in
-"" |	1 )	select_tcc805x_board ;;
-	2 )	select_tcc803x_board ;;
-	* )	echo "${red}Invalid SoC family !!${reset}"
+	if ! _select_file_from_list ${chips[@]} "chip"; then
 		return 1
-		;;
-	esac
+	fi
+
+	dtsdir_r=telechips/${selected}
+	dtsdir=arch/arm/dts/${dtsdir_r}
+	dtslist=$(cat ${dtsdir}/Makefile | sed -n 's/^.* += \(.*\.dtb\)/\1/p')
 }
 
-function select_tcc805x_board()
+function select_core()
 {
-	echo "${red}"
-	echo "[1] TCC8050 EVB 1.0"
-	echo "[2] TCC8053 EVB 1.0"
-	echo "[3] TCC8050 EVB 0.1"
-	echo "[4] TCC8053 EVB 0.1"
-	echo "[5] TCC8059 EVB 0.1"
-	echo -n "${green}Select board (default 1):${reset} "
-	read index
+	filter="grep ."
 
-	case $index in
-"" |	1 )	chip=tcc8050
-		board=evb_sv1.0
-		;;
-	2 )	chip=tcc8053
-		board=evb_sv1.0
-		;;
-	3 )	chip=tcc8050
-		board=evb_sv0.1
-		;;
-	4 )	chip=tcc8053
-		board=evb_sv0.1
-		;;
-	5 )	chip=tcc8059
-		board=evb_sv0.1
-		;;
-	* )	echo "${red}Invalid board !!${reset}"
-		return 1
-		;;
-	esac
+	if [[ ! "${dtslist}" =~ "-subcore-" ]]; then
+		return
+	fi
 
-	echo "${red}"
-	echo "[1] Maincore"
-	echo "[2] Subcore"
+	echo ""
+	echo "${red}[1] main core${reset}"
+	echo "${red}[2] sub-core${reset}"
 	echo -n "${green}Select core (default 1):${reset} "
 	read index
 
-	case $index in
-"" |	1 )	export DEVICE_TREE=${chip}-${board} ;;
-	2 )	export DEVICE_TREE=${chip}-subcore-${board} ;;
-	* )	echo "${red}Invalid core !!${reset}"
+	case ${index} in
+"" |	1 )	filter="grep -Ev subcore"
+		;;
+	2 )	filter="grep -E subcore"
+		;;
+	* )	echo "${red}Invalid core!${reset}"
 		return 1
 		;;
 	esac
 }
 
-function select_tcc803x_board()
+function select_tree()
 {
-	echo "${red}"
-	echo "[1] TCC803XP EVB 1.0"
-	echo "[2] TCC8030 EVB 0.1"
-	echo -n "${green}Select board (default 1):${reset} "
-	read index
+	trees=($(echo "${dtslist[@]}" | ${filter} | sort))
 
-	case $index in
-"" |	1 )	chip=tcc803xp
-		board=evb_sv1.0
-		;;
-	2 )	chip=tcc8030
-		board=evb_sv0.1
-		;;
-	* )	echo "${red}Invalid board !!${reset}"
+	if ! _select_file_from_list ${trees[@]} "device tree"; then
 		return 1
-		;;
-	esac
+	fi
 
-	echo "${red}"
-	echo "[1] Maincore"
-	echo -n "${green}Select core (default 1):${reset} "
-	read index
-
-	case $index in
-"" |	1 )	export DEVICE_TREE=${chip}-${board} ;;
-	* )	echo "${red}Invalid core !!${reset}"
-		return 1
-		;;
-	esac
+	DEVICE_TREE=${dtsdir_r}/$(echo ${selected} | sed 's/\.dtb$//')
 }
 
-select_platform && select_soc_family
+function report_and_set_env()
+{
+	echo "${yellow}"
+	echo "### U-Boot Environment Setup Complete ###"
+	echo "${reset}"
 
-echo "${yellow}"
-echo "### U-Boot Environment Setup Complete ###"
-echo "${reset}"
+	echo "- ARCH=${ARCH}"
+	echo "- CROSS_COMPILE=${CROSS_COMPILE}"
+	echo "- DEVICE_TREE=${DEVICE_TREE}"
+	echo ""
 
-echo "- ARCH=$ARCH"
-echo "- CROSS_COMPILE=$CROSS_COMPILE"
-echo "- DEVICE_TREE=$DEVICE_TREE"
-echo ""
+	export ARCH CROSS_COMPILE DEVICE_TREE
+}
+
+select_build && select_chip && select_core && select_tree && report_and_set_env

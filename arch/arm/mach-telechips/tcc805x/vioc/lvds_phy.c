@@ -5,9 +5,10 @@
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/lvds_phy.h>
-#include <asm/telechips/vioc/reg_physical.h>
+#include <asm/arch/vioc/lvds_phy.h>
+#include <asm/arch/vioc/reg_physical.h>
 #include <mach/chipinfo.h>
+#include <linux/delay.h>
 
 #ifndef HwLVDS_PHY_D
 #define HwLVDS_PHY_D (HwVIOC_BASE + 0x360000) // 16 word
@@ -1016,6 +1017,22 @@ void LVDS_PHY_StrobeConfig(
 				LVDS_PHY_StrobeWrite(p_reg, 0x3B4, 0x000000C7);
 				// PHY Start up ON
 				LVDS_PHY_StrobeWrite(p_reg, 0x3B4, 0x000000D7);
+
+				switch (clk_sync_mode)
+				{
+				case DUAL_CLK_MODE_MAIN:
+					LVDS_PHY_StrobeWrite(s_reg, 0x3B8,
+								0x00000003);
+					break;
+				case DUAL_CLK_MODE_SUB:
+					LVDS_PHY_StrobeWrite(p_reg, 0x3B8,
+								0x00000003);
+					break;
+				default:
+					/* do nothing : previous dual clk mode */
+					break;
+				}
+
 			} else {
 				unsigned int value =
 					(LVDS_PHY_GetRegValue(p_port, 0x3B4)

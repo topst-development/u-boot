@@ -7,10 +7,11 @@
 
 #include <common.h>
 #include <dm.h>
-#include <irq.h>
-#include <linux/io.h>
-
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <linux/io.h>
+#include <asm/arch/irq.h>
+
+#include "irqchip.h"
 
 struct gic_dist {
 	u32 ctl;		/* distributor control */
@@ -42,7 +43,7 @@ struct gic_cpu {
 };
 
 struct irq_handler {
-	void *m_data;
+	void *m_arg;
 	void (*m_func)(void *data);
 };
 
@@ -54,7 +55,7 @@ struct pic_irq_register {
 	fdt_size_t size[2];
 };
 
-static void tcc_pic_ofdata_to_platdata(struct udevice *dev,
+static void tcc_pic_of_to_plat(struct udevice *dev,
 				       struct pic_irq_register *reg)
 {
 	ulong addr;
@@ -76,14 +77,14 @@ struct gic_irq_register {
 #endif
 };
 
-static int gic_irq_ofdata_to_platdata(struct udevice *dev)
+static int gic_irq_of_to_plat(struct udevice *dev)
 {
-	struct gic_irq_register *reg = dev_get_platdata(dev);
+	struct gic_irq_register *reg = dev_get_plat(dev);
 
 	reg->dist = dev_remap_addr_index(dev, 0);
 	reg->cpu = dev_remap_addr_index(dev, 1);
 #if defined(CONFIG_ARCH_TELECHIPS)
-	tcc_pic_ofdata_to_platdata(dev, &reg->pic);
+	tcc_pic_of_to_plat(dev, &reg->pic);
 #endif
 
 	return 0;
@@ -148,7 +149,7 @@ static void gic_irq_cpu_init(const struct gic_irq_register *reg)
 
 static int gic_irq_probe(struct udevice *dev)
 {
-	const struct gic_irq_register *reg = dev_get_platdata(dev);
+	const struct gic_irq_register *reg = dev_get_plat(dev);
 
 	gic_irq_dist_init(reg);
 	gic_irq_cpu_init(reg);
@@ -156,41 +157,41 @@ static int gic_irq_probe(struct udevice *dev)
 	return 0;
 }
 
-static void gic_irq_install(const struct irq_desc *irq,
-			    interrupt_handler_t *handler, void *data)
+static void gic_irq_install(const struct irq *data,
+			    interrupt_handler_t *handler, void *arg)
 {
-	if ((irq->id < NR_IRQS) && (handler != NULL)) {
-		irq_handlers[irq->id].m_data = data;
-		irq_handlers[irq->id].m_func = handler;
+	if ((data->id < NR_IRQS) && (handler != NULL)) {
+		irq_handlers[data->id].m_arg = arg;
+		irq_handlers[data->id].m_func = handler;
 	}
 }
 
-static void gic_irq_release(const struct irq_desc *irq)
+static void gic_irq_release(const struct irq *data)
 {
-	if (irq->id < NR_IRQS) {
-		irq_handlers[irq->id].m_data = NULL;
-		irq_handlers[irq->id].m_func = NULL;
+	if (data->id < NR_IRQS) {
+		irq_handlers[data->id].m_arg = NULL;
+		irq_handlers[data->id].m_func = NULL;
 	}
 }
 
-static void gic_irq_mask(const struct irq_desc *irq)
+static void gic_irq_mask(const struct irq *data)
 {
-	const struct gic_irq_register *reg = dev_get_platdata(irq->dev);
+	const struct gic_irq_register *reg = dev_get_plat(data->dev);
 	struct gic_dist *gicd = reg->dist;
 
-	u32 mask = (u32)1U << (irq->id & 31U);
-	u32 offs = irq->id / 32U;
+	u32 mask = (u32)1U << (data->id & 31UL);
+	ulong offs = data->id / 32UL;
 
 	gicd->icenable[offs] = mask;
 }
 
-static void gic_irq_unmask(const struct irq_desc *irq)
+static void gic_irq_unmask(const struct irq *data)
 {
-	const struct gic_irq_register *reg = dev_get_platdata(irq->dev);
+	const struct gic_irq_register *reg = dev_get_plat(data->dev);
 	struct gic_dist *gicd = reg->dist;
 
-	u32 mask = (u32)1U << (irq->id & 31U);
-	u32 offs = irq->id / 32U;
+	u32 mask = (u32)1U << (data->id & 31UL);
+	ulong offs = data->id / 32UL;
 
 	gicd->isenable[offs] = mask;
 }
@@ -246,35 +247,35 @@ static inline void gic_irq_configure(struct gic_dist *gicd, u32 id, u32 type)
 	}
 }
 
-static void gic_irq_set_type(struct irq_desc *irq)
+static void gic_irq_set_type(struct irq *data)
 {
-	const struct gic_irq_register *reg = dev_get_platdata(irq->dev);
+	const struct gic_irq_register *reg = dev_get_plat(data->dev);
 
-	if (irq->id >= 16U) {
+	if (data->id >= 16UL) {
 #if defined(CONFIG_ARCH_TELECHIPS)
-		if (irq->id >= 32U) {
-			tcc_pic_irq_set_type(&reg->pic, irq->id - 32U,
-					     irq->type);
+		if (data->id >= 32UL) {
+			tcc_pic_irq_set_type(&reg->pic, data->id - 32UL,
+					     data->flags);
 		}
 
-		if ((irq->type == (u32)IRQ_TYPE_LEVEL_LOW) ||
-		    (irq->type == (u32)IRQ_TYPE_EDGE_FALLING)) {
+		if ((data->flags == (u32)IRQ_TYPE_LEVEL_LOW) ||
+		    (data->flags == (u32)IRQ_TYPE_EDGE_FALLING)) {
 			/* LEVEL_LOW (8) -> LEVEL_HIGH (4) */
 			/* EDGE_FALLING (2) -> EDGE_RISING (1) */
-			irq->type >>= 1U;
+			data->flags >>= 1UL;
 		}
 #endif
-		if ((irq->id < 32U) ||
-		    (irq->type == (u32)IRQ_TYPE_LEVEL_HIGH) ||
-		    (irq->type == (u32)IRQ_TYPE_EDGE_RISING)) {
-			gic_irq_configure(reg->dist, irq->id, irq->type);
+		if ((data->id < 32UL) ||
+		    (data->flags == (ulong)IRQ_TYPE_LEVEL_HIGH) ||
+		    (data->flags == (ulong)IRQ_TYPE_EDGE_RISING)) {
+			gic_irq_configure(reg->dist, data->id, data->flags);
 		}
 	}
 }
 
 static void gic_irq_handle(const struct udevice *dev)
 {
-	const struct gic_irq_register *reg = dev_get_platdata(dev);
+	const struct gic_irq_register *reg = dev_get_plat(dev);
 	struct gic_cpu *gicc = reg->cpu;
 	u32 id;
 
@@ -282,36 +283,38 @@ static void gic_irq_handle(const struct udevice *dev)
 
 	if (id < NR_IRQS) {
 		if (irq_handlers[id].m_func != NULL) {
-			irq_handlers[id].m_func(irq_handlers[id].m_data);
+			irq_handlers[id].m_func(irq_handlers[id].m_arg);
 		}
 
 		gicc->eoi = id;
 	}
 }
 
-static int gic_irq_get(struct irq_desc *irq, const fdt32_t *argv, u32 argc)
+static int gic_irq_get(struct irq *data, const fdt32_t *argv, u32 argc)
 {
 	s32 ret = -EINVAL;
 
 	if (argc == 3U) {
 		u32 priv = fdt32_to_cpu(argv[0]);
 
-		irq->id = fdt32_to_cpu(argv[1]);
-		irq->type = fdt32_to_cpu(argv[2]);
+		data->id = (ulong)fdt32_to_cpu(argv[1]);
+		data->flags = (ulong)fdt32_to_cpu(argv[2]);
 
-		if ((UINT_MAX - 32U) < irq->id) {
-			irq->id = 0;
-			irq->type = 0;
+		if ((ULONG_MAX - 32UL) < data->id) {
+			data->id = 0UL;
+			data->flags = 0UL;
 		} else {
-			irq->id += ((priv == 1U) ? 16U : 32U);
-			ret = (s32)irq->id;
+			data->id += ((priv == 1U) ? 16UL : 32UL);
+			if (data->id < INT_MAX) {
+				ret = (s32)data->id;
+			}
 		}
 	}
 
 	return ret;
 }
 
-static const struct irq_ops gic_irq_ops = {
+static const struct irqchip_ops gic_irqchip_ops = {
 	.install = gic_irq_install,
 	.release = gic_irq_release,
 	.mask = gic_irq_mask,
@@ -331,7 +334,7 @@ U_BOOT_DRIVER(arm_gic) = {
 	.id = UCLASS_IRQ,
 	.of_match = of_match_ptr(arm_gic_ids),
 	.probe = gic_irq_probe,
-	.ofdata_to_platdata = gic_irq_ofdata_to_platdata,
-	.platdata_auto_alloc_size = (int)sizeof(struct gic_irq_register),
-	.ops = &gic_irq_ops,
+	.of_to_plat = gic_irq_of_to_plat,
+	.plat_auto = (int)sizeof(struct gic_irq_register),
+	.ops = &gic_irqchip_ops,
 };

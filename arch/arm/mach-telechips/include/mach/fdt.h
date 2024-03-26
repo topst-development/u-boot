@@ -1,10 +1,10 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
-#ifndef TCC_FDT_H
-#define TCC_FDT_H
+#ifndef MACH_FDT_H
+#define MACH_FDT_H
 
 struct reserved_memory_config {
 	const char *const path;
@@ -13,4 +13,4 @@ struct reserved_memory_config {
 
 const struct reserved_memory_config *get_reserved_memory_config(void);
 
-#endif /* TCC_FDT_H */
+#endif /* MACH_FDT_H */

@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) Telechips Inc.
+ */
+
+#ifndef CKC_IOMAP_H
+#define CKC_IOMAP_H
+
+/* Part 1. System */
+#define TCC_CKC_BASE		0x1E000000UL
+
+
+/* Part 2. CPU */
+#define TCC_CBUS_BASE	(0x10000000UL)
+#define TCC_CPUCFG_BASE		0x10000000UL
+#define TCC_CA53_BASE		0x10100000UL
+#define TCC_CPU_CKC_BASE	0x10110000UL
+
+
+/* Part 3. Memory */
+#define TCC_OIC_BASE		(0x1D800000UL)
+#define TCC_OMC_BASE		(0x1D300000UL)
+#define	TCC_OMC_PHY0_PLL_BASE	(0x1D340000UL)
+#define	TCC_OMC_PHY1_PLL_BASE	(0x1D350000UL)
+
+#define TCC_MBUSCFG_BASE	(0x1D400000UL)
+
+
+
+/* Part 4. Storage */
+#define TCC_SFMCCFG_BASE	(0x15000000UL)
+#define TCC_SDMMCCFG_BASE	(0x15200000UL)
+#define TCC_SDMMC_DELAYCFG_BASE		(0x15210000UL)
+#define TCC_SFMC_TZCFG_BASE	(0xE8020000UL)
+
+
+/* Part 5. Security */
+
+/* Part 6. IO */
+#define TCC_PCIE_BASE	0x12000000UL
+
+#define TCC_GMAC_BASE	0x13000000UL
+
+#define TCC_UART_BASE	0x18000000UL
+#define TCC_I2C_BASE	0x18100000UL
+#define TCC_GPSB_BASE	0x18200000UL
+#define TCC_DMA_BASE	0x18300000UL
+#define TCC_CAN_BASE	0x18400000UL
+
+
+/* Part 7. CAM */
+#define TCC_CAM_BASE	(0x16000000UL)
+#define TCC_CAM_CKC_BASE	0x16000000UL
+#define TCC_CAM_CFG_BASE	0x16004000UL
+
+
+/* Part 8. Display */
+#define TCC_DDIBUS_BASE		(0x17000000UL)
+#define TCC_DDI_CFG_BASE		0x17400000UL
+
+
+/* Part 9. NPU */
+#define TCC_NPU_BASE	(0x11000000UL)
+#define TCC_NPU_CKC_BASE	0x11100000UL
+#define TCC_NPU_CFG_BASE	0x11200000UL
+
+/* Part 12. Video */
+#define TCC_VIDEO_CFG_BASE	0x19280000UL
+#define TCC_VIDIO_CKC_BASE	0x19300000UL
+
+#endif

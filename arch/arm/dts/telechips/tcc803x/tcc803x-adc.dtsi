@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+/ {
+    aliases: aliases {
+        adc = &adc;
+    };
+
+    adc: adc@1b700000{
+		compatible = "telechips,tcc803x-adc";
+		reg = <0x1b700000 0xAC 0x1b931000 0x78>;
+		status = "disabled";
+	};
+};

@@ -5,7 +5,7 @@
  */
 #include <common.h>
 #include <linux/io.h>
-#include <asm/telechips/vioc/vioc_dump.h>
+#include <asm/arch/vioc/vioc_dump.h>
 
 void vioc_read_and_dump_regs(void __iomem *reg_base,
 			     unsigned int *data, unsigned int len,

@@ -19,9 +19,6 @@
 /*----------------------------------------------------------------------
  * Memory Layout
  */
-#define CONFIG_SYS_SRAM_BASE		0x80000000
-#define CONFIG_SYS_SRAM_SIZE		0x00080000 /* 512K */
-
 /* Initial RAM for temporary stack, global data */
 #define CONFIG_SYS_INIT_RAM_SIZE	0x10000
 #define CONFIG_SYS_INIT_RAM_ADDR	\
@@ -31,19 +28,15 @@
 
 /* SDRAM Configuration (for final code, data, stack, heap) */
 #define CONFIG_SYS_SDRAM_BASE		0x88000000
-#define CONFIG_SYS_MALLOC_LEN		(256 << 10)
 #define CONFIG_SYS_BOOTPARAMS_LEN	(4 << 10)
 
 #define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_TEXT_BASE
 #define CONFIG_SYS_MONITOR_LEN		(192 << 10)
 
-#define CONFIG_SYS_LOAD_ADDR		0x88500000 /* default load address */
 #define CONFIG_SYS_ENV_ADDR		0x88300000
 #define CONFIG_SYS_FDT_ADDR		0x89d00000
 
 /* Memory Test */
-#define CONFIG_SYS_MEMTEST_START	0x88000000
-#define CONFIG_SYS_MEMTEST_END		0x88080000
 
 /*----------------------------------------------------------------------
  * Commands
@@ -57,7 +50,6 @@
 /*-----------------------------------------------------------------------
  * Networking Configuration
  */
-#define CONFIG_PHY_SMSC
 #define CONFIG_SYS_RX_ETH_BUFFER	8
 #define CONFIG_NET_RETRY_COUNT		20
 #define CONFIG_ARP_TIMEOUT		500 /* millisec */

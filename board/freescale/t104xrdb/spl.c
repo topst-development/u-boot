@@ -3,8 +3,10 @@
  */
 
 #include <common.h>
+#include <clock_legacy.h>
 #include <console.h>
 #include <env_internal.h>
+#include <init.h>
 #include <malloc.h>
 #include <ns16550.h>
 #include <nand.h>
@@ -12,6 +14,7 @@
 #include <mmc.h>
 #include <fsl_esdhc.h>
 #include <spi_flash.h>
+#include <asm/global_data.h>
 #include "../common/sleep.h"
 #include "../common/spl.h"
 
@@ -25,11 +28,6 @@ phys_size_t get_effective_memsize(void)
 unsigned long get_board_sys_clk(void)
 {
 	return CONFIG_SYS_CLK_FREQ;
-}
-
-unsigned long get_board_ddr_clk(void)
-{
-	return CONFIG_DDR_CLK_FREQ;
 }
 
 #define FSL_CORENET_CCSR_PORSR1_RCW_MASK	0xFF800000
@@ -79,7 +77,7 @@ void board_init_f(ulong bootflag)
 	plat_ratio = (in_be32(&gur->rcwsr[0]) >> 25) & 0x1f;
 	uart_clk = sys_clk * plat_ratio / 2;
 
-	NS16550_init((NS16550_t)CONFIG_SYS_NS16550_COM1,
+	ns16550_init((struct ns16550 *)CONFIG_SYS_NS16550_COM1,
 		     uart_clk / 16 / CONFIG_BAUDRATE);
 
 	relocate_code(CONFIG_SPL_RELOC_STACK, (gd_t *)CONFIG_SPL_GD_ADDR, 0x0);
@@ -87,13 +85,11 @@ void board_init_f(ulong bootflag)
 
 void board_init_r(gd_t *gd, ulong dest_addr)
 {
-	bd_t *bd;
+	struct bd_info *bd;
 
-	bd = (bd_t *)(gd + sizeof(gd_t));
-	memset(bd, 0, sizeof(bd_t));
+	bd = (struct bd_info *)(gd + sizeof(gd_t));
+	memset(bd, 0, sizeof(struct bd_info));
 	gd->bd = bd;
-	bd->bi_memstart = CONFIG_SYS_INIT_L3_ADDR;
-	bd->bi_memsize = CONFIG_SYS_L3_SIZE;
 
 	arch_cpu_init();
 	get_clocks();

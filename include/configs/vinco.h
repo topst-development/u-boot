@@ -17,7 +17,6 @@
 /* The value in the common file is too far away for the VInCo platform */
 
 /* serial console */
-#define CONFIG_ATMEL_USART
 #define CONFIG_USART_BASE		0xfc00c000
 #define CONFIG_USART_ID			30
 
@@ -30,8 +29,6 @@
 
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_SDRAM_BASE + 4 * 1024 - GENERATED_GBL_DATA_SIZE)
-
-#define CONFIG_SYS_LOAD_ADDR		0x22000000 /* load address */
 
 /* SerialFlash */
 
@@ -54,8 +51,6 @@
 /* USB device */
 
 /* Ethernet Hardware */
-#define CONFIG_PHY_SMSC
-#define CONFIG_MACB
 #define CONFIG_RMII
 #define CONFIG_NET_RETRY_COUNT		20
 #define CONFIG_MACB_SEARCH_PHY

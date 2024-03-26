@@ -10,11 +10,11 @@
 #ifndef __BCMSTB_H
 #define __BCMSTB_H
 
-#include "version.h"
 #include <linux/sizes.h>
 
 #ifndef __ASSEMBLY__
 
+#include <linux/stringify.h>
 #include <linux/types.h>
 
 struct bcmstb_boot_parameters {
@@ -35,7 +35,6 @@ extern phys_addr_t prior_stage_fdt_address;
 /*
  * CPU configuration.
  */
-#define CONFIG_SKIP_LOWLEVEL_INIT
 
 /*
  * Memory configuration.
@@ -87,7 +86,6 @@ extern phys_addr_t prior_stage_fdt_address;
 #define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_INIT_RAM_ADDR +	\
 					 CONFIG_SYS_INIT_RAM_SIZE -	\
 					 GENERATED_GBL_DATA_SIZE)
-#define CONFIG_SYS_LOAD_ADDR		0x2000000
 
 /*
  * CONFIG_SYS_LOAD_ADDR - 1 MiB.
@@ -114,42 +112,30 @@ extern phys_addr_t prior_stage_fdt_address;
 /*
  * Serial console configuration.
  */
-#define CONFIG_BAUDRATE			115200
 #define CONFIG_SYS_BAUDRATE_TABLE	{4800, 9600, 19200, 38400, 57600, \
 					 115200}
 
 /*
  * Informational display configuration.
  */
-#define CONFIG_REVISION_TAG
 
 /*
  * Command configuration.
  */
-#define CONFIG_CMD_ASKENV
-#define CONFIG_CMD_CACHE
-#define CONFIG_CMD_EXT2
-#define CONFIG_CMD_MMC
 
 /*
  * Flash configuration.
  */
-#define CONFIG_ST_SMI
 #define CONFIG_SPI_FLASH_STMICRO
 #define CONFIG_SPI_FLASH_MACRONIX
 
 /*
  * Filesystem configuration.
  */
-#define CONFIG_DOS_PARTITION
-#define CONFIG_CMD_EXT4
-#define CONFIG_FS_EXT4
-#define CONFIG_CMD_FS_GENERIC
 
 /*
  * Environment configuration.
  */
-#define CONFIG_ENV_OVERWRITE
 
 /*
  * Save the prior stage provided DTB.
@@ -166,6 +152,5 @@ extern phys_addr_t prior_stage_fdt_address;
  * Set fdtaddr to prior stage-provided DTB in board_late_init, when
  * writeable environment is available.
  */
-#define CONFIG_BOARD_LATE_INIT
 
 #endif /* __BCMSTB_H */

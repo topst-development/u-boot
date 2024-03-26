@@ -4,11 +4,11 @@
  */
 
 #include <common.h>
-#include <tcc_fb.h>
+#include <telechips/fb_dm.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/vioc_wdma.h>
-#include <asm/telechips/vioc/vioc_global.h>
-#include <asm/telechips/vioc/reg_physical.h>
+#include <asm/arch/vioc/vioc_wdma.h>
+#include <asm/arch/vioc/vioc_global.h>
+#include <asm/arch/vioc/reg_physical.h>
 
 #define NOP __asm("NOP")
 
@@ -43,6 +43,7 @@ void VIOC_WDMA_GetImageEnable(void __iomem *reg, unsigned int *enable)
 	tmp_pWDMA = reg;
 	reg = tmp_pWDMA;
 
+	/* coverity[misra_c_2012_rule_11_5_violation : FALSE] */
 	/* coverity[misra_c_2012_rule_18_4_violation : FALSE] */
 	*enable =
 		((__raw_readl(reg + WDMACTRL_OFFSET) & WDMACTRL_IEN_MASK)

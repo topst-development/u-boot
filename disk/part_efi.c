@@ -7,28 +7,34 @@
 /*
  * NOTE:
  *   when CONFIG_SYS_64BIT_LBA is not defined, lbaint_t is 32 bits; this
- *   limits the maximum size of addressable storage to < 2 Terra Bytes
+ *   limits the maximum size of addressable storage to < 2 tebibytes
  */
-#include <asm/unaligned.h>
 #include <common.h>
+#include <blk.h>
+#include <log.h>
+#include <part.h>
+#include <uuid.h>
+#include <asm/cache.h>
+#include <asm/global_data.h>
+#include <asm/unaligned.h>
 #include <command.h>
 #include <fdtdec.h>
 #include <ide.h>
 #include <malloc.h>
 #include <memalign.h>
 #include <part_efi.h>
+#include <dm/ofnode.h>
 #include <linux/compiler.h>
 #include <linux/ctype.h>
 #include <u-boot/crc.h>
 
-DECLARE_GLOBAL_DATA_PTR;
-
-/*
- * GUID for basic data partions.
- */
-static const efi_guid_t partition_basic_data_guid = PARTITION_BASIC_DATA_GUID;
-
 #ifdef CONFIG_HAVE_BLOCK_DEVICE
+
+/* GUID for basic data partitons */
+#if CONFIG_IS_ENABLED(EFI_PARTITION)
+static const efi_guid_t partition_basic_data_guid = PARTITION_BASIC_DATA_GUID;
+#endif
+
 /**
  * efi_crc32() - EFI version of crc32 function
  * @buf: buffer to calculate crc32 of
@@ -71,11 +77,15 @@ static char *print_efiname(gpt_entry *pte)
 
 static const efi_guid_t system_guid = PARTITION_SYSTEM_GUID;
 
-static inline int is_bootable(gpt_entry *p)
+static int get_bootable(gpt_entry *p)
 {
-	return p->attributes.fields.legacy_bios_bootable ||
-		!memcmp(&(p->partition_type_guid), &system_guid,
-			sizeof(efi_guid_t));
+	int ret = 0;
+
+	if (!memcmp(&p->partition_type_guid, &system_guid, sizeof(efi_guid_t)))
+		ret |=  PART_EFI_SYSTEM_PARTITION;
+	if (p->attributes.fields.legacy_bios_bootable)
+		ret |=  PART_BOOTABLE;
+	return ret;
 }
 
 static int validate_gpt_header(gpt_header *gpt_h, lbaint_t lba,
@@ -238,10 +248,11 @@ void part_print_efi(struct blk_desc *dev_desc)
 		uuid_bin = (unsigned char *)gpt_pte[i].partition_type_guid.b;
 		uuid_bin_to_str(uuid_bin, uuid, UUID_STR_FORMAT_GUID);
 		printf("\ttype:\t%s\n", uuid);
-#ifdef CONFIG_PARTITION_TYPE_GUID
-		if (!uuid_guid_get_str(uuid_bin, uuid))
-			printf("\ttype:\t%s\n", uuid);
-#endif
+		if (CONFIG_IS_ENABLED(PARTITION_TYPE_GUID)) {
+			const char *type = uuid_guid_get_str(uuid_bin);
+			if (type)
+				printf("\ttype:\t%s\n", type);
+		}
 		uuid_bin = (unsigned char *)gpt_pte[i].unique_partition_guid.b;
 		uuid_bin_to_str(uuid_bin, uuid, UUID_STR_FORMAT_GUID);
 		printf("\tguid:\t%s\n", uuid);
@@ -253,7 +264,7 @@ void part_print_efi(struct blk_desc *dev_desc)
 }
 
 int part_get_info_efi(struct blk_desc *dev_desc, int part,
-		      disk_partition_t *info)
+		      struct disk_partition *info)
 {
 	ALLOC_CACHE_ALIGN_BUFFER_PAD(gpt_header, gpt_head, 1, dev_desc->blksz);
 	gpt_entry *gpt_pte = NULL;
@@ -286,7 +297,7 @@ int part_get_info_efi(struct blk_desc *dev_desc, int part,
 	snprintf((char *)info->name, sizeof(info->name), "%s",
 		 print_efiname(&gpt_pte[part - 1]));
 	strcpy((char *)info->type, "U-Boot");
-	info->bootable = is_bootable(&gpt_pte[part - 1]);
+	info->bootable = get_bootable(&gpt_pte[part - 1]);
 #if CONFIG_IS_ENABLED(PARTITION_UUIDS)
 	uuid_bin_to_str(gpt_pte[part - 1].unique_partition_guid.b, info->uuid,
 			UUID_STR_FORMAT_GUID);
@@ -306,7 +317,12 @@ int part_get_info_efi(struct blk_desc *dev_desc, int part,
 
 static int part_test_efi(struct blk_desc *dev_desc)
 {
+
+#if CONFIG_IS_ENABLED(UFS)
+	ALLOC_ALIGN_BUFFER_PAD(legacy_mbr, legacymbr, 1, 4096, dev_desc->blksz);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER_PAD(legacy_mbr, legacymbr, 1, dev_desc->blksz);
+#endif
 
 	/* Read legacy MBR from block 0 and validate it */
 	if ((blk_dread(dev_desc, 0, 1, (ulong *)legacymbr) != 1)
@@ -325,7 +341,12 @@ static int part_test_efi(struct blk_desc *dev_desc)
 static int set_protective_mbr(struct blk_desc *dev_desc)
 {
 	/* Setup the Protective MBR */
+
+#if CONFIG_IS_ENABLED(UFS)
+	ALLOC_ALIGN_BUFFER_PAD(legacy_mbr, p_mbr, 1, 4096, dev_desc->blksz);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER_PAD(legacy_mbr, p_mbr, 1, dev_desc->blksz);
+#endif
 	if (p_mbr == NULL) {
 		printf("%s: calloc failed!\n", __func__);
 		return -1;
@@ -407,7 +428,7 @@ int write_gpt_table(struct blk_desc *dev_desc,
 
 int gpt_fill_pte(struct blk_desc *dev_desc,
 		 gpt_header *gpt_h, gpt_entry *gpt_e,
-		 disk_partition_t *partitions, int parts)
+		 struct disk_partition *partitions, int parts)
 {
 	lbaint_t offset = (lbaint_t)le64_to_cpu(gpt_h->first_usable_lba);
 	lbaint_t last_usable_lba = (lbaint_t)
@@ -501,7 +522,7 @@ int gpt_fill_pte(struct blk_desc *dev_desc,
 		memset(&gpt_e[i].attributes, 0,
 		       sizeof(gpt_entry_attributes));
 
-		if (partitions[i].bootable)
+		if (partitions[i].bootable & PART_BOOTABLE)
 			gpt_e[i].attributes.fields.legacy_bios_bootable = 1;
 
 		/* partition name */
@@ -551,9 +572,8 @@ static uint32_t partition_entries_offset(struct blk_desc *dev_desc)
 	 * from the start of the device) to be specified as a property
 	 * of the device tree '/config' node.
 	 */
-	config_offset = fdtdec_get_config_int(gd->fdt_blob,
-					      "u-boot,efi-partition-entries-offset",
-					      -EINVAL);
+	config_offset = ofnode_conf_read_int(
+		"u-boot,efi-partition-entries-offset", -EINVAL);
 	if (config_offset != -EINVAL) {
 		offset_bytes = PAD_TO_BLOCKSIZE(config_offset, dev_desc);
 		offset_blks = offset_bytes / dev_desc->blksz;
@@ -597,14 +617,18 @@ int gpt_fill_header(struct blk_desc *dev_desc, gpt_header *gpt_h,
 }
 
 int gpt_restore(struct blk_desc *dev_desc, char *str_disk_guid,
-		disk_partition_t *partitions, int parts_count)
+		struct disk_partition *partitions, int parts_count)
 {
 	gpt_header *gpt_h;
 	gpt_entry *gpt_e;
 	int ret, size;
 
 	size = PAD_TO_BLOCKSIZE(sizeof(gpt_header), dev_desc);
+#if CONFIG_IS_ENABLED(UFS)
+	gpt_h = memalign(4096, size);
+#else
 	gpt_h = malloc_cache_aligned(size);
+#endif
 	if (gpt_h == NULL) {
 		printf("%s: calloc failed!\n", __func__);
 		return -1;
@@ -613,7 +637,11 @@ int gpt_restore(struct blk_desc *dev_desc, char *str_disk_guid,
 
 	size = PAD_TO_BLOCKSIZE(GPT_ENTRY_NUMBERS * sizeof(gpt_entry),
 				dev_desc);
+#if CONFIG_IS_ENABLED(UFS)
+	gpt_e = memalign(4096, size);
+#else
 	gpt_e = malloc_cache_aligned(size);
+#endif
 	if (gpt_e == NULL) {
 		printf("%s: calloc failed!\n", __func__);
 		free(gpt_h);
@@ -681,6 +709,15 @@ int gpt_verify_headers(struct blk_desc *dev_desc, gpt_header *gpt_head,
 	/* Free pte before allocating again */
 	free(*gpt_pte);
 
+	/*
+	 * Check that the alternate_lba entry points to the last LBA
+	 */
+	if (le64_to_cpu(gpt_head->alternate_lba) != (dev_desc->lba - 1)) {
+		printf("%s: *** ERROR: Misplaced Backup GPT ***\n",
+		       __func__);
+		return -1;
+	}
+
 	if (is_gpt_valid(dev_desc, (dev_desc->lba - 1),
 			 gpt_head, gpt_pte) != 1) {
 		printf("%s: *** ERROR: Invalid Backup GPT ***\n",
@@ -692,7 +729,7 @@ int gpt_verify_headers(struct blk_desc *dev_desc, gpt_header *gpt_head,
 }
 
 int gpt_verify_partitions(struct blk_desc *dev_desc,
-			  disk_partition_t *partitions, int parts,
+			  struct disk_partition *partitions, int parts,
 			  gpt_header *gpt_head, gpt_entry **gpt_pte)
 {
 	char efi_str[PARTNAME_SZ + 1];
@@ -857,6 +894,9 @@ int write_mbr_and_gpt_partitions(struct blk_desc *dev_desc, void *buf)
 		return 1;
 	}
 
+	/* Update the partition table entries*/
+	part_init(dev_desc);
+
 	return 0;
 }
 #endif
@@ -921,7 +961,11 @@ static int is_gpt_valid(struct blk_desc *dev_desc, u64 lba,
 		return 0;
 	}
 
+#if CONFIG_IS_ENABLED(UFS)
+	ALLOC_ALIGN_BUFFER_PAD(legacy_mbr, mbr, 1, 4096, dev_desc->blksz);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER_PAD(legacy_mbr, mbr, 1, dev_desc->blksz);
+#endif
 
 	/* Read MBR Header from device */
 	if (blk_dread(dev_desc, 0, 1, (ulong *)mbr) != 1) {
@@ -1108,4 +1152,4 @@ U_BOOT_PART_TYPE(a_efi) = {
 	.print		= part_print_ptr(part_print_efi),
 	.test		= part_test_efi,
 };
-#endif
+#endif /* CONFIG_HAVE_BLOCK_DEVICE */

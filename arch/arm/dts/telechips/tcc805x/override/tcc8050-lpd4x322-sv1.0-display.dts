@@ -1,0 +1,94 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/display/tcc8050-lpd4x322-sv1.0-panel.h>
+#include "tcc805x-disp.dtsi"
+/*==============================================================================
+ * TCC805x DISPLAY PATH
+ * ---------------------------
+ * FB0 : fb0<fb0_display_out> -> <fb_dpv14_input_0>fb_dpv14_0
+ *	 RDMA0 - WMIX0 - DISP0 -> MUX3 -> DP0 (MAIN)
+ * FB1 : fb1<fb1_display_out> -> <fb_dpv14_input_1>fb_dpv14_1
+ *	 RDMA4 - WMIX1 - DISP1 -> MUX0 -> DP1
+==============================================================================*/
+
+/* FB0: IVI */
+&tcc_fb_dm0 {
+	status = "okay";
+	fb-buf-id = <0>;
+	fb-buf-addr = <0x2A000000>;
+};
+
+/* FB0: fb0_display_out -> DP0: fb_dpv14_input_0 */
+&fb0_out {
+	fb0_display_out: endpoint {
+		remote-endpoint = <&fb_dpv14_input_0>;
+	};
+};
+
+/* FB1: HUD */
+&tcc_fb_dm1 {
+	status = "disabled";
+	fb-buf-id = <1>;
+	fb-buf-addr = <0x2A800000>;
+};
+
+/* FB1: fb1_display_out -> DP1: fb_dpv14_input_1 */
+&fb1_out {
+	fb1_display_out: endpoint {
+		remote-endpoint = <&fb_dpv14_input_1>;
+	};
+};
+
+/* DP0 */
+&fb_dpv14_0 {
+	status = "okay";
+	#if defined(LCD_PORT1_PWR) && defined(LCD_PORT1_RST) && \
+	    defined(LCD_PORT1_BLK)
+	pinctrl-0 = <&lcd_port_default1>;
+	pinctrl-1 = <&lcd_port_power_on1>;
+	pinctrl-2 = <&lcd_port_reset_off1>;
+	pinctrl-3 = <&lcd_port_blk_on1>;
+	pinctrl-4 = <&lcd_port_blk_off1>;
+	pinctrl-5 = <&lcd_port_reset_on1 &lcd_port_power_off1>;
+	#endif
+	#if defined(DP_HPD_GPIO)
+	pinctrl-6 = <&dp_hpd_gpio>;
+	#endif
+	#if defined(DP_SERDES_INTB) && defined(DP_SERDES_LOCK)
+	pinctrl-7 = <&serdes_intb>;
+	pinctrl-8 = <&serdes_lock>;
+	#endif
+};
+
+/* FB0: fb0_display_out -> DP0: fb_dpv14_input_0 */
+&dp14_in0 {
+	fb_dpv14_input_0: endpoint@0 {
+		reg = <0>;
+		remote-endpoint = <&fb0_display_out>;
+	};
+};
+
+/* DP1 */
+&fb_dpv14_1 {
+	status = "okay";
+	#if defined(LCD_PORT2_PWR) && defined(LCD_PORT2_RST) && \
+	    defined(LCD_PORT2_BLK)
+	pinctrl-0 = <&lcd_port_default2>;
+	pinctrl-1 = <&lcd_port_power_on2>;
+	pinctrl-2 = <&lcd_port_reset_off2>;
+	pinctrl-3 = <&lcd_port_blk_on2>;
+	pinctrl-4 = <&lcd_port_blk_off2>;
+	pinctrl-5 = <&lcd_port_reset_on2 &lcd_port_power_off2>;
+	#endif
+};
+
+/* FB1: fb1_display_out -> DP1: fb_dpv14_input_1 */
+&dp14_in1 {
+	fb_dpv14_input_1: endpoint@0 {
+		reg = <0>;
+		remote-endpoint = <&fb1_display_out>;
+	};
+};

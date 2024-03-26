@@ -64,7 +64,7 @@
  * can afford it due to sufficient memory being available early.
  */
 
-.macro SPL_CLEAR_BSS
+.macro CLEAR_BSS
 	ldr	r0, =__bss_start	/* this is auto-relocated! */
 
 #ifdef CONFIG_USE_ARCH_MEMSET
@@ -109,8 +109,8 @@ ENTRY(_main)
 	mov	r9, r0
 	bl	board_init_f_init_reserve
 
-#if defined(CONFIG_SPL_EARLY_BSS)
-	SPL_CLEAR_BSS
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_EARLY_BSS)
+	CLEAR_BSS
 #endif
 
 	mov	r0, #0
@@ -130,6 +130,14 @@ ENTRY(_main)
 	ldr	r9, [r9, #GD_NEW_GD]		/* r9 <- gd->new_gd */
 
 	adr	lr, here
+#if defined(CONFIG_POSITION_INDEPENDENT)
+	adr	r0, _main
+	ldr	r1, _start_ofs
+	add	r0, r1
+	ldr	r1, =CONFIG_SYS_TEXT_BASE
+	sub	r1, r0
+	add	lr, r1
+#endif
 	ldr	r0, [r9, #GD_RELOC_OFF]		/* r0 = gd->reloc_off */
 	add	lr, lr, r0
 #if defined(CONFIG_CPU_V7M)
@@ -150,8 +158,8 @@ here:
 #endif
 #if !defined(CONFIG_SPL_BUILD) || CONFIG_IS_ENABLED(FRAMEWORK)
 
-#if !defined(CONFIG_SPL_EARLY_BSS)
-	SPL_CLEAR_BSS
+#if !defined(CONFIG_SPL_BUILD) || !defined(CONFIG_SPL_EARLY_BSS)
+	CLEAR_BSS
 #endif
 
 # ifdef CONFIG_SPL_BUILD
@@ -180,3 +188,6 @@ here:
 #endif
 
 ENDPROC(_main)
+
+_start_ofs:
+	.word	_start - _main

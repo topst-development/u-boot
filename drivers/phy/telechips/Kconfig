@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) Telechips Inc.
+#
+
+config PHY_SF_PCIE
+	bool "Telechips Samsung Foundry PCIe PHY"
+	depends on PHY && TCC807X
+	help
+	  Enable this to support the PCIe PHY on TCC807x SoCs.
+
+config PHY_DWC_PCIE
+	bool "Telechips Designware PCIe PHY"
+	depends on PHY && (TCC805X || TCC750X)
+	select REGMAP
+	help
+	  Enable this to support the PCIe PHY on TCC805x SoCs.
+
+

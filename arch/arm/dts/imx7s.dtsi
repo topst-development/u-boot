@@ -87,6 +87,7 @@
 		spi2 = &ecspi2;
 		spi3 = &ecspi3;
 		spi4 = &ecspi4;
+		ethernet0 = &fec1;
 	};
 
 	cpus {
@@ -322,7 +323,7 @@
 			port {
 				tpiu_in_port: endpoint {
 					slave-mode;
-					remote-endpoint = <&replicator_out_port1>;
+					remote-endpoint = <&replicator_out_port0>;
 				};
 			};
 		};
@@ -339,7 +340,7 @@
 			      <0x31006000 0x2000>;
 		};
 
-		aips1: aips-bus@30000000 {
+		aips1: bus@30000000 {
 			compatible = "fsl,aips-bus", "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -646,7 +647,7 @@
 			};
 		};
 
-		aips2: aips-bus@30400000 {
+		aips2: bus@30400000 {
 			compatible = "fsl,aips-bus", "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -738,7 +739,7 @@
 			};
 		};
 
-		aips3: aips-bus@30800000 {
+		aips3: bus@30800000 {
 			compatible = "fsl,aips-bus", "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;

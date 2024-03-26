@@ -8,6 +8,7 @@
 #include <log.h>
 #include <tee.h>
 #include <mmc.h>
+#include <dm/device_compat.h>
 #include <scsi.h>
 
 #include "optee_msg.h"
@@ -62,6 +63,7 @@ static void release_mmc(struct optee_private *priv)
 	priv->rpmb_mmc = NULL;
 }
 
+#ifdef CONFIG_SUPPORT_EMMC_RPMB
 static struct mmc *get_mmc(struct optee_private *priv, int dev_id)
 {
 	struct mmc *mmc;
@@ -103,6 +105,7 @@ static struct mmc *get_mmc(struct optee_private *priv, int dev_id)
 	priv->rpmb_dev_id = dev_id;
 	return mmc;
 }
+#endif
 
 static u32 rpmb_get_dev_info(u16 dev_id, struct rpmb_dev_info *info)
 {
@@ -145,6 +148,7 @@ static void release_ufs(struct optee_private *priv)
 	priv->rpmb_ufs = NULL;
 }
 
+#ifdef CONFIG_SUPPORT_UFS_RPMB
 static struct udevice *get_ufs(struct optee_private *priv, int dev_id)
 {
 	struct udevice *ufs;
@@ -167,35 +171,44 @@ static struct udevice *get_ufs(struct optee_private *priv, int dev_id)
 	priv->rpmb_dev_id = dev_id;
 	return ufs;
 }
+#endif
 
 static u32 rpmb_process_request(struct optee_private *priv, void *req,
 				ulong req_size, void *rsp, ulong rsp_size)
 {
 	struct rpmb_req *sreq = req;
+#ifdef CONFIG_SUPPORT_EMMC_RPMB
 	struct mmc *mmc;
+#elif defined(CONFIG_SUPPORT_UFS_RPMB)
 	struct udevice *ufs;
+#endif
 
 	if (req_size < sizeof(*sreq))
 		return TEE_ERROR_BAD_PARAMETERS;
 
 	switch (sreq->cmd) {
 	case RPMB_CMD_DATA_REQ:
+#ifdef CONFIG_SUPPORT_EMMC_RPMB
 		mmc = get_mmc(priv, sreq->dev_id);
-		if (mmc) {
-			if (mmc_rpmb_route_frames(mmc, RPMB_REQ_DATA(req),
-					  req_size - sizeof(struct rpmb_req),
-					  rsp, rsp_size))
-				return TEE_ERROR_BAD_PARAMETERS;
-		} else {
-			ufs = get_ufs(priv, sreq->dev_id);
-			if (!ufs)
-				return TEE_ERROR_ITEM_NOT_FOUND;
-			if (ufs_rpmb_route_frames(ufs, RPMB_REQ_DATA(req),
+		if (!mmc)
+			return TEE_ERROR_ITEM_NOT_FOUND;
+		if (mmc_rpmb_route_frames(mmc, RPMB_REQ_DATA(req),
 					  req_size - sizeof(struct rpmb_req),
 					  rsp, rsp_size)) {
-				return TEE_ERROR_BAD_PARAMETERS;
-			}
+			return TEE_ERROR_BAD_PARAMETERS;
 		}
+#elif defined(CONFIG_SUPPORT_UFS_RPMB)
+		ufs = get_ufs(priv, sreq->dev_id);
+		if (!ufs)
+			return TEE_ERROR_ITEM_NOT_FOUND;
+		if (ufs_rpmb_route_frames(ufs, RPMB_REQ_DATA(req),
+					req_size - sizeof(struct rpmb_req),
+					rsp, rsp_size)) {
+			return TEE_ERROR_BAD_PARAMETERS;
+		}
+#else
+#error should be define CONFIG_SUPPORT_EMMC/UFS_RPMB
+#endif
 		return TEE_SUCCESS;
 
 	case RPMB_CMD_GET_DEV_INFO:

@@ -11,10 +11,20 @@
 #include <common.h>
 #include <debug_uart.h>
 #include <errno.h>
+#include <malloc.h>
 #include <linux/err.h>
 #include <linux/types.h>
 #include <efi.h>
 #include <efi_api.h>
+
+/*
+ * Global declaration of gd.
+ *
+ * As we write to it before relocation we have to make sure it is not put into
+ * a .bss section which may overlap a .rela section. Initialization forces it
+ * into a .data section which cannot overlap any .rela section.
+ */
+struct global_data *global_data_ptr = (struct global_data *)~0;
 
 /*
  * Unfortunately we cannot access any code outside what is built especially

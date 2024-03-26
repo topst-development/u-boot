@@ -3,8 +3,8 @@
 #
 
 import os
-import cros_subprocess
-import tools
+
+from patman import cros_subprocess
 
 """Shell command ease-ups for Python."""
 
@@ -34,9 +34,9 @@ class CommandResult:
 
     def ToOutput(self, binary):
         if not binary:
-            self.stdout = tools.ToString(self.stdout)
-            self.stderr = tools.ToString(self.stderr)
-            self.combined = tools.ToString(self.combined)
+            self.stdout = self.stdout.decode('utf-8')
+            self.stderr = self.stderr.decode('utf-8')
+            self.combined = self.combined.decode('utf-8')
         return self
 
 
@@ -49,7 +49,8 @@ test_result = None
 
 def RunPipe(pipe_list, infile=None, outfile=None,
             capture=False, capture_stderr=False, oneline=False,
-            raise_on_error=True, cwd=None, binary=False, **kwargs):
+            raise_on_error=True, cwd=None, binary=False,
+            output_func=None, **kwargs):
     """
     Perform a command pipeline, with optional input/output filenames.
 
@@ -63,6 +64,8 @@ def RunPipe(pipe_list, infile=None, outfile=None,
         capture: True to capture output
         capture_stderr: True to capture stderr
         oneline: True to strip newline chars from output
+        output_func: Output function to call with each output fragment
+            (if it returns True the function terminates)
         kwargs: Additional keyword arguments to cros_subprocess.Popen()
     Returns:
         CommandResult object
@@ -105,7 +108,7 @@ def RunPipe(pipe_list, infile=None, outfile=None,
 
     if capture:
         result.stdout, result.stderr, result.combined = (
-                last_pipe.CommunicateFilter(None))
+                last_pipe.CommunicateFilter(output_func))
         if result.stdout and oneline:
             result.output = result.stdout.rstrip(b'\r\n')
         result.return_code = last_pipe.wait()

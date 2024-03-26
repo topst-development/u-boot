@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcc803x-clks.h>
+
+/ {
+	clocks {
+		compatible = "telechips,ckc";
+		u-boot,dm-pre-reloc;
+
+		osc24m: oscillator {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <24000000>;
+		};
+
+		clk_pll: pll_clk {
+			compatible = "telechips,clk-pll";
+			#clock-cells = <1>;
+			clocks = <&osc24m>;
+		};
+
+		clk_ext0: clk_ext@0 {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <24000000>;
+		};
+
+		clk_ext1: clk_ext@1 {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <24000000>;
+		};
+
+		clk_fbus: clk@14000008 {
+			compatible = "telechips,clk-fbus";
+			#clock-cells = <1>;
+		};
+
+		clk_peri: clk@14000400 {
+			compatible = "telechips,clk-peri";
+			#clock-cells = <1>;
+		};
+
+		clk_io: clk@16051000 {
+			compatible = "telechips,clk-iobus";
+			#clock-cells = <1>;
+			clocks = <&clk_fbus FBUS_IO>;
+		};
+
+		clk_hsio: clk@11da0000 {
+			compatible = "telechips,clk-hsiobus";
+			#clock-cells = <1>;
+			clocks = <&clk_fbus FBUS_HSIO>;
+		};
+
+		clk_ddi: clk@12380000 {
+			compatible = "telechips,clk-ddibus";
+			#clock-cells = <1>;
+			clocks = <&clk_fbus FBUS_DDI>;
+		};
+
+		clk_vpu: clk@15100000 {
+			compatible = "telechips,clk-vpubus";
+			#clock-cells = <1>;
+			clocks = <&clk_fbus FBUS_VBUS>;
+		};
+	};
+};

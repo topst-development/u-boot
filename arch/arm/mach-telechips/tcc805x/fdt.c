@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
 #include <common.h>
-#include <fdt_support.h>
 #include <mach/chipinfo.h>
 #include <mach/fdt.h>
 
 static struct reserved_memory_config configurable[] = {
-	/* memory for subcore kernel if using dual-boot system */
+	/* memory for sub-core kernel if using dual-boot system */
 	{ "/reserved-memory/a53_avm", true },
-
 	/* sentinel */
 	{ NULL, false }
 };

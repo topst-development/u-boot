@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+/dts-v1/;
+
+#include "tcc750x.dts"
+
+/ {
+	model = "Telechips TCC7500 LPD4X321";
+};
+
+#include "override/tcc750x-uart.dtsi"
+#include "override/tcc750x-hsmfw.dtsi"
+#include "override/tcc750x-mmc.dtsi"
+#include "override/tcc750x-i2c.dtsi"
+#include "override/tcc750x-pcie.dtsi"
+#include "override/tcc750x-gmac.dtsi"
+#include "override/tcc7500-lpd4x322-display.dts"

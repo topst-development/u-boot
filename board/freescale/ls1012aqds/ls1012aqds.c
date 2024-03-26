@@ -6,6 +6,9 @@
 #include <common.h>
 #include <i2c.h>
 #include <fdt_support.h>
+#include <asm/cache.h>
+#include <init.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/fsl_serdes.h>
@@ -29,6 +32,7 @@
 #include "../common/qixis.h"
 #include "ls1012aqds_qixis.h"
 #include "ls1012aqds_pfe.h"
+#include <net/pfe_eth/pfe/pfe_hw.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -107,10 +111,26 @@ int board_early_init_f(void)
 int misc_init_r(void)
 {
 	u8 mux_sdhc_cd = 0x80;
+	int bus_num = 0;
 
-	i2c_set_bus_num(0);
+#if CONFIG_IS_ENABLED(DM_I2C)
+	struct udevice *dev;
+	int ret;
+
+	ret = i2c_get_chip_for_busnum(bus_num, CONFIG_SYS_I2C_FPGA_ADDR,
+				      1, &dev);
+	if (ret) {
+		printf("%s: Cannot find udev for a bus %d\n", __func__,
+		       bus_num);
+		return ret;
+	}
+	dm_i2c_write(dev, 0x5a, &mux_sdhc_cd, 1);
+#else
+	i2c_set_bus_num(bus_num);
 
 	i2c_write(CONFIG_SYS_I2C_FPGA_ADDR, 0x5a, 1, &mux_sdhc_cd, 1);
+#endif
+
 	return 0;
 }
 #endif
@@ -130,10 +150,6 @@ int board_init(void)
 	erratum_a010315();
 #endif
 
-#ifdef CONFIG_ENV_IS_NOWHERE
-	gd->env_addr = (ulong)&default_environment[0];
-#endif
-
 #ifdef CONFIG_FSL_CAAM
 	sec_init();
 #endif
@@ -143,6 +159,13 @@ int board_init(void)
 #endif
 	return 0;
 }
+
+#ifdef CONFIG_FSL_PFE
+void board_quiesce_devices(void)
+{
+	pfe_command_stop(0, NULL);
+}
+#endif
 
 int esdhc_status_fixup(void *blob, const char *compat)
 {
@@ -238,7 +261,7 @@ static void fdt_fsl_fixup_of_pfe(void *blob)
 						ETH_1_2_5G_MDIO_MUX);
 				prop_val.phy_mask = cpu_to_fdt32(
 						ETH_2_5G_MDIO_PHY_MASK);
-				prop_val.phy_mode = "sgmii-2500";
+				prop_val.phy_mode = "2500base-x";
 				pfe_set_properties(l_blob, prop_val, ETH_1_PATH,
 						   ETH_1_MDIO);
 			} else {
@@ -250,7 +273,7 @@ static void fdt_fsl_fixup_of_pfe(void *blob)
 						ETH_2_2_5G_MDIO_MUX);
 				prop_val.phy_mask = cpu_to_fdt32(
 						ETH_2_5G_MDIO_PHY_MASK);
-				prop_val.phy_mode = "sgmii-2500";
+				prop_val.phy_mode = "2500base-x";
 				pfe_set_properties(l_blob, prop_val, ETH_2_PATH,
 						   ETH_2_MDIO);
 			}
@@ -262,7 +285,7 @@ static void fdt_fsl_fixup_of_pfe(void *blob)
 }
 
 #ifdef CONFIG_OF_BOARD_SETUP
-int ft_board_setup(void *blob, bd_t *bd)
+int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	arch_fixup_fdt(blob);
 

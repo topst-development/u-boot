@@ -6,21 +6,17 @@
 #ifndef __LS1012A_COMMON_H
 #define __LS1012A_COMMON_H
 
-#define CONFIG_GICV2
-
 #include <asm/arch/config.h>
 #include <asm/arch/stream_id_lsch2.h>
+#include <linux/sizes.h>
 
 #define CONFIG_SYS_CLK_FREQ		125000000
-
-#define CONFIG_SKIP_LOWLEVEL_INIT
 
 #ifdef CONFIG_TFABOOT
 #define CONFIG_SYS_INIT_SP_ADDR                CONFIG_SYS_TEXT_BASE
 #else
 #define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_FSL_OCRAM_BASE + 0xfff0)
 #endif
-#define CONFIG_SYS_LOAD_ADDR	(CONFIG_SYS_DDR_SDRAM_BASE + 0x10000000)
 
 #define CONFIG_SYS_DDR_SDRAM_BASE	0x80000000
 #define CONFIG_SYS_FSL_DDR_SDRAM_BASE_PHY	0
@@ -33,27 +29,8 @@
 /* CSU */
 #define CONFIG_LAYERSCAPE_NS_ACCESS
 
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + 128 * 1024)
-
 /*SPI device */
-#if defined(CONFIG_QSPI_BOOT) || defined(CONFIG_TFABOOT)
-#define CONFIG_SYS_FMAN_FW_ADDR		0x400d0000
-#define CONFIG_SPI_FLASH_SPANSION
-#define CONFIG_FSL_SPI_INTERFACE
-#define CONFIG_SF_DATAFLASH
-
-#define QSPI0_AMBA_BASE		0x40000000
-#define CONFIG_SPI_FLASH_SPANSION
-
-#define FSL_QSPI_FLASH_SIZE		SZ_64M
-#define FSL_QSPI_FLASH_NUM		2
-
-/*
- * Environment
- */
-#define CONFIG_ENV_OVERWRITE
-#endif
+#define CONFIG_SYS_FSL_QSPI_BASE	0x40000000
 
 /* SATA */
 #define CONFIG_SCSI_AHCI_PLAT
@@ -66,15 +43,17 @@
 						CONFIG_SYS_SCSI_MAX_LUN)
 
 /* I2C */
-#define CONFIG_SYS_I2C
+
+/* GPIO */
+#ifdef CONFIG_DM_GPIO
+#ifndef CONFIG_MPC8XXX_GPIO
+#define CONFIG_MPC8XXX_GPIO
+#endif
+#endif
 
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE     1
 #define CONFIG_SYS_NS16550_CLK          (get_serial_clock())
-
-#define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
-
-#define CONFIG_SYS_HZ			1000
 
 #define CONFIG_HWCONFIG
 #define HWCONFIG_BUFFER_SIZE		128
@@ -93,19 +72,19 @@
 	"verify=no\0"				\
 	"loadaddr=0x80100000\0"			\
 	"kernel_addr=0x100000\0"		\
-	"fdt_high=0xffffffffffffffff\0"		\
 	"initrd_high=0xffffffffffffffff\0"	\
 	"kernel_start=0x1000000\0"		\
 	"kernel_load=0xa0000000\0"		\
 	"kernel_size=0x2800000\0"		\
+	"bootm_size=0x10000000\0"		\
 
 #undef CONFIG_BOOTCOMMAND
 #ifdef CONFIG_TFABOOT
-#define QSPI_NOR_BOOTCOMMAND	"pfe stop; sf probe 0:0; sf read $kernel_load "\
+#define QSPI_NOR_BOOTCOMMAND	"sf probe 0:0; sf read $kernel_load "\
 				"$kernel_start $kernel_size && "\
 				"bootm $kernel_load"
 #else
-#define CONFIG_BOOTCOMMAND	"pfe stop; sf probe 0:0; sf read $kernel_load "\
+#define CONFIG_BOOTCOMMAND	"sf probe 0:0; sf read $kernel_load "\
 				"$kernel_start $kernel_size && "\
 				"bootm $kernel_load"
 #endif

@@ -7,17 +7,16 @@
  * Based on dwc3-omap.c.
  */
 
-/*
- * Modified by Telechips Inc. (date: 2020-03)
- */
-
 #include <common.h>
 #include <cpu_func.h>
-#include <asm-generic/io.h>
+#include <log.h>
 #include <dm.h>
 #include <dm/device-internal.h>
 #include <dm/lists.h>
+#include <dm/pinctrl.h>
 #include <dwc3-uboot.h>
+#include <linux/bitops.h>
+#include <linux/delay.h>
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
 #include <malloc.h>
@@ -30,6 +29,12 @@
 #include <asm/gpio.h>
 #include <dm/pinctrl.h>
 
+struct dwc3_glue_data {
+	struct clk_bulk		clks;
+	struct reset_ctl_bulk	resets;
+	fdt_addr_t regs;
+};
+
 struct dwc3_generic_plat {
 	fdt_addr_t base;
 	u32 maximum_speed;
@@ -41,8 +46,7 @@ struct dwc3_generic_plat {
 struct dwc3_generic_priv {
 	void *base;
 	struct dwc3 dwc3;
-	struct phy *phys;
-	int num_phys;
+	struct phy_bulk phys;
 };
 
 struct dwc3_generic_host_priv {
@@ -52,14 +56,14 @@ struct dwc3_generic_host_priv {
 
 static int dwc3_generic_enable_vbus_supply(struct udevice *dev)
 {
+	struct dwc3_generic_plat *plat = dev_get_plat(dev);
 	int ret;
-	struct dwc3_generic_plat *plat = dev_get_platdata(dev);
 
 	if (plat->use_expander) {
 		ret = gpio_request_by_name(dev, "gpios", 0,
 						&plat->vbus_gpio, GPIOD_IS_OUT);
 		if (ret) {
-			dev_err(dev, "vbus gpio - not found! Error: %d", ret);
+			pr_err("vbus gpio - not found! Error: %d", ret);
 			return ret;
 		}
 
@@ -73,25 +77,25 @@ static int dwc3_generic_enable_vbus_supply(struct udevice *dev)
 		dm_gpio_free(dev, &plat->vbus_gpio);
 	} else {
 		ret = pinctrl_select_state(dev, "vbus_on");
+
 		if (ret) {
-			dev_err(dev, "pinctrl_select_state failed... err:%d\n",
-					ret);
-			return ret;
+			pr_err("pinctrl_select_state failed... err:%d\n", ret);
 		}
 	}
-	return 0;
+
+	return ret;
 }
 
 static int dwc3_generic_disable_vbus_supply(struct udevice *dev)
 {
+	struct dwc3_generic_plat *plat = dev_get_plat(dev);
 	int ret;
-	struct dwc3_generic_plat *plat = dev_get_platdata(dev);
 
 	if (plat->use_expander) {
 		ret = gpio_request_by_name(dev, "gpios", 0, &plat->vbus_gpio,
 				GPIOD_IS_OUT);
 		if (ret) {
-			dev_err(dev, "vbus gpio - not found! Error: %d", ret);
+			pr_err("vbus gpio - not found! Error: %d", ret);
 			return ret;
 		}
 
@@ -105,21 +109,22 @@ static int dwc3_generic_disable_vbus_supply(struct udevice *dev)
 		dm_gpio_free(dev, &plat->vbus_gpio);
 	} else {
 		ret = pinctrl_select_state(dev, "vbus_off");
+
 		if (ret) {
-			dev_err(dev, "pinctrl_select_state_failed... err:%d\n",
-					ret);
-			return ret;
+			pr_err("pinctrl_select_state failed... err:%d\n", ret);
 		}
 	}
-	return 0;
+
+	return ret;
 }
 
 static int dwc3_generic_probe(struct udevice *dev,
 			      struct dwc3_generic_priv *priv)
 {
 	int rc;
-	struct dwc3_generic_plat *plat = dev_get_platdata(dev);
+	struct dwc3_generic_plat *plat = dev_get_plat(dev);
 	struct dwc3 *dwc3 = &priv->dwc3;
+	struct dwc3_glue_data *glue = dev_get_plat(dev->parent);
 
 	dwc3->dev = dev;
 	dwc3->maximum_speed = plat->maximum_speed;
@@ -128,15 +133,27 @@ static int dwc3_generic_probe(struct udevice *dev,
 	dwc3_of_parse(dwc3);
 #endif
 
-	rc = dwc3_setup_phy(dev, &priv->phys, &priv->num_phys);
-	if (rc)
+	/*
+	 * It must hold whole USB3.0 OTG controller in resetting to hold pipe
+	 * power state in P2 before initializing TypeC PHY on RK3399 platform.
+	 */
+	if (device_is_compatible(dev->parent, "rockchip,rk3399-dwc3")) {
+		reset_assert_bulk(&glue->resets);
+		udelay(1);
+	}
+
+	rc = dwc3_setup_phy(dev, &priv->phys);
+	if (rc && rc != -ENOTSUPP)
 		return rc;
+
+	if (device_is_compatible(dev->parent, "rockchip,rk3399-dwc3"))
+		reset_deassert_bulk(&glue->resets);
 
 	priv->base = map_physmem(plat->base, DWC3_OTG_REGS_END, MAP_NOCACHE);
 	dwc3->regs = priv->base + DWC3_GLOBALS_REGS_START;
 
 
-	rc = dwc3_init(dwc3);
+	rc =  dwc3_init(dwc3);
 	if (rc) {
 		unmap_physmem(priv->base, MAP_NOCACHE);
 		return rc;
@@ -151,17 +168,16 @@ static int dwc3_generic_remove(struct udevice *dev,
 	struct dwc3 *dwc3 = &priv->dwc3;
 
 	dwc3_remove(dwc3);
-	dwc3_shutdown_phy(dev, priv->phys, priv->num_phys);
+	dwc3_shutdown_phy(dev, &priv->phys);
 	unmap_physmem(dwc3->regs, MAP_NOCACHE);
-	dwc3_generic_disable_vbus_supply(dev);
 
 	return 0;
 }
 
-static int dwc3_generic_ofdata_to_platdata(struct udevice *dev)
+static int dwc3_generic_of_to_plat(struct udevice *dev)
 {
-	struct dwc3_generic_plat *plat = dev_get_platdata(dev);
-	ofnode node = dev->node;
+	struct dwc3_generic_plat *plat = dev_get_plat(dev);
+	ofnode node = dev_ofnode(dev);
 
 	plat->base = dev_read_addr(dev);
 
@@ -181,7 +197,7 @@ static int dwc3_generic_ofdata_to_platdata(struct udevice *dev)
 }
 
 #if CONFIG_IS_ENABLED(DM_USB_GADGET)
-int dm_usb_30_gadget_handle_interrupts(struct udevice *dev)
+int dm_usb_gadget_handle_interrupts(struct udevice *dev)
 {
 	struct dwc3_generic_priv *priv = dev_get_priv(dev);
 	struct dwc3 *dwc3 = &priv->dwc3;
@@ -194,17 +210,15 @@ int dm_usb_30_gadget_handle_interrupts(struct udevice *dev)
 static int dwc3_generic_peripheral_probe(struct udevice *dev)
 {
 	struct dwc3_generic_priv *priv = dev_get_priv(dev);
-	struct dwc3_generic_plat *plat = dev_get_platdata(dev);
-	int rc;
+	struct dwc3_generic_plat *plat = dev_get_plat(dev);
 
-	if (dev_read_bool(dev, "use_expander"))
+	pr_info("check\n");
+	if (dev_read_bool(dev, "use_expander")) {
+		pr_info("true\n");
 		plat->use_expander = true;
+	}
 
 	plat->dr_mode = USB_DR_MODE_PERIPHERAL;
-	rc = dwc3_generic_enable_vbus_supply(dev);
-	if (rc)
-		return rc;
-
 	dwc3_generic_disable_vbus_supply(dev);
 
 	return dwc3_generic_probe(dev, priv);
@@ -220,30 +234,30 @@ static int dwc3_generic_peripheral_remove(struct udevice *dev)
 U_BOOT_DRIVER(dwc3_generic_peripheral) = {
 	.name	= "dwc3-generic-peripheral",
 	.id	= UCLASS_USB_GADGET_GENERIC,
-	.ofdata_to_platdata = dwc3_generic_ofdata_to_platdata,
+	.of_to_plat = dwc3_generic_of_to_plat,
 	.probe = dwc3_generic_peripheral_probe,
 	.remove = dwc3_generic_peripheral_remove,
-	.priv_auto_alloc_size = sizeof(struct dwc3_generic_priv),
-	.platdata_auto_alloc_size = sizeof(struct dwc3_generic_plat),
+	.priv_auto	= sizeof(struct dwc3_generic_priv),
+	.plat_auto	= sizeof(struct dwc3_generic_plat),
 };
 #endif
 
-#if defined(CONFIG_SPL_USB_HOST_SUPPORT) || !defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_SPL_USB_HOST) || \
+	!defined(CONFIG_SPL_BUILD) && defined(CONFIG_USB_HOST)
 static int dwc3_generic_host_probe(struct udevice *dev)
 {
 	struct xhci_hcor *hcor;
 	struct xhci_hccr *hccr;
 	struct dwc3_generic_host_priv *priv = dev_get_priv(dev);
-	struct dwc3_generic_plat *plat = dev_get_platdata(dev);
+	struct dwc3_generic_plat *plat = dev_get_plat(dev);
 	int rc;
 
-	if (dev_read_bool(dev, "use_expander"))
+	pr_info("check\n");
+	if (dev_read_bool(dev, "use_expander")) {
+		pr_info("true\n");
 		plat->use_expander = true;
+	}
 
-	plat->dr_mode = USB_DR_MODE_HOST;
-	rc = dwc3_generic_enable_vbus_supply(dev);
-	if (rc)
-		return rc;
 	rc = dwc3_generic_probe(dev, &priv->gen_priv);
 	if (rc)
 		return rc;
@@ -251,6 +265,11 @@ static int dwc3_generic_host_probe(struct udevice *dev)
 	hccr = (struct xhci_hccr *)priv->gen_priv.base;
 	hcor = (struct xhci_hcor *)(priv->gen_priv.base +
 			HC_LENGTH(xhci_readl(&(hccr)->cr_capbase)));
+
+	rc = dwc3_generic_enable_vbus_supply(dev);
+	if (rc) {
+		return rc;
+	}
 
 	return xhci_register(dev, hccr, hcor);
 }
@@ -264,27 +283,26 @@ static int dwc3_generic_host_remove(struct udevice *dev)
 	if (rc)
 		return rc;
 
+	rc = dwc3_generic_disable_vbus_supply(dev);
+	if (rc) {
+		return rc;
+	}
+
 	return dwc3_generic_remove(dev, &priv->gen_priv);
 }
 
 U_BOOT_DRIVER(dwc3_generic_host) = {
 	.name	= "dwc3-generic-host",
 	.id	= UCLASS_USB,
-	.ofdata_to_platdata = dwc3_generic_ofdata_to_platdata,
+	.of_to_plat = dwc3_generic_of_to_plat,
 	.probe = dwc3_generic_host_probe,
 	.remove = dwc3_generic_host_remove,
-	.priv_auto_alloc_size = sizeof(struct dwc3_generic_host_priv),
-	.platdata_auto_alloc_size = sizeof(struct dwc3_generic_plat),
+	.priv_auto	= sizeof(struct dwc3_generic_host_priv),
+	.plat_auto	= sizeof(struct dwc3_generic_plat),
 	.ops = &xhci_usb_ops,
 	.flags = DM_FLAG_ALLOC_PRIV_DMA,
 };
 #endif
-
-struct dwc3_glue_data {
-	struct clk_bulk		clks;
-	struct reset_ctl_bulk	resets;
-	fdt_addr_t regs;
-};
 
 struct dwc3_glue_ops {
 	void (*select_dr_mode)(struct udevice *dev, int index,
@@ -317,7 +335,7 @@ enum dwc3_omap_utmi_mode {
 	u32 utmi_mode;
 	u32 utmi_status_offset = USBOTGSS_UTMI_OTG_STATUS;
 
-	struct dwc3_glue_data *glue = dev_get_platdata(dev);
+	struct dwc3_glue_data *glue = dev_get_plat(dev);
 	void *base = map_physmem(glue->regs, 0x10000, MAP_NOCACHE);
 
 	if (device_is_compatible(dev, "ti,am437x-dwc3"))
@@ -380,7 +398,7 @@ static int dwc3_glue_bind(struct udevice *parent)
 	ofnode node;
 	int ret;
 
-	ofnode_for_each_subnode(node, parent->node) {
+	ofnode_for_each_subnode(node, dev_ofnode(parent)) {
 		const char *name = ofnode_get_name(node);
 		enum usb_dr_mode dr_mode;
 		struct udevice *dev;
@@ -398,7 +416,7 @@ static int dwc3_glue_bind(struct udevice *parent)
 			driver = "dwc3-generic-peripheral";
 #endif
 			break;
-#if defined(CONFIG_SPL_USB_HOST_SUPPORT) || !defined(CONFIG_SPL_BUILD)
+#if defined(CONFIG_SPL_USB_HOST) || !defined(CONFIG_SPL_BUILD)
 		case USB_DR_MODE_HOST:
 			debug("%s: dr_mode: HOST\n", __func__);
 			driver = "dwc3-generic-host";
@@ -412,22 +430,19 @@ static int dwc3_glue_bind(struct udevice *parent)
 		if (!driver)
 			continue;
 
-		ret = device_bind_driver_to_node(parent,
-				"dwc3-generic-host", name,
+		ret = device_bind_driver_to_node(parent, driver, name,
 						 node, &dev);
 		if (ret) {
 			debug("%s: not able to bind usb device mode\n",
 			      __func__);
 			return ret;
 		}
-
-#if CONFIG_IS_ENABLED(USB_DWC3_GADGET)
+#if CONFIG_IS_ENABLED(DM_USB_GADGET)
 		ret = device_bind_driver_to_node(parent,
-				"dwc3-generic-peripheral", name,
-						 node, &dev);
+				"dwc3-generic-peripheral", name, node, &dev);
 		if (ret) {
 			debug("%s: not able to bind usb device mode\n",
-			      __func__);
+					__func__);
 			return ret;
 		}
 #endif
@@ -480,9 +495,8 @@ static int dwc3_glue_clk_init(struct udevice *dev,
 
 static int dwc3_glue_probe(struct udevice *dev)
 {
-	struct dwc3_glue_ops *ops =
-		(struct dwc3_glue_ops *)dev_get_driver_data(dev);
-	struct dwc3_glue_data *glue = dev_get_platdata(dev);
+	struct dwc3_glue_ops *ops = (struct dwc3_glue_ops *)dev_get_driver_data(dev);
+	struct dwc3_glue_data *glue = dev_get_plat(dev);
 	struct udevice *child = NULL;
 	int index = 0;
 	int ret;
@@ -501,10 +515,16 @@ static int dwc3_glue_probe(struct udevice *dev)
 	if (ret)
 		return ret;
 
+	if (glue->resets.count == 0) {
+		ret = dwc3_glue_reset_init(child, glue);
+		if (ret)
+			return ret;
+	}
+
 	while (child) {
 		enum usb_dr_mode dr_mode;
 
-		dr_mode = usb_get_dr_mode(child->node);
+		dr_mode = usb_get_dr_mode(dev_ofnode(child));
 		device_find_next_child(&child);
 		if (ops && ops->select_dr_mode)
 			ops->select_dr_mode(dev, index, dr_mode);
@@ -516,7 +536,7 @@ static int dwc3_glue_probe(struct udevice *dev)
 
 static int dwc3_glue_remove(struct udevice *dev)
 {
-	struct dwc3_glue_data *glue = dev_get_platdata(dev);
+	struct dwc3_glue_data *glue = dev_get_plat(dev);
 
 	reset_release_bulk(&glue->resets);
 
@@ -528,9 +548,15 @@ static int dwc3_glue_remove(struct udevice *dev)
 static const struct udevice_id dwc3_glue_ids[] = {
 	{ .compatible = "telechips,tcc-dwc3" },
 	{ .compatible = "xlnx,zynqmp-dwc3" },
+	{ .compatible = "xlnx,versal-dwc3" },
 	{ .compatible = "ti,keystone-dwc3"},
 	{ .compatible = "ti,dwc3", .data = (ulong)&ti_ops },
 	{ .compatible = "ti,am437x-dwc3", .data = (ulong)&ti_ops },
+	{ .compatible = "ti,am654-dwc3" },
+	{ .compatible = "rockchip,rk3328-dwc3" },
+	{ .compatible = "rockchip,rk3399-dwc3" },
+	{ .compatible = "qcom,dwc3" },
+	{ .compatible = "intel,tangier-dwc3" },
 	{ }
 };
 
@@ -541,6 +567,6 @@ U_BOOT_DRIVER(dwc3_generic_wrapper) = {
 	.bind = dwc3_glue_bind,
 	.probe = dwc3_glue_probe,
 	.remove = dwc3_glue_remove,
-	.platdata_auto_alloc_size = sizeof(struct dwc3_glue_data),
+	.plat_auto	= sizeof(struct dwc3_glue_data),
 
 };

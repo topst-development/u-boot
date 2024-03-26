@@ -1,9 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-# Copyright (C) Telechips Inc.
+# Copyright (C) 2023 Telechips Inc.
 
-obj-y += board.o
-obj-y += serial.o
-obj-y += splashimg.o
-
-obj-$(CONFIG_TCC_CMDLINE) += cmdline.o
+obj-y += common.o
+obj-y += init.o

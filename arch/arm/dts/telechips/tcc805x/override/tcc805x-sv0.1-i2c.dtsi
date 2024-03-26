@@ -1,0 +1,76 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+&i2c0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c37_bus>;
+	port-mux = <37>;
+	status = "okay";
+};
+
+&i2c1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c22_bus>;
+	port-mux = <22>;
+	status = "okay";
+
+	da9062 {
+		compatible = "pmic-i2c-simple";
+		reg = <0x58>;
+	};
+
+	da9131_d0 {
+		compatible = "pmic-i2c-simple";
+		reg = <0x68>;
+	};
+
+	da9131_d2 {
+		compatible = "pmic-i2c-simple";
+		reg = <0x69>;
+	};
+};
+
+&pinctrl {
+	/omit-if-no-ref/
+	i2c37_bus: i2c37_bus {
+		telechips,pins = "gpmc-16", "gpmc-17";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	i2c22_bus: i2c22_bus {
+		telechips,pins = "gph-4", "gph-5";
+		telechips,pin-function = <9>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	i2c6_bus: i2c6_bus {
+		telechips,pins = "gpa-22", "gpa-23";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+
+	/omit-if-no-ref/
+	i2c11_bus: i2c11_bus {
+		telechips,pins = "gpb-19", "gpb-20";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+
+	/omit-if-no-ref/
+	i2c12_bus: i2c12_bus {
+		telechips,pins = "gpb-21", "gpb-22";
+		telechips,pin-function = <8>;
+		telechips,input-enable;
+		telechips,no-pull;
+	};
+};

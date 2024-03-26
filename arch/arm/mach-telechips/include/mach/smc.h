@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
 #ifndef MACH_SMC_H
@@ -8,6 +8,7 @@
 
 #include <linux/arm-smccc.h>
 #include <linux/types.h>
+#include <linux/kernel.h>
 
 /*
  * 8200_TXXX	: SMC Function ID Struct
@@ -47,18 +48,19 @@ enum {
 	SIP_DEV_POWER,		/* 0x1 */
 	SIP_DEV_WATCHDOG,	/* 0x2 */
 	SIP_DEV_RESET,		/* 0x3 */
-	SIP_DEV_REMOCON,	/* 0x4 */
-	SIP_DEV_TCSB,		/* 0x5 */
+	SIP_DEV_RESV_04,	/* 0x4: Reserved */
+	SIP_DEV_SECURE,		/* 0x5 */
 	SIP_DEV_DRAM,		/* 0x6 */
 	SIP_DEV_CHIP,		/* 0x7 */
 	SIP_DEV_OPTEE,		/* 0x8 */
-	SIP_DEV_RESERVED0,	/* 0x9: Reserved */
-	SIP_DEV_RESERVED1,	/* 0xA: Reserved */
-	SIP_DEV_RESERVED2,	/* 0xB: Reserved */
-	SIP_DEV_RESERVED3,	/* 0xC: Reserved */
+	SIP_DEV_RESV_09,	/* 0x9: Reserved */
+	SIP_DEV_RESV_10,	/* 0xA: Reserved */
+	SIP_DEV_RESV_11,	/* 0xB: Reserved */
+	SIP_DEV_RESV_12,	/* 0xC: Reserved */
 	SIP_DEV_CRYPTO,		/* 0xD */
 	SIP_DEV_CORE,		/* 0xE */
 	SIP_DEV_CORE_LEGACY,	/* 0xF: For compatibility with legacy f/w */
+	NR_SIP_DEV,
 };
 
 /* TCC SiP Service for Clock Driver */
@@ -111,7 +113,11 @@ enum {
 	SIP_CLK_DISABLE_CPUBUS,
 	SIP_CLK_RESET_CPUBUS,
 	SIP_CLK_PWDN_CPUBUS,
-	SIP_CLK_MAKE_ULONG_ENUM = ULONG_MAX, // Make enum size to unsigned long
+	SIP_CLK_IS_CPUBUS,
+	SIP_CLK_SET_PLL_DIV,
+	SIP_CLK_STR,
+	SIP_CLK_GET_PLL_DIV,
+	SIP_CLK_SYNC,
 };
 
 /* TCC SiP Service for Power */
@@ -138,7 +144,8 @@ enum {
 /* TCC SiP Service for Reset */
 enum {
 	/* 0x8200_3000 */
-	SIP_GET_RESET_REASON = SIP_CMD(SIP_DEV_RESET, 0x001UL),
+	SIP_GET_BOOT_REASON = SIP_CMD(SIP_DEV_RESET, 0x000UL),
+	SIP_GET_RESET_REASON,
 	SIP_SET_RESET_REASON,
 	SIP_GET_USER_DATA,
 	SIP_SET_USER_DATA,
@@ -147,16 +154,10 @@ enum {
 	SIP_SET_RESET_TYPE,
 };
 
-/* TCC SiP Service for Remocon Driver */
-enum {
-	/* 0x8200_4000 */
-	SIP_REMOCON_CFG = SIP_CMD(SIP_DEV_REMOCON, 0x000UL),
-};
-
 /* TCC SiP Service for telechips secure boot */
 enum {
 	/* 0x8200_5000 */
-	SIP_TCSB_IMAGE_VERIFY = SIP_CMD(SIP_DEV_TCSB, 0x000UL),
+	SIP_TCSB_IMAGE_VERIFY = SIP_CMD(SIP_DEV_SECURE, 0x000UL),
 	SIP_TCSB_OTP_WRITE,
 	SIP_TCSB_JTAG_CLOSE,
 	SIP_WRITE_OTP,
@@ -165,9 +166,20 @@ enum {
 	SIP_GET_RAW_CRC,
 	SIP_READ_OTP_FROM_IMAGE,
 	SIP_READ_OTP_BY_IMAGE,
-	SIP_TCSB_MFCMD_GET_SECUREIMAGE = SIP_CMD(SIP_DEV_TCSB, 0x100UL),
+	SIP_TCSB_MFCMD_GET_SECUREIMAGE = SIP_CMD(SIP_DEV_SECURE, 0x100UL),
 	SIP_TCSB_MFCMD_SECUREBOOT_KEY_WRITE,
 	SIP_TCSB_MFCMD_SECUREBOOT_ENABLE,
+	SIP_TZC_GET_INFO = SIP_CMD(SIP_DEV_SECURE, 0x200UL),
+	SIP_TZC_GET_ADDRESS,
+	SIP_TZC_GET_CONFIG,
+	SIP_TZC_SET_ADDRESS,
+	SIP_TZC_SET_CONFIG,
+	SIP_GET_NSAID = SIP_CMD(SIP_DEV_SECURE, 0x300UL),
+	SIP_GET_SGID,
+	SIP_SEC_WRAPPER_READ,
+	SIP_SEC_WRAPPER_WRITE,
+	SIP_SEC_MEMORY_READ,
+	SIP_SEC_MEMORY_WRITE,
 };
 
 /* TCC SiP Service for DRAM */

@@ -13,7 +13,9 @@
 #include <command.h>
 #include <dm.h>
 #include <gzip.h>
+#include <image.h>
 #include <lcd.h>
+#include <log.h>
 #include <malloc.h>
 #include <mapmem.h>
 #include <splash.h>
@@ -90,16 +92,17 @@ struct bmp_image *gunzip_bmp(unsigned long addr, unsigned long *lenp,
 }
 #endif
 
-static int do_bmp_info(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
+static int do_bmp_info(struct cmd_tbl *cmdtp, int flag, int argc,
+		       char *const argv[])
 {
 	ulong addr;
 
 	switch (argc) {
-	case 1:		/* use load_addr as default address */
-		addr = load_addr;
+	case 1:		/* use image_load_addr as default address */
+		addr = image_load_addr;
 		break;
 	case 2:		/* use argument */
-		addr = simple_strtoul(argv[1], NULL, 16);
+		addr = hextoul(argv[1], NULL);
 		break;
 	default:
 		return CMD_RET_USAGE;
@@ -108,7 +111,8 @@ static int do_bmp_info(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[
 	return (bmp_info(addr));
 }
 
-static int do_bmp_display(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
+static int do_bmp_display(struct cmd_tbl *cmdtp, int flag, int argc,
+			  char *const argv[])
 {
 	ulong addr;
 	int x = 0, y = 0;
@@ -116,22 +120,22 @@ static int do_bmp_display(cmd_tbl_t * cmdtp, int flag, int argc, char * const ar
 	splash_get_pos(&x, &y);
 
 	switch (argc) {
-	case 1:		/* use load_addr as default address */
-		addr = load_addr;
+	case 1:		/* use image_load_addr as default address */
+		addr = image_load_addr;
 		break;
 	case 2:		/* use argument */
-		addr = simple_strtoul(argv[1], NULL, 16);
+		addr = hextoul(argv[1], NULL);
 		break;
 	case 4:
-		addr = simple_strtoul(argv[1], NULL, 16);
+		addr = hextoul(argv[1], NULL);
 		if (!strcmp(argv[2], "m"))
 			x = BMP_ALIGN_CENTER;
 		else
-			x = simple_strtoul(argv[2], NULL, 10);
+			x = dectoul(argv[2], NULL);
 		if (!strcmp(argv[3], "m"))
 			y = BMP_ALIGN_CENTER;
 		else
-			y = simple_strtoul(argv[3], NULL, 10);
+			y = dectoul(argv[3], NULL);
 		break;
 	default:
 		return CMD_RET_USAGE;
@@ -140,7 +144,7 @@ static int do_bmp_display(cmd_tbl_t * cmdtp, int flag, int argc, char * const ar
 	 return (bmp_display(addr, x, y));
 }
 
-static cmd_tbl_t cmd_bmp_sub[] = {
+static struct cmd_tbl cmd_bmp_sub[] = {
 	U_BOOT_CMD_MKENT(info, 3, 0, do_bmp_info, "", ""),
 	U_BOOT_CMD_MKENT(display, 5, 0, do_bmp_display, "", ""),
 };
@@ -161,9 +165,9 @@ void bmp_reloc(void) {
  * Return:      None
  *
  */
-static int do_bmp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_bmp(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
-	cmd_tbl_t *c;
+	struct cmd_tbl *c;
 
 	/* Strip off leading 'bmp' command argument */
 	argc--;

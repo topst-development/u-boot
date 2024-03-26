@@ -3,6 +3,8 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
+#include <hang.h>
+#include <malloc.h>
 #include <stdarg.h>
 #include <stdlib.h>
 
@@ -52,7 +54,12 @@ void avb_printv(const char* message, ...) {
 }
 
 void* avb_malloc_(size_t size) {
+#if CONFIG_IS_ENABLED(UFS)
+  /* XXX: UFS controller requires scsi buffers to be aligned. */
+  return memalign(4096, size);
+#else
   return malloc(size);
+#endif
 }
 
 void avb_free(void* ptr) {

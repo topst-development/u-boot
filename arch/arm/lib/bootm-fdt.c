@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright (c) 2013, Google Inc.
+ * Copyright (C) 2023, Telechips Inc.
  *
  * Copyright (C) 2011
  * Corscience GmbH & Co. KG - Simon Schwarz <schwarz@corscience.de>
@@ -19,6 +20,7 @@
 #ifdef CONFIG_ARMV7_NONSEC
 #include <asm/armv7.h>
 #endif
+#include <asm/global_data.h>
 #include <asm/psci.h>
 #include <asm/spin_table.h>
 
@@ -35,7 +37,7 @@ int arch_fixup_fdt(void *blob)
 {
 	__maybe_unused int ret = 0;
 #if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_OF_LIBFDT)
-	bd_t *bd = gd->bd;
+	struct bd_info *bd = gd->bd;
 	int bank;
 	u64 start[CONFIG_NR_DRAM_BANKS];
 	u64 size[CONFIG_NR_DRAM_BANKS];
@@ -63,7 +65,7 @@ int arch_fixup_fdt(void *blob)
 #endif
 
 #if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_ARMV8_PSCI) || \
-	defined(CONFIG_SEC_FIRMWARE_ARMV8_PSCI)
+	CONFIG_IS_ENABLED(SEC_FIRMWARE_ARMV8_PSCI)
 	ret = psci_update_dt(blob);
 	if (ret)
 		return ret;
@@ -74,6 +76,13 @@ int arch_fixup_fdt(void *blob)
 	ret = fdt_update_ethernet_dt(blob);
 	if (ret)
 		return ret;
+#endif
+
+#if defined(CONFIG_OPTEE)	// Added by Telechips
+	ret = fdt_parse_optee(blob);
+	if (ret != 0) {
+		return ret;
+	}
 #endif
 	return 0;
 }

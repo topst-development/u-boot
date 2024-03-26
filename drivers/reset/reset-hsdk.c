@@ -6,9 +6,11 @@
  * Author: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
  */
 
+#include <log.h>
 #include <asm/io.h>
 #include <common.h>
 #include <dm.h>
+#include <linux/bitops.h>
 #include <linux/iopoll.h>
 #include <reset-uclass.h>
 
@@ -81,7 +83,7 @@ static int hsdk_reset_noop(struct reset_ctl *rst_ctl)
 
 static const struct reset_ops hsdk_reset_ops = {
 	.request	= hsdk_reset_noop,
-	.free		= hsdk_reset_noop,
+	.rfree		= hsdk_reset_noop,
 	.rst_assert	= hsdk_reset_noop,
 	.rst_deassert	= hsdk_reset_reset,
 };
@@ -112,5 +114,5 @@ U_BOOT_DRIVER(hsdk_reset) = {
 	.of_match = hsdk_reset_dt_match,
 	.ops = &hsdk_reset_ops,
 	.probe = hsdk_reset_probe,
-	.priv_auto_alloc_size = sizeof(struct hsdk_rst),
+	.priv_auto	= sizeof(struct hsdk_rst),
 };

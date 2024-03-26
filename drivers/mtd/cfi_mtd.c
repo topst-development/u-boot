@@ -6,6 +6,7 @@
  */
 
 #include <common.h>
+#include <dma.h>
 #include <flash.h>
 #include <malloc.h>
 
@@ -57,7 +58,6 @@ static int cfi_mtd_erase(struct mtd_info *mtd, struct erase_info *instr)
 		}
 
 		instr->state = MTD_ERASE_DONE;
-		mtd_erase_callback(instr);
 		return 0;
 	}
 
@@ -70,7 +70,8 @@ static int cfi_mtd_read(struct mtd_info *mtd, loff_t from, size_t len,
 	flash_info_t *fi = mtd->priv;
 	u_char *f = (u_char*)(fi->start[0]) + from;
 
-	memcpy(buf, f, len);
+	if (dma_memcpy(buf, f, len) < 0)
+		memcpy(buf, f, len);
 	*retlen = len;
 
 	return 0;

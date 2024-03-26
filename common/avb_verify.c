@@ -1,16 +1,12 @@
-// SPDX-License-Identifier: GPL-2.0+
 /*
  * (C) Copyright 2018, Linaro Limited
- */
-
-/*
- * Modified by Telechips Inc. (date: 2020-06)
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <avb_verify.h>
 #include <blk.h>
 #include <cpu_func.h>
-#include <fastboot.h>
 #include <image.h>
 #include <malloc.h>
 #include <part.h>
@@ -257,10 +253,10 @@ char *avb_set_enforce_verity(const char *cmdline)
 
 /**
  * ============================================================================
- * IO auxiliary functions
+ * IO(mmc) auxiliary functions
  * ============================================================================
  */
-static unsigned long avb_read_and_flush(struct avb_part *part,
+static unsigned long mmc_read_and_flush(struct mmc_part *part,
 					lbaint_t start,
 					lbaint_t sectors,
 					void *buffer)
@@ -295,7 +291,7 @@ static unsigned long avb_read_and_flush(struct avb_part *part,
 		tmp_buf = buffer;
 	}
 
-	blks = blk_dread(part->dev_desc,
+	blks = blk_dread(part->mmc_blk,
 			 start, sectors, tmp_buf);
 	/* flush cache after read */
 	flush_cache((ulong)tmp_buf, sectors * part->info.blksz);
@@ -306,7 +302,7 @@ static unsigned long avb_read_and_flush(struct avb_part *part,
 	return blks;
 }
 
-static unsigned long avb_write(struct avb_part *part, lbaint_t start,
+static unsigned long mmc_write(struct mmc_part *part, lbaint_t start,
 			       lbaint_t sectors, void *buffer)
 {
 	void *tmp_buf;
@@ -334,31 +330,52 @@ static unsigned long avb_write(struct avb_part *part, lbaint_t start,
 		tmp_buf = buffer;
 	}
 
-	return blk_dwrite(part->dev_desc,
+	return blk_dwrite(part->mmc_blk,
 			  start, sectors, tmp_buf);
 }
 
-static struct avb_part *get_partition(AvbOps *ops, const char *partition)
+static struct mmc_part *get_partition(AvbOps *ops, const char *partition)
 {
 	int ret;
-	struct avb_part *part;
-	struct blk_desc *desc;
+	u8 dev_num;
+	int part_num = 0;
+	struct mmc_part *part;
+	struct blk_desc *mmc_blk;
 
-	part = malloc(sizeof(struct avb_part));
+	part = malloc(sizeof(struct mmc_part));
 	if (!part)
 		return NULL;
 
-	desc = avb_get_dev_desc(ops);
-	if (!desc)
+	dev_num = get_boot_device(ops);
+	part->mmc = find_mmc_device(dev_num);
+	if (!part->mmc) {
+		printf("No MMC device at slot %x\n", dev_num);
+		goto err;
+	}
+
+	if (mmc_init(part->mmc)) {
+		printf("MMC initialization failed\n");
+		goto err;
+	}
+
+	ret = mmc_switch_part(part->mmc, part_num);
+	if (ret)
 		goto err;
 
-	ret = part_get_info_by_name(desc, partition, &part->info);
-	if (!ret) {
+	mmc_blk = mmc_get_blk_desc(part->mmc);
+	if (!mmc_blk) {
+		printf("Error - failed to obtain block descriptor\n");
+		goto err;
+	}
+
+	ret = part_get_info_by_name(mmc_blk, partition, &part->info);
+	if (ret < 0) {
 		printf("Can't find partition '%s'\n", partition);
 		goto err;
 	}
 
-	part->dev_desc = desc;
+	part->dev_num = dev_num;
+	part->mmc_blk = mmc_blk;
 
 	return part;
 err:
@@ -366,16 +383,16 @@ err:
 	return NULL;
 }
 
-static AvbIOResult avb_byte_io(AvbOps *ops,
+static AvbIOResult mmc_byte_io(AvbOps *ops,
 			       const char *partition,
 			       s64 offset,
 			       size_t num_bytes,
 			       void *buffer,
 			       size_t *out_num_read,
-			       enum avb_io_type io_type)
+			       enum mmc_io_type io_type)
 {
 	ulong ret;
-	struct avb_part *part;
+	struct mmc_part *part;
 	u64 start_offset, start_sector, sectors, residue;
 	u8 *tmp_buf;
 	size_t io_cnt = 0;
@@ -408,7 +425,7 @@ static AvbIOResult avb_byte_io(AvbOps *ops,
 			}
 
 			if (io_type == IO_READ) {
-				ret = avb_read_and_flush(part,
+				ret = mmc_read_and_flush(part,
 							 part->info.start +
 							 start_sector,
 							 1, tmp_buf);
@@ -425,7 +442,7 @@ static AvbIOResult avb_byte_io(AvbOps *ops,
 				tmp_buf += (start_offset % part->info.blksz);
 				memcpy(buffer, (void *)tmp_buf, residue);
 			} else {
-				ret = avb_read_and_flush(part,
+				ret = mmc_read_and_flush(part,
 							 part->info.start +
 							 start_sector,
 							 1, tmp_buf);
@@ -439,7 +456,7 @@ static AvbIOResult avb_byte_io(AvbOps *ops,
 					start_offset % part->info.blksz,
 					buffer, residue);
 
-				ret = avb_write(part, part->info.start +
+				ret = mmc_write(part, part->info.start +
 						start_sector, 1, tmp_buf);
 				if (ret != 1) {
 					printf("%s: write error (%ld, %lld)\n",
@@ -457,12 +474,12 @@ static AvbIOResult avb_byte_io(AvbOps *ops,
 
 		if (sectors) {
 			if (io_type == IO_READ) {
-				ret = avb_read_and_flush(part,
+				ret = mmc_read_and_flush(part,
 							 part->info.start +
 							 start_sector,
 							 sectors, buffer);
 			} else {
-				ret = avb_write(part,
+				ret = mmc_write(part,
 						part->info.start +
 						start_sector,
 						sectors, buffer);
@@ -518,7 +535,7 @@ static AvbIOResult read_from_partition(AvbOps *ops,
 				       void *buffer,
 				       size_t *out_num_read)
 {
-	return avb_byte_io(ops, partition_name, offset_from_partition,
+	return mmc_byte_io(ops, partition_name, offset_from_partition,
 			   num_bytes, buffer, out_num_read, IO_READ);
 }
 
@@ -545,7 +562,7 @@ static AvbIOResult write_to_partition(AvbOps *ops,
 				      size_t num_bytes,
 				      const void *buffer)
 {
-	return avb_byte_io(ops, partition_name, offset_from_partition,
+	return mmc_byte_io(ops, partition_name, offset_from_partition,
 			   num_bytes, (void *)buffer, NULL, IO_WRITE);
 }
 
@@ -766,37 +783,6 @@ static AvbIOResult read_is_device_unlocked(AvbOps *ops, bool *out_is_unlocked)
 }
 
 /**
- * write_device_lock_state() - sets whether the device is lock or unlocked
- *
- * @ops: contains AVB ops handlers
- * @state: device lock state to write, true if locked,
- *      false otherwise
- * @return:
- *      AVB_IO_RESULT_OK, if the device lock state was set
- */
-static AvbIOResult write_device_lock_state(AvbOps *ops, int state)
-{
-#ifndef CONFIG_OPTEE_TA_AVB
-	printf("%s not supported yet\n", __func__);
-
-	return AVB_IO_RESULT_OK;
-#else
-	AvbIOResult rc;
-	struct tee_param param;
-
-	memset(&param, 0, sizeof(param));
-	param.attr = TEE_PARAM_ATTR_TYPE_VALUE_INPUT;
-	param.u.value.a = state;
-
-	rc = invoke_func(ops->user_data, TA_AVB_CMD_WRITE_LOCK_STATE, 1,
-			 &param);
-	if (rc)
-		return rc;
-	return AVB_IO_RESULT_OK;
-#endif
-}
-
-/**
  * get_unique_guid_for_partition() - gets the GUID for a partition identified
  * by a string name
  *
@@ -817,7 +803,7 @@ static AvbIOResult get_unique_guid_for_partition(AvbOps *ops,
 						 char *guid_buf,
 						 size_t guid_buf_size)
 {
-	struct avb_part *part;
+	struct mmc_part *part;
 	size_t uuid_size;
 
 	part = get_partition(ops, partition);
@@ -851,7 +837,7 @@ static AvbIOResult get_size_of_partition(AvbOps *ops,
 					 const char *partition,
 					 u64 *out_size_num_bytes)
 {
-	struct avb_part *part;
+	struct mmc_part *part;
 
 	if (!out_size_num_bytes)
 		return AVB_IO_RESULT_ERROR_INSUFFICIENT_SPACE;
@@ -990,7 +976,7 @@ free_name:
  * AVB2.0 AvbOps alloc/initialisation/free
  * ============================================================================
  */
-AvbOps *avb_ops_alloc(struct blk_desc *dev_desc)
+AvbOps *avb_ops_alloc(int boot_device)
 {
 	struct AvbOpsData *ops_data;
 
@@ -1006,7 +992,6 @@ AvbOps *avb_ops_alloc(struct blk_desc *dev_desc)
 	ops_data->ops.read_rollback_index = read_rollback_index;
 	ops_data->ops.write_rollback_index = write_rollback_index;
 	ops_data->ops.read_is_device_unlocked = read_is_device_unlocked;
-	ops_data->ops.write_device_lock_state = write_device_lock_state;
 	ops_data->ops.get_unique_guid_for_partition =
 		get_unique_guid_for_partition;
 #ifdef CONFIG_OPTEE_TA_AVB
@@ -1014,8 +999,7 @@ AvbOps *avb_ops_alloc(struct blk_desc *dev_desc)
 	ops_data->ops.read_persistent_value = read_persistent_value;
 #endif
 	ops_data->ops.get_size_of_partition = get_size_of_partition;
-	ops_data->if_type = dev_desc->if_type;
-	ops_data->devnum = dev_desc->devnum;
+	ops_data->mmc_dev = boot_device;
 
 	return &ops_data->ops;
 }

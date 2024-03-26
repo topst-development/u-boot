@@ -6,11 +6,6 @@
  * (C) Copyright 2014 Linaro, Ltd.
  * Rob Herring <robh@kernel.org>
  */
-
-/*
- * Modified by Telechips Inc. (date: 2020-05)
- */
-
 #include <common.h>
 #include <command.h>
 #include <console.h>
@@ -19,6 +14,7 @@
 #include <net.h>
 #include <usb.h>
 #include <watchdog.h>
+#include <linux/stringify.h>
 
 static int do_fastboot_udp(int argc, char *const argv[],
 			   uintptr_t buf_addr, size_t buf_size)
@@ -75,14 +71,8 @@ static int do_fastboot_usb(int argc, char *const argv[],
 		goto exit;
 	}
 
-	pr_info("USB2.0 DRD Device Number : 0\n");
-#if CONFIG_IS_ENABLED(USB_DWC3_GADGET)
-	pr_info("USB3.0 DRD Device Number : 1\n\n\n");
-#endif
-	pr_info("e.g ) Command 'fastboot 0' is using for USB2.0 DRD port\n");
-#if CONFIG_IS_ENABLED(USB_DWC3_GADGET)
-	pr_info("e.g ) Command 'fastboot 1' is using for USB3.0 DRD port\n\n\n");
-#endif
+	printf("Execute 'fastboot 0' command to use fastboot on USB 2.0 DRD port.\n");
+	printf("Execute 'fastboot 1' command to use fastboot on USB 3.0 DRD port.\n");
 
 	while (1) {
 		if (g_dnl_detach())
@@ -107,7 +97,8 @@ exit:
 #endif
 }
 
-static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+static int do_fastboot(struct cmd_tbl *cmdtp, int flag, int argc,
+		       char *const argv[])
 {
 	uintptr_t buf_addr = (uintptr_t)NULL;
 	size_t buf_size = 0;
@@ -124,13 +115,13 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 			case 'l':
 				if (--argc <= 0)
 					return CMD_RET_USAGE;
-				buf_addr = simple_strtoul(*++argv, NULL, 16);
+				buf_addr = hextoul(*++argv, NULL);
 				goto NXTARG;
 
 			case 's':
 				if (--argc <= 0)
 					return CMD_RET_USAGE;
-				buf_size = simple_strtoul(*++argv, NULL, 16);
+				buf_size = hextoul(*++argv, NULL);
 				goto NXTARG;
 
 			default:

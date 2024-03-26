@@ -10,15 +10,12 @@
 
 #include <asm/arch/imx-regs.h>
 #include <linux/sizes.h>
+#include <linux/stringify.h>
 #include "mx6_common.h"
 
 /* SPL options */
 #include "imx6_spl.h"
 
-/* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
-
-#define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE		UART1_BASE
 
 /* MMC Configs */
@@ -104,11 +101,6 @@
 	   "else run netboot; fi"
 
 /* Miscellaneous configurable options */
-#define CONFIG_SYS_MEMTEST_START	0x80000000
-#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + SZ_128M)
-
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
-#define CONFIG_SYS_HZ			1000
 
 /* Physical Memory Map */
 #define PHYS_SDRAM			MMDC0_ARB_BASE_ADDR
@@ -123,8 +115,6 @@
 	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 
 /* FLASH and environment organization */
-#define CONFIG_SYS_MMC_ENV_DEV		0
-#define CONFIG_SYS_MMC_ENV_PART		0
 #define CONFIG_MMCROOT			"/dev/mmcblk0p2"
 
 /* USB Configs */
@@ -136,17 +126,12 @@
 #endif
 
 #ifdef CONFIG_CMD_NET
-#define CONFIG_FEC_MXC
 #define CONFIG_FEC_ENET_DEV		0
 
 #define IMX_FEC_BASE			ENET_BASE_ADDR
 #define CONFIG_FEC_MXC_PHYADDR		0x0
 #define CONFIG_FEC_XCV_TYPE		RMII
 #define CONFIG_ETHPRIME			"FEC"
-
-#define CONFIG_PHY_SMSC
 #endif
-
-#define CONFIG_IMX_THERMAL
 
 #endif

@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+/ {
+	hsm_mbox0: mailbox@1E100000 {
+		compatible = "telechips,tcc805x-mailbox";
+		status = "disabled";
+		reg = <0x1E100000 0x80>;
+		#mbox-cells = <1>;
+		u-boot,dm-pre-reloc;
+	};
+
+	hsm_mbox1: mailbox@1E110000 {
+		compatible = "telechips,tcc805x-mailbox";
+		status = "disabled";
+		reg = <0x1E110000 0x80>;
+		#mbox-cells = <1>;
+		u-boot,dm-pre-reloc;
+	};
+
+	tcc_hsm_fw: tcc_hsm_fw {
+		compatible = "telechips,tcc_hsm_fw";
+		status = "disabled";
+		u-boot,dm-pre-reloc;
+	};
+};

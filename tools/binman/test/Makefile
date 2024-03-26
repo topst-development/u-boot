@@ -7,6 +7,19 @@
 # SPDX-License-Identifier:      GPL-2.0+
 #
 
+HOSTARCH := $(shell uname -m | sed -e s/i.86/x86/ )
+ifeq ($(findstring $(HOSTARCH),"x86" "x86_64"),)
+ifeq ($(findstring $(MAKECMDGOALS),"help" "clean"),)
+ifndef CROSS_COMPILE
+$(error Binman tests need to compile to x86, but the CPU arch of your \
+	machine is $(HOSTARCH). Set CROSS_COMPILE to a suitable cross compiler)
+endif
+endif
+endif
+
+CC		= $(CROSS_COMPILE)gcc
+OBJCOPY		= $(CROSS_COMPILE)objcopy
+
 VPATH := $(SRC)
 CFLAGS := -march=i386 -m32 -nostdlib -I $(SRC)../../../include \
 	-Wl,--no-dynamic-linker
@@ -15,10 +28,12 @@ LDS_UCODE := -T $(SRC)u_boot_ucode_ptr.lds
 LDS_BINMAN := -T $(SRC)u_boot_binman_syms.lds
 LDS_BINMAN_BAD := -T $(SRC)u_boot_binman_syms_bad.lds
 LDS_BINMAN_X86 := -T $(SRC)u_boot_binman_syms_x86.lds
+LDS_BINMAN_EMBED := -T $(SRC)u_boot_binman_embed.lds
 
 TARGETS = u_boot_ucode_ptr u_boot_no_ucode_ptr bss_data \
 	u_boot_binman_syms u_boot_binman_syms.bin u_boot_binman_syms_bad \
-	u_boot_binman_syms_size u_boot_binman_syms_x86
+	u_boot_binman_syms_size u_boot_binman_syms_x86 embed_data \
+	u_boot_binman_embed u_boot_binman_embed_sm
 
 all: $(TARGETS)
 
@@ -31,8 +46,11 @@ u_boot_ucode_ptr: u_boot_ucode_ptr.c
 bss_data: CFLAGS += $(SRC)bss_data.lds
 bss_data: bss_data.c
 
+embed_data: CFLAGS += $(SRC)embed_data.lds
+embed_data: embed_data.c
+
 u_boot_binman_syms.bin: u_boot_binman_syms
-	objcopy -O binary $< -R .note.gnu.build-id $@
+	$(OBJCOPY) -O binary $< -R .note.gnu.build-id $@
 
 u_boot_binman_syms: CFLAGS += $(LDS_BINMAN)
 u_boot_binman_syms: u_boot_binman_syms.c
@@ -45,6 +63,12 @@ u_boot_binman_syms_bad: u_boot_binman_syms_bad.c
 
 u_boot_binman_syms_size: CFLAGS += $(LDS_BINMAN)
 u_boot_binman_syms_size: u_boot_binman_syms_size.c
+
+u_boot_binman_embed: CFLAGS += $(LDS_BINMAN_EMBED)
+u_boot_binman_embed: u_boot_binman_embed.c
+
+u_boot_binman_embed_sm: CFLAGS += $(LDS_BINMAN_EMBED)
+u_boot_binman_embed_sm: u_boot_binman_embed_sm.c
 
 clean:
 	rm -f $(TARGETS)

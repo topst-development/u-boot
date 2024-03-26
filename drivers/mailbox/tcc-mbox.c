@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * Copyright (C) Telechips Inc.
+ * Copyright (C) 2023 Telechips Inc.
  */
 
 #include <common.h>
@@ -82,32 +82,53 @@ struct tcc_mbox {
 static int tcc_mbox_send(struct mbox_chan *chan, const void *data);
 static int tcc_mbox_recv(struct mbox_chan *chan, void *data);
 
-static inline void tcc_mbox_writel(struct tcc_mbox *tcc, u32 val, u32 reg)
+static inline void tcc_mbox_writel(const struct tcc_mbox *tcc, u32 val, u32 offset)
 {
-	writel((val), (tcc->reg_base + reg));
+	writel((val), (tcc->reg_base + offset));
 }
 
-static inline u32 tcc_mbox_readl(struct tcc_mbox *tcc, u32 reg)
+static inline u32 tcc_mbox_readl(const struct tcc_mbox *tcc, u32 offset)
 {
-	return readl((tcc->reg_base + reg));
+	return readl((tcc->reg_base + offset));
 }
 
-static int tcc_mbox_check_tx_done(struct tcc_mbox *tcc)
+static int tcc_mbox_check_tx_done(const struct tcc_mbox *tcc)
 {
 	int ret;
 	u32 mask;
 
-	if (tcc == NULL)
-		return -1;
+	if (tcc == NULL) {
+		ret = -1;
+	} else {
 
-	mask = ((u32) 0x1U << (u32) MBOX_CMD_TX_FIFO_EMPTY);
-	ret = wait_for_bit_le32((tcc->reg_base + MBOX_CMD_FIFO_STS),
-			mask, true, CONFIG_TCC_MBOX_FIFO_WAIT_TIME, false);
-	if (ret == 0) {
-		mask = ((u32) 0x1U << (u32) MBOX_DAT_TX_FIFO_EMPTY);
-		ret = wait_for_bit_le32((tcc->reg_base + MBOX_DAT_FIFO_TX_STS),
-				mask, true,
-				CONFIG_TCC_MBOX_FIFO_WAIT_TIME, false);
+		mask = ((u32) 0x1U << (u32) MBOX_CMD_TX_FIFO_EMPTY);
+		ret = wait_for_bit_le32((tcc->reg_base + MBOX_CMD_FIFO_STS),
+				mask, true, CONFIG_TCC_MBOX_FIFO_WAIT_TIME, false);
+		if (ret == 0) {
+			mask = ((u32) 0x1U << (u32) MBOX_DAT_TX_FIFO_EMPTY);
+			ret = wait_for_bit_le32((tcc->reg_base + MBOX_DAT_FIFO_TX_STS),
+					mask, true,
+					CONFIG_TCC_MBOX_FIFO_WAIT_TIME, false);
+		}
+	}
+
+	return ret;
+}
+
+static int tcc_mbox_check_vaild_msg(const struct tcc_mbox_msg *msg)
+{
+	int ret;
+
+	if ((msg->cmd_len > MBOX_MAX_CMD_LENGTH) || (msg->cmd_len == 0x0U)
+		|| (msg->cmd == NULL)) {
+		ret = -EINVAL;
+	} else if (msg->data_len > MBOX_MAX_DATA_LENGTH) {
+		ret = -EINVAL;
+	} else if ((msg->data_len != 0U) && (msg->data_buf == NULL)) {
+		ret = -EINVAL;
+	} else {
+		/* msg is valid */
+		ret = 0;
 	}
 
 	return ret;
@@ -116,150 +137,161 @@ static int tcc_mbox_check_tx_done(struct tcc_mbox *tcc)
 static int tcc_mbox_send(struct mbox_chan *chan, const void *data)
 {
 	const struct tcc_mbox_msg *msg = (const struct tcc_mbox_msg *)data;
-	struct tcc_mbox *tcc = dev_get_platdata(chan->dev);
+	const struct tcc_mbox *tcc =
+			(struct tcc_mbox *)dev_get_plat(chan->dev);
 	u32 i, val;
+	int ret;
 
-	/* check message */
-	if ((msg->cmd_len > MBOX_MAX_CMD_LENGTH) || (msg->cmd_len == 0x0U)
-		|| (msg->cmd == NULL))
-		return -EINVAL;
-
-	if (msg->data_len > MBOX_MAX_DATA_LENGTH)
-		return -EINVAL;
-
-	if ((msg->data_len != 0U) && (msg->data_buf == NULL))
-		return -EINVAL;
-
-	if (tcc_mbox_check_tx_done(tcc) != 0)
-		return -EBUSY;
-
-	/* Write command to fifo */
-	for (i = 0U ; i < msg->cmd_len ; i++) {
-		tcc_mbox_writel(tcc, msg->cmd[i],
-				(MBOX_CMD_TX_FIFO + (i * 0x4U)));
-	}
-
-	/* Write data if exist */
-	if (msg->data_buf != NULL) {
-		for (i = 0; i < msg->data_len; i++) {
-			tcc_mbox_writel(tcc, msg->data_buf[i],
-					MBOX_DAT_FIFO_TXD);
+	if ((msg == NULL) || (tcc == NULL)) {
+		ret = -EINVAL;
+	} else if (tcc_mbox_check_vaild_msg(msg) != 0) {
+		ret = -EINVAL;
+	} else if (tcc_mbox_check_tx_done(tcc) != 0) {
+		ret = -EBUSY;
+	} else {
+		/* Write command to fifo */
+		for (i = 0U ; i < msg->cmd_len ; i++) {
+			tcc_mbox_writel(tcc, msg->cmd[i],
+					(MBOX_CMD_TX_FIFO + (i * 0x4U)));
 		}
+
+		/* Write data if exist */
+		if (msg->data_buf != NULL) {
+			for (i = 0; i < msg->data_len; i++) {
+				tcc_mbox_writel(tcc, msg->data_buf[i],
+						MBOX_DAT_FIFO_TXD);
+			}
+		}
+
+		/* Send message */
+		val = tcc_mbox_readl(tcc, MBOX_CTRL);
+		val |= ((u32) 0x1U << (u32) MBOX_CTRL_OEN);
+		tcc_mbox_writel(tcc, val, MBOX_CTRL);
+
+		ret = tcc_mbox_check_tx_done(tcc);
+		if (ret != 0) {
+			ret = -ETIMEDOUT;
+		} else {
+			/* Finish */
+			val = tcc_mbox_readl(tcc, MBOX_CTRL);
+			val &= ~(0x1U << MBOX_CTRL_OEN);
+			val |= ((0x1U << MBOX_CTRL_CF_FLUSH) |
+				(0x1U << MBOX_CTRL_DF_FLUSH) |
+				(MBOX_ILEVEL_FULL << MBOX_CTRL_ILEVEL));
+			tcc_mbox_writel(tcc, val, MBOX_CTRL);
+		}
+
 	}
 
-	/* Send message */
-	val = tcc_mbox_readl(tcc, MBOX_CTRL);
-	val |= ((u32) 0x1U << (u32) MBOX_CTRL_OEN);
-	tcc_mbox_writel(tcc, val, MBOX_CTRL);
-
-	if (tcc_mbox_check_tx_done(tcc) != 0)
-		return -ETIMEDOUT;
-
-	/* Finish */
-	val = tcc_mbox_readl(tcc, MBOX_CTRL);
-	val &= ~(0x1U << MBOX_CTRL_OEN);
-	val |= ((0x1U << MBOX_CTRL_CF_FLUSH) |
-		(0x1U << MBOX_CTRL_DF_FLUSH) |
-		(MBOX_ILEVEL_FULL << MBOX_CTRL_ILEVEL));
-	tcc_mbox_writel(tcc, val, MBOX_CTRL);
-
-	return 0;
+	return ret;
 }
 
 static int tcc_mbox_recv(struct mbox_chan *chan, void *data)
 {
 	struct tcc_mbox_msg *msg = (struct tcc_mbox_msg *)data;
-	struct tcc_mbox *tcc = dev_get_platdata(chan->dev);
+	const struct tcc_mbox *tcc =
+			(struct tcc_mbox *)dev_get_plat(chan->dev);
 	u32 i, fifo_count;
 	u32 mask;
 	int ret;
 
-	/* check message */
-	if ((msg->cmd_len > MBOX_MAX_CMD_LENGTH) || (msg->cmd_len == 0U)
-		|| (msg->cmd == NULL))
-		return -EINVAL;
-
-	if (msg->data_len > MBOX_MAX_DATA_LENGTH)
-		return -EINVAL;
-
-	if ((msg->data_len != 0U) && (msg->data_buf == NULL))
-		return -EINVAL;
-
-	/* Read command from fifo */
-	mask = ((u32) 0x1U << (u32) MBOX_CMD_RX_FIFO_EMPTY);
-	ret = wait_for_bit_le32(tcc->reg_base + MBOX_CMD_FIFO_STS,
-			mask, false, CONFIG_TCC_MBOX_FIFO_WAIT_TIME, false);
-	if (ret == 0) {
-		fifo_count = (tcc_mbox_readl(tcc, MBOX_CMD_FIFO_STS)
-			>> MBOX_CMD_RX_FIFO_COUNT)
-			& MBOX_CMD_RX_FIFO_COUNT_MASK;
+	if ((msg == NULL) || (tcc == NULL)) {
+		ret = -EINVAL;
+	} else if (tcc_mbox_check_vaild_msg(msg) < 0) {
+		ret=  -EINVAL;
 	} else {
-		return ret;
+		/* Read command from fifo */
+		mask = ((u32) 0x1U << (u32) MBOX_CMD_RX_FIFO_EMPTY);
+		ret = wait_for_bit_le32(tcc->reg_base + MBOX_CMD_FIFO_STS,
+			mask, false, CONFIG_TCC_MBOX_FIFO_WAIT_TIME, false);
+		if (ret == 0) {
+			fifo_count = (tcc_mbox_readl(tcc, MBOX_CMD_FIFO_STS)
+				>> MBOX_CMD_RX_FIFO_COUNT)
+				& MBOX_CMD_RX_FIFO_COUNT_MASK;
+
+			for (i = 0 ; i < fifo_count ; i++) {
+				/* if buf len is smaller than fifo cnt, do dummy read */
+				if (msg->cmd_len < (i + 1U)) {
+					(void)tcc_mbox_readl(tcc,
+							(MBOX_CMD_RX_FIFO + (i * 0x4U)));
+				} else {
+					msg->cmd[i] = tcc_mbox_readl(tcc,
+							(MBOX_CMD_RX_FIFO + (i * 0x4U)));
+				}
+			}
+
+			/* Read data from fifo */
+			fifo_count = (tcc_mbox_readl(tcc, MBOX_DAT_FIFO_RX_STS)
+					>> MBOX_DAT_RX_FIFO_COUNT)
+					& MBOX_DAT_RX_FIFO_COUNT_MASK;
+
+			for (i = 0 ; i < fifo_count ; i++) {
+				/* if buf len is smaller than fifo cnt, do dummy read */
+				if ((msg->data_buf == NULL) || (msg->data_len < (i + 1U))) {
+					(void)tcc_mbox_readl(tcc, MBOX_DAT_FIFO_RXD);
+				} else {
+					msg->data_buf[i] = tcc_mbox_readl(tcc,
+								MBOX_DAT_FIFO_RXD);
+				}
+			}
+		}
 	}
 
-	for (i = 0 ; i < fifo_count ; i++) {
-		/* if buf len is smaller than fifo cnt, do dummy read */
-		if (msg->cmd_len < (i + 1U))
-			tcc_mbox_readl(tcc, (MBOX_CMD_RX_FIFO + (i * 0x4U)));
-		else
-			msg->cmd[i] = tcc_mbox_readl(tcc,
-					(MBOX_CMD_RX_FIFO + (i * 0x4U)));
-	}
-
-	/* Read data from fifo */
-	fifo_count = (tcc_mbox_readl(tcc, MBOX_DAT_FIFO_RX_STS)
-			>> MBOX_DAT_RX_FIFO_COUNT)
-			& MBOX_DAT_RX_FIFO_COUNT_MASK;
-	for (i = 0 ; i < fifo_count ; i++) {
-		/* if buf len is smaller than fifo cnt, do dummy read */
-		if ((msg->data_buf == NULL) || (msg->data_len < (i + 1U)))
-			tcc_mbox_readl(tcc, MBOX_DAT_FIFO_RXD);
-		else
-			msg->data_buf[i] = tcc_mbox_readl(tcc,
-						MBOX_DAT_FIFO_RXD);
-	}
-
-	return 0;
+	return ret;
 }
 
 
 static int tcc_mbox_ofdata_to_platdata(struct udevice *dev)
 {
-	struct tcc_mbox *tcc = dev_get_platdata(dev);
+	struct tcc_mbox *tcc = (struct tcc_mbox *)dev_get_plat(dev);
 	fdt_addr_t addr;
+	int ret = 0;
 
-	pr_debug("[DEBUG] %s: %s(dev=%p)\n",
-			dev->name, __func__, dev);
+	if (tcc == NULL) {
+		ret = -EINVAL;
+	} else {
+		(void)pr_debug("[DEBUG] %s: %s(dev=%p)\n",
+				dev->name, __func__, ((void *)dev));
 
-	addr = dev_read_addr(dev);
-	if (addr == FDT_ADDR_T_NONE)
-		return -EINVAL;
+		addr = dev_read_addr(dev);
+		if (addr == FDT_ADDR_T_NONE) {
+			ret = -EINVAL;
+		} else {
+			tcc->reg_base = (void __iomem *)addr;
+		}
+	}
 
-	tcc->reg_base = (void __iomem *)addr;
-
-	return 0;
+	return ret;
 }
 
 static int tcc_mbox_probe(struct udevice *dev)
 {
-	struct tcc_mbox *tcc = dev_get_platdata(dev);
+	const struct tcc_mbox *tcc = (struct tcc_mbox *)dev_get_plat(dev);
 	u32 val;
+	int ret = 0;
 
-	pr_debug("[DEBUG] %s: %s(dev=%p)\n",
-			dev->name, __func__, dev);
+	if (tcc == NULL) {
+		ret = -EINVAL;
+	} else {
 
-	val = tcc_mbox_readl(tcc, MBOX_CTRL);
-	val &= ~(0x1U << MBOX_CTRL_OEN);
-	val &= ~((0x1U << MBOX_CTRL_IEN_READ)
-			| (MBOX_ILEVEL_FULL << MBOX_CTRL_ILEVEL));
-	val |= ((0x1U << MBOX_CTRL_CF_FLUSH) | (0x1U << MBOX_CTRL_DF_FLUSH));
-	tcc_mbox_writel(tcc, val, MBOX_CTRL);
+		(void)pr_debug("[DEBUG] %s: %s(dev=%p)\n",
+				dev->name, __func__, (void *)dev);
 
-	return 0;
+		val = tcc_mbox_readl(tcc, MBOX_CTRL);
+		val &= ~(0x1U << MBOX_CTRL_OEN);
+		val &= ~((0x1U << MBOX_CTRL_IEN_READ) |
+				(MBOX_ILEVEL_FULL << MBOX_CTRL_ILEVEL));
+		val |= ((0x1U << MBOX_CTRL_CF_FLUSH) |
+				(0x1U << MBOX_CTRL_DF_FLUSH));
+		tcc_mbox_writel(tcc, val, MBOX_CTRL);
+	}
+
+	return ret;
 }
 
-static const struct udevice_id tcc_mbox_ids[2] = {
+static const struct udevice_id tcc_mbox_ids[3] = {
 	{ .compatible = "telechips,tcc805x-mailbox"},
+	{ .compatible = "telechips,tcc807x-mailbox"},
 	{},
 };
 
@@ -272,9 +304,9 @@ U_BOOT_DRIVER(tcc_mbox) = {
 	.name = "tcc-mbox",
 	.id = UCLASS_MAILBOX,
 	.of_match = tcc_mbox_ids,
-	.ofdata_to_platdata = tcc_mbox_ofdata_to_platdata,
+	.of_to_plat = tcc_mbox_ofdata_to_platdata,
 	.probe = tcc_mbox_probe,
-	.platdata_auto_alloc_size = (int) sizeof(struct tcc_mbox),
+	.plat_auto = (int) sizeof(struct tcc_mbox),
 	.ops = &tcc_mbox_ops,
 };
 

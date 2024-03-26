@@ -3,10 +3,6 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
-/*
- * Modified by Telechips Inc. (date: 2020-07)
- */
-
 #include <common.h>
 #include <env.h>
 #include <fastboot.h>
@@ -15,8 +11,8 @@
 #include <fb_nand.h>
 #include <fb_ufs.h>
 #include <fs.h>
+#include <part.h>
 #include <version.h>
-#include <ab_update.h>
 
 static void getvar_version(char *var_parameter, char *response);
 static void getvar_version_bootloader(char *var_parameter, char *response);
@@ -26,8 +22,6 @@ static void getvar_version_baseband(char *var_parameter, char *response);
 static void getvar_product(char *var_parameter, char *response);
 static void getvar_platform(char *var_parameter, char *response);
 static void getvar_current_slot(char *var_parameter, char *response);
-static void getvar_slot_count(char *var_parameter, char *response);
-static void getvar_slot_suffixes(char *var_parameter, char *response);
 #if CONFIG_IS_ENABLED(FASTBOOT_FLASH)
 static void getvar_has_slot(char *var_parameter, char *response);
 #endif
@@ -73,12 +67,6 @@ static const struct {
 	}, {
 		.variable = "current-slot",
 		.dispatch = getvar_current_slot
-	}, {
-		.variable = "slot-count",
-		.dispatch = getvar_slot_count,
-	}, {
-		.variable = "slot-suffixes",
-		.dispatch = getvar_slot_suffixes,
 #if CONFIG_IS_ENABLED(FASTBOOT_FLASH)
 	}, {
 		.variable = "has-slot",
@@ -125,7 +113,7 @@ static int getvar_get_part_info(const char *part_name, char *response,
 	int r;
 # if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MMC)
 	struct blk_desc *dev_desc;
-	disk_partition_t part_info;
+	struct disk_partition part_info;
 
 	r = fastboot_mmc_get_part_info(part_name, &dev_desc, &part_info,
 				       response);
@@ -139,7 +127,7 @@ static int getvar_get_part_info(const char *part_name, char *response,
 		*size = part_info->size;
 # elif CONFIG_IS_ENABLED(FASTBOOT_FLASH_UFS)
 	struct blk_desc *dev_desc;
-	disk_partition_t part_info;
+	struct disk_partition part_info;
 
 	r = fastboot_ufs_get_part_info(part_name, &dev_desc, &part_info,
 				       response);
@@ -206,73 +194,13 @@ static void getvar_platform(char *var_parameter, char *response)
 
 static void getvar_current_slot(char *var_parameter, char *response)
 {
-#if CONFIG_IS_ENABLED(AB_UPDATE)
-	struct blk_desc *dev_desc;
-	disk_partition_t part_info;
-	const char *dev_iface;
-	int current_slot;
-	char dev_part[PART_NAME_LEN];
-	char slot[8];
-
-#  if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MMC)
-	dev_iface = "mmc";
-	snprintf(dev_part, PART_NAME_LEN, "%d#misc",
-		 CONFIG_FASTBOOT_FLASH_MMC_DEV);
-#  endif
-#  if CONFIG_IS_ENABLED(FASTBOOT_FLASH_NAND)
-	dev_iface = "nand";
-	snprintf(dev_part, PART_NAME_LEN, "%d#misc",
-		 CONFIG_FASTBOOT_FLASH_NAND_DEV);
-#  endif
-#  if CONFIG_IS_ENABLED(FASTBOOT_FLASH_UFS)
-	dev_iface = "scsi";
-	snprintf(dev_part, PART_NAME_LEN, "%d#misc",
-		 CONFIG_FASTBOOT_FLASH_UFS_DEV);
-#endif
-
-	if (part_get_info_by_dev_and_name_or_num(dev_iface, dev_part,
-						 &dev_desc, &part_info) < 0) {
-		fastboot_fail(response, "Couldn't get misc partition\n");
-		return;
-	}
-	current_slot = ab_select_slot(dev_desc, &part_info, false);
-	if (current_slot < 0) {
-		fastboot_fail("Couldn't get current slot", response);
-		return;
-	}
-	sprintf(slot, "%c", 'a' + current_slot);
-	fastboot_okay(slot, response);
-#else
-	fastboot_fail("unknown variable", response);
-#endif
-}
-
-static void getvar_slot_count(char *var_parameter, char *response)
-{
-#if CONFIG_IS_ENABLED(AB_UPDATE)
-	char str[8];
-
-	sprintf(str, "%d", NUM_SLOTS);
-	strcat(response, str);
-	fastboot_okay(str, response);
-#else
-	fastboot_okay("0", response);
-#endif
-}
-
-static void getvar_slot_suffixes(char *var_parameter, char *response)
-{
-#if CONFIG_IS_ENABLED(AB_UPDATE)
-	fastboot_okay("a,b", response);
-#else
-	fastboot_okay("", response);
-#endif
+	/* A/B not implemented, for now always return "a" */
+	fastboot_okay("a", response);
 }
 
 #if CONFIG_IS_ENABLED(FASTBOOT_FLASH)
 static void getvar_has_slot(char *part_name, char *response)
 {
-#  if CONFIG_IS_ENABLED(AB_UPDATE)
 	char part_name_wslot[PART_NAME_LEN];
 	size_t len;
 	int r;
@@ -301,9 +229,6 @@ static void getvar_has_slot(char *part_name, char *response)
 
 fail:
 	fastboot_fail("invalid partition name", response);
-#  else
-	fastboot_okay("no", response);
-#  endif
 }
 #endif
 
@@ -312,7 +237,7 @@ static void getvar_partition_type(char *part_name, char *response)
 {
 	int r;
 	struct blk_desc *dev_desc;
-	disk_partition_t part_info;
+	struct disk_partition part_info;
 
 	r = fastboot_mmc_get_part_info(part_name, &dev_desc, &part_info,
 				       response);
@@ -330,7 +255,7 @@ static void getvar_partition_type(char *part_name, char *response)
 {
 	int r;
 	struct blk_desc *dev_desc;
-	disk_partition_t part_info;
+	struct disk_partition part_info;
 
 	r = fastboot_ufs_get_part_info(part_name, &dev_desc, &part_info,
 				       response);

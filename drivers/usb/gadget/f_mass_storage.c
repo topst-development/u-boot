@@ -241,10 +241,13 @@
 
 #include <config.h>
 #include <hexdump.h>
+#include <log.h>
 #include <malloc.h>
 #include <common.h>
 #include <console.h>
 #include <g_dnl.h>
+#include <dm/devres.h>
+#include <linux/bug.h>
 
 #include <linux/err.h>
 #include <linux/usb/ch9.h>
@@ -286,8 +289,6 @@ struct completion {int x; };
 
 struct fsg_dev;
 struct fsg_common;
-
-static unsigned int udc_idx;
 
 /* Data shared by all the FSG instances. */
 struct fsg_common {
@@ -392,7 +393,11 @@ static inline int __fsg_is_set(struct fsg_common *common,
 	if (common->fsg)
 		return 1;
 	ERROR(common, "common->fsg is NULL in %s at %u\n", func, line);
+#ifdef __UBOOT__
+	assert_noisy(false);
+#else
 	WARN_ON(1);
+#endif
 	return 0;
 }
 
@@ -430,6 +435,7 @@ static void set_bulk_out_req_length(struct fsg_common *common,
 static struct ums *ums;
 static int ums_count;
 static struct fsg_common *the_fsg_common;
+static unsigned int controller_index;
 
 static int fsg_set_halt(struct fsg_dev *fsg, struct usb_ep *ep)
 {
@@ -674,7 +680,7 @@ static int sleep_thread(struct fsg_common *common)
 			k = 0;
 		}
 
-		usb_gadget_handle_interrupts(udc_idx);
+		usb_gadget_handle_interrupts(controller_index);
 	}
 	common->thread_wakeup_needed = 0;
 	return rc;
@@ -958,7 +964,7 @@ static int do_write(struct fsg_common *common)
 
 			/* If an error occurred, report it and its position */
 			if (nwritten < amount) {
-				pr_info("nwritten:%zd amount:%u\n", nwritten,
+				printf("nwritten:%zd amount:%u\n", nwritten,
 				       amount);
 				curlun->sense_data = SS_WRITE_ERROR;
 				curlun->info_valid = 1;
@@ -2385,12 +2391,10 @@ static void handle_exception(struct fsg_common *common)
 
 /*-------------------------------------------------------------------------*/
 
-int fsg_main_thread(void *common_, unsigned int cont_index)
+int fsg_main_thread(void *common_)
 {
 	int ret;
 	struct fsg_common	*common = the_fsg_common;
-
-	udc_idx = cont_index;
 	/* The main loop */
 	do {
 		if (exception_in_progress(common)) {
@@ -2444,7 +2448,7 @@ static struct fsg_common *fsg_common_init(struct fsg_common *common,
 	/* Find out how many LUNs there should be */
 	nluns = ums_count;
 	if (nluns < 1 || nluns > FSG_MAX_LUNS) {
-		pr_err("invalid number of LUNs: %u\n", nluns);
+		printf("invalid number of LUNs: %u\n", nluns);
 		return ERR_PTR(-EINVAL);
 	}
 
@@ -2761,10 +2765,11 @@ int fsg_add(struct usb_configuration *c)
 	return fsg_bind_config(c->cdev, c, fsg_common);
 }
 
-int fsg_init(struct ums *ums_devs, int count)
+int fsg_init(struct ums *ums_devs, int count, unsigned int controller_idx)
 {
 	ums = ums_devs;
 	ums_count = count;
+	controller_index = controller_idx;
 
 	return 0;
 }

@@ -9,11 +9,6 @@
  * Copyright 2014 Linaro, Ltd.
  * Rob Herring <robh@kernel.org>
  */
-
-/*
- * Modified by Telechips Inc. (date: 2020-04)
- */
-
 #ifndef _FASTBOOT_H_
 #define _FASTBOOT_H_
 
@@ -40,10 +35,18 @@ enum {
 	FASTBOOT_COMMAND_REBOOT_FASTBOOTD,
 	FASTBOOT_COMMAND_REBOOT_RECOVERY,
 	FASTBOOT_COMMAND_SET_ACTIVE,
-	FASTBOOT_COMMAND_FLASHING_LOCK,
-	FASTBOOT_COMMAND_FLASHING_UNLOCK,
 #if CONFIG_IS_ENABLED(FASTBOOT_CMD_OEM_FORMAT)
 	FASTBOOT_COMMAND_OEM_FORMAT,
+#endif
+#if CONFIG_IS_ENABLED(FASTBOOT_CMD_OEM_PARTCONF)
+	FASTBOOT_COMMAND_OEM_PARTCONF,
+#endif
+#if CONFIG_IS_ENABLED(FASTBOOT_CMD_OEM_BOOTBUS)
+	FASTBOOT_COMMAND_OEM_BOOTBUS,
+#endif
+#if CONFIG_IS_ENABLED(FASTBOOT_UUU_SUPPORT)
+	FASTBOOT_COMMAND_ACMD,
+	FASTBOOT_COMMAND_UCMD,
 #endif
 
 	FASTBOOT_COMMAND_COUNT
@@ -170,4 +173,7 @@ void fastboot_data_download(const void *fastboot_data,
  */
 void fastboot_data_complete(char *response);
 
+#if CONFIG_IS_ENABLED(FASTBOOT_UUU_SUPPORT)
+void fastboot_acmd_complete(void);
+#endif
 #endif /* _FASTBOOT_H_ */

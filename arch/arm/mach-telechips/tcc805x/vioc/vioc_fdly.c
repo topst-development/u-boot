@@ -5,11 +5,11 @@
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/telechips/vioc/vioc_fdly.h>
-#include <asm/telechips/vioc/vioc_global.h>
-#include <asm/telechips/vioc/vioc_scaler.h>
-#include <asm/telechips/vioc/vioc_config.h>
-#include <asm/telechips/vioc/reg_physical.h>
+#include <asm/arch/vioc/vioc_fdly.h>
+#include <asm/arch/vioc/vioc_global.h>
+#include <asm/arch/vioc/vioc_scaler.h>
+#include <asm/arch/vioc/vioc_config.h>
+#include <asm/arch/vioc/reg_physical.h>
 
 void VIOC_FDLY_SetFormat(void __iomem *reg, unsigned int fmt)
 {

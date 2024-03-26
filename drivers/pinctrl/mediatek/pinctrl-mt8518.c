@@ -389,6 +389,8 @@ static struct mtk_pinctrl_soc mt8518_data = {
 	.ngrps = ARRAY_SIZE(mt8518_groups),
 	.funcs = mt8518_functions,
 	.nfuncs = ARRAY_SIZE(mt8518_functions),
+	.gpio_mode = 0,
+	.rev = MTK_PINCTRL_V1,
 };
 
 static int mtk_pinctrl_mt8518_probe(struct udevice *dev)
@@ -407,5 +409,5 @@ U_BOOT_DRIVER(mt8518_pinctrl) = {
 	.of_match = mt8518_pctrl_match,
 	.ops = &mtk_pinctrl_ops,
 	.probe = mtk_pinctrl_mt8518_probe,
-	.priv_auto_alloc_size = sizeof(struct mtk_pinctrl_priv),
+	.priv_auto	= sizeof(struct mtk_pinctrl_priv),
 };

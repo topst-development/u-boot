@@ -4,9 +4,7 @@
  * Written by Jean-Jacques Hiblot <jjhiblot@ti.com>
  */
 
-/*
- * Modified by Telechips Inc. (date: 2020-04)
- */
+#define LOG_CATEGORY UCLASS_USB_GADGET_GENERIC
 
 #include <common.h>
 #include <dm.h>
@@ -49,7 +47,7 @@ int usb_gadget_release(int index)
 		dev_array[index] = NULL;
 	return ret;
 #else
-	return -ENOTSUPP;
+	return -ENOSYS;
 #endif
 }
 
@@ -57,16 +55,12 @@ int usb_gadget_handle_interrupts(int index)
 {
 	if (index < 0 || index >= ARRAY_SIZE(dev_array))
 		return -EINVAL;
-#if CONFIG_IS_ENABLED(USB_DWC3_GADGET)
-	if (index == 1)
-		return dm_usb_30_gadget_handle_interrupts(dev_array[index]);
-	else if (index == 0)
-#else
-	if (index == 0)
-#endif
-		return dm_usb_20_gadget_handle_interrupts(dev_array[index]);
 
-	return -EINVAL;
+	if (index == 0) {
+		return dwc2_udc_handle_interrupt();
+	}
+
+	return dm_usb_gadget_handle_interrupts(dev_array[index]);
 }
 #endif
 

@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcc807x-clks.h>
+
+/ {
+
+	pwm: pwm@16030000 {
+		compatible = "telechips,pwm";
+		reg = <0x16030000 0x94 0x1605104C 0x4 0x16051094 0x4>;
+		tcc,pwm-number = <4>;
+		#pwm-cells = <2>;
+		clocks = <&clk_peri PERI_PDM &clk_io IOBUS_PDM>;
+		status = "disabled";
+	};
+
+};

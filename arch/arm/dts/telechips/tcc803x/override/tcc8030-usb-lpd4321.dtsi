@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) Telechips Inc.
+ */
+
+&ehci {
+	pinctrl-0 = <&usb20_vbus_pwr_ctrl_on>;
+	pinctrl-1 = <&usb20_vbus_pwr_ctrl_off>;
+};
+
+&ehci_mux {
+	pinctrl-0 = <&usb20_mux_vbus_pwr_ctrl_on>;
+	pinctrl-1 = <&usb20_mux_vbus_pwr_ctrl_off>;
+};
+
+&dwc_otg {
+	pinctrl-0 = <&usb20_mux_vbus_pwr_ctrl_on>;
+	pinctrl-1 = <&usb20_mux_vbus_pwr_ctrl_off>;
+};
+
+&dwc3 {
+	pinctrl-0 = <&usb30_vbus_pwr_ctrl_on>;
+	pinctrl-1 = <&usb30_vbus_pwr_ctrl_off>;
+};
+
+&pinctrl {
+	usb20_vbus_pwr_ctrl_on: usb20_vbus_pwr_ctrl_on {
+		telechips,pins = "gpa-28";
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+
+	usb20_vbus_pwr_ctrl_off: usb20_vbus_pwr_ctrl_off {
+		telechips,pins = "gpa-28";
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+
+	usb20_mux_vbus_pwr_ctrl_on: usb20_mux_vbus_pwr_ctrl_on {
+		telechips,pins = "gpa-27";
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+
+	usb20_mux_vbus_pwr_ctrl_off: usb20_mux_vbus_pwr_ctrl_off {
+		telechips,pins = "gpa-27";
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+
+	usb30_vbus_pwr_ctrl_on: usb30_vbus_pwr_ctrl_on {
+		telechips,pins = "gpa-29";
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+
+	usb30_vbus_pwr_ctrl_off: usb30_vbus_pwr_ctrl_off {
+		telechips,pins = "gpa-29";
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+};

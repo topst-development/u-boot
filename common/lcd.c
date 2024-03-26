@@ -6,16 +6,16 @@
  * Wolfgang Denk, DENX Software Engineering -- wd@denx.de
  */
 
-/*
- * Modified by Telechips Inc. (date: 2020-04)
- */
-
 /* #define DEBUG */
 #include <config.h>
 #include <common.h>
 #include <command.h>
 #include <cpu_func.h>
 #include <env_callback.h>
+#include <log.h>
+#include <asm/cache.h>
+#include <init.h>
+#include <asm/global_data.h>
 #include <linux/types.h>
 #include <stdio_dev.h>
 #include <lcd.h>
@@ -58,31 +58,20 @@ char lcd_is_enabled = 0;
 static void *lcd_base;			/* Start of framebuffer memory	*/
 static char lcd_flush_dcache;	/* 1 to flush dcache after each lcd update */
 
-extern struct vidinfo panel_info;
-
 /* Flush LCD activity to the caches */
 void lcd_sync(void)
 {
-/*
- * flush_dcache_range() is declared in common.h but it seems that some
- * architectures do not actually implement it. Is there a way to find
- * out whether it exists? For now, ARM is safe.
- */
+	/*
+	 * flush_dcache_range() is declared in common.h but it seems that some
+	 * architectures do not actually implement it. Is there a way to find
+	 * out whether it exists? For now, ARM is safe.
+	 */
 #if defined(CONFIG_ARM) && !CONFIG_IS_ENABLED(SYS_DCACHE_OFF)
-#if defined(CONFIG_LCD_INDIVIDUAL_BOOTLOGO_PER_PATH)
-	if (lcd_flush_dcache) {
-		for (u8 ucCount = 0;
-			ucCount < DISPLAY_CONTROLLER_MAX;
-			ucCount++)
-			lcd_panel_sync(ucCount);
-		}
-#else
 	int line_length;
 
 	if (lcd_flush_dcache)
 		flush_dcache_range((ulong)lcd_base,
 			(ulong)(lcd_base + lcd_get_size(&line_length)));
-#endif
 #endif
 }
 
@@ -109,12 +98,8 @@ static void lcd_stub_puts(struct stdio_dev *dev, const char *s)
 #define	N_BLK_HOR	3
 
 static int test_colors[N_BLK_HOR * N_BLK_VERT] = {
-	CONSOLE_COLOR_RED,
-	CONSOLE_COLOR_GREEN,
-	CONSOLE_COLOR_YELLOW,
-	CONSOLE_COLOR_BLUE,
-	CONSOLE_COLOR_MAGENTA,
-	CONSOLE_COLOR_CYAN,
+	CONSOLE_COLOR_RED,	CONSOLE_COLOR_GREEN,	CONSOLE_COLOR_YELLOW,
+	CONSOLE_COLOR_BLUE,	CONSOLE_COLOR_MAGENTA,	CONSOLE_COLOR_CYAN,
 }; /*LCD_BPP == LCD_COLOR8 */
 
 #elif LCD_BPP == LCD_COLOR16
@@ -122,67 +107,13 @@ static int test_colors[N_BLK_HOR * N_BLK_VERT] = {
 #define	N_BLK_HOR	4
 
 static int test_colors[N_BLK_HOR * N_BLK_VERT] = {
-	CONSOLE_COLOR_RED,
-	CONSOLE_COLOR_GREEN,
-	CONSOLE_COLOR_YELLOW,
-	CONSOLE_COLOR_BLUE,
-	CONSOLE_COLOR_MAGENTA,
-	CONSOLE_COLOR_CYAN,
-	CONSOLE_COLOR_GREY,
-	CONSOLE_COLOR_WHITE,
+	CONSOLE_COLOR_RED,	CONSOLE_COLOR_GREEN,	CONSOLE_COLOR_YELLOW,	CONSOLE_COLOR_BLUE,
+	CONSOLE_COLOR_MAGENTA,	CONSOLE_COLOR_CYAN,	CONSOLE_COLOR_GREY,	CONSOLE_COLOR_WHITE,
 };
 #endif /*LCD_BPP == LCD_COLOR16 */
 
 static void test_pattern(void)
 {
-#if defined(CONFIG_LCD_INDIVIDUAL_BOOTLOGO_PER_PATH)
-{
-	ushort v_max, h_max;
-	ushort v_step, h_step;
-#if LCD_BPP == LCD_COLOR8
-	uchar *pix;
-#elif LCD_BPP == LCD_COLOR16
-	ushort *pix;
-#else
-	uint *pix;
-#endif
-
-	struct vidinfo	*pstPanel_Info;
-
-	for (unsigned char ucCount = 0;
-		ucCount < DISPLAY_CONTROLLER_MAX;
-		ucCount++) {
-		pstPanel_Info = lcd_get_panel_infor_path(ucCount);
-		if (pstPanel_Info != NULL) {
-#if LCD_BPP == LCD_COLOR8
-			pix	= (uchar *)(pstPanel_Info->lcdbase +
-				(CONFIG_SYS_VIDEO_LOGO_MAX_SIZE * ucCount));
-#elif LCD_BPP == LCD_COLOR16
-			pix	= (ushort *)(pstPanel_Info->lcdbase +
-				(CONFIG_SYS_VIDEO_LOGO_MAX_SIZE * ucCount));
-#else
-			pix	= (uint *)(pstPanel_Info->lcdbase +
-				(CONFIG_SYS_VIDEO_LOGO_MAX_SIZE * ucCount));
-#endif
-			v_max = pstPanel_Info->vl_row;
-			h_max = pstPanel_Info->vl_col;
-
-			v_step = ((v_max + N_BLK_VERT - 1) / N_BLK_VERT);
-			h_step = ((h_max + N_BLK_HOR  - 1) / N_BLK_HOR);
-
-			for (ushort v = 0; v < v_max; ++v) {
-				uchar iy = (v / v_step);
-
-				for (ushort h = 0; h < h_max; ++h) {
-					uchar ix = N_BLK_HOR * iy + h / h_step;
-					*pix++ = test_colors[ix];
-				}
-			}
-		}
-	}
-}
-#else
-
 	ushort v_max  = panel_info.vl_row;
 	ushort h_max  = panel_info.vl_col;
 	ushort v_step = (v_max + N_BLK_VERT - 1) / N_BLK_VERT;
@@ -194,18 +125,16 @@ static void test_pattern(void)
 	ushort *pix = (ushort *)lcd_base;
 #endif
 
-	pr_info("[LCD] Test Pattern: %d x %d [%d x %d]\n",
+	printf("[LCD] Test Pattern: %d x %d [%d x %d]\n",
 		h_max, v_max, h_step, v_step);
 
 	for (v = 0; v < v_max; ++v) {
 		uchar iy = v / v_step;
-
 		for (h = 0; h < h_max; ++h) {
 			uchar ix = N_BLK_HOR * iy + h / h_step;
 			*pix++ = test_colors[ix];
 		}
 	}
-#endif
 }
 #endif /* LCD_TEST_PATTERN */
 
@@ -276,26 +205,18 @@ void lcd_clear(void)
 	test_pattern();
 #else
 	/* set framebuffer to background color */
-
-#if defined(CONFIG_LCD_INDIVIDUAL_BOOTLOGO_PER_PATH)
-	lcd_panel_set_background_color(bg_color);
-#else
 #if (LCD_BPP != LCD_COLOR32)
 	memset((char *)lcd_base, bg_color, lcd_line_length * panel_info.vl_row);
 #else
 	u32 *ppix = lcd_base;
 	u32 i;
-
 	for (i = 0;
-		i < (lcd_line_length * panel_info.vl_row)/
-			NBYTES(panel_info.vl_bpix);
-		i++)
+	   i < (lcd_line_length * panel_info.vl_row)/NBYTES(panel_info.vl_bpix);
+	   i++) {
 		*ppix++ = bg_color;
-
+	}
 #endif
-#endif	/* #if defined(CONFIG_LCD_INDIVIDUAL_BOOTLOGO_PER_PATH) */
-#endif	/* #ifdef	LCD_TEST_PATTERN */
-
+#endif
 	/* setup text-console */
 	debug("[LCD] setting up console...\n");
 	lcd_init_console(lcd_base,
@@ -304,57 +225,6 @@ void lcd_clear(void)
 			 panel_info.vl_rot);
 	/* Paint the logo and retrieve LCD base address */
 	debug("[LCD] Drawing the logo...\n");
-
-#if defined(CONFIG_LCD_INDIVIDUAL_BOOTLOGO_PER_PATH)
-#if defined(CONFIG_SPLASH_SCREEN) && defined(CONFIG_CMD_BMP)
-	int iNumOfColByteAligned;
-	int iLastNumOfColByteAligned;
-	int iTotalNumOfPanelBytes;
-	int iRetVal;
-	void *pvLastLcd_BaseAddr;
-	struct vidinfo	*pstPanel_Info, stLastPanel_Info;
-
-	if (do_splash) {
-		iLastNumOfColByteAligned = lcd_line_length;
-		pvLastLcd_BaseAddr = lcd_base;
-
-		memcpy(&stLastPanel_Info,
-				&panel_info,
-				sizeof(struct vidinfo));
-
-		for (unsigned char ucCount = 0;
-			ucCount < DISPLAY_CONTROLLER_MAX;
-			ucCount++) {
-			pstPanel_Info = lcd_get_panel_infor_path(ucCount);
-			if (pstPanel_Info != NULL) {
-				iTotalNumOfPanelBytes =
-					lcd_get_size(&lcd_line_length);
-				lcd_base = (void *)pstPanel_Info->lcdbase;
-				memcpy(&panel_info,
-						pstPanel_Info,
-						sizeof(struct vidinfo));
-
-				iRetVal = splash_display();
-				if (iRetVal != 0)
-					pr_err("[%s:%d]Error: from splash_display(%d)\n",
-							__func__,
-							__LINE__,
-							ucCount);
-			}
-		}
-
-		lcd_base = pvLastLcd_BaseAddr;
-		lcd_line_length = iLastNumOfColByteAligned;
-
-		memcpy(&panel_info, &stLastPanel_Info,    sizeof(vidinfo_t));
-
-		if (iRetVal == 0) {
-			do_splash = 0;
-			lcd_sync();
-			return;
-		}
-	}
-#else
 	if (do_splash) {
 		if (splash_display() == 0) {
 			do_splash = 0;
@@ -362,8 +232,6 @@ void lcd_clear(void)
 			return;
 		}
 	}
-#endif
-#endif/* #if defined(CONFIG_LCD_INDIVIDUAL_BOOTLOGO_PER_PATH) */
 
 	lcd_logo();
 #if defined(CONFIG_LCD_LOGO) && !defined(CONFIG_LCD_INFO_BELOW_LOGO)
@@ -400,7 +268,7 @@ static int lcd_init(void *lcdbase)
 #ifdef CONFIG_LCD_INFO_BELOW_LOGO
 	lcd_set_row(7 + BMP_LOGO_HEIGHT / VIDEO_FONT_HEIGHT);
 #else
-	lcd_set_row(1);/* leave 1 blank line below logo */
+	lcd_set_row(1);	/* leave 1 blank line below logo */
 #endif
 
 	return 0;
@@ -470,7 +338,7 @@ void lcd_logo_plot(int x, int y)
 {
 	ushort i, j;
 	uchar *bmap = &bmp_logo_bitmap[0];
-	unsigned int bpix = NBITS(panel_info.vl_bpix);
+	unsigned bpix = NBITS(panel_info.vl_bpix);
 	uchar *fb = (uchar *)(lcd_base + y * lcd_line_length + x * bpix / 8);
 	ushort *fb16;
 
@@ -487,9 +355,9 @@ void lcd_logo_plot(int x, int y)
 			bmap += BMP_LOGO_WIDTH;
 			fb += panel_info.vl_col;
 		}
-	} else { /* true color mode */
+	}
+	else { /* true color mode */
 		u16 col16;
-
 		fb16 = (ushort *)fb;
 		for (i = 0; i < BMP_LOGO_HEIGHT; ++i) {
 			for (j = 0; j < BMP_LOGO_WIDTH; j++) {
@@ -673,7 +541,7 @@ __weak void fb_put_word(uchar **fb, uchar **from)
 }
 #endif /* CONFIG_BMP_16BPP */
 
-__weak void lcd_set_cmap(struct bmp_image *bmp, unsigned int colors)
+__weak void lcd_set_cmap(struct bmp_image *bmp, unsigned colors)
 {
 	int i;
 	struct bmp_color_table_entry cte;
@@ -693,23 +561,23 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	ushort *cmap_base = NULL;
 	ushort i, j;
 	uchar *fb;
+	struct bmp_image *bmp = (struct bmp_image *)map_sysmem(bmp_image, 0);
 	uchar *bmap;
 	ushort padded_width;
-	unsigned long pwidth, width, height, byte_width;
-	unsigned int colors, bpix, bmp_bpix;
+	unsigned long width, height, byte_width;
+	unsigned long pwidth = panel_info.vl_col;
+	unsigned colors, bpix, bmp_bpix;
 	int hdr_size;
-	unsigned int uiDiffWidth_Panel_Bmp = 0;
-
-	struct bmp_image *bmp = (struct bmp_image *)map_sysmem(bmp_image, 0);
-	struct bmp_color_table_entry *palette = bmp->color_table;
+	struct bmp_color_table_entry *palette;
 
 	if (!bmp || !(bmp->header.signature[0] == 'B' &&
 		bmp->header.signature[1] == 'M')) {
-		pr_err("Error: no valid bmp image at %lx\n", bmp_image);
+		printf("Error: no valid bmp image at %lx\n", bmp_image);
 
 		return 1;
 	}
 
+	palette = bmp->color_table;
 	width = get_unaligned_le32(&bmp->header.width);
 	height = get_unaligned_le32(&bmp->header.height);
 	bmp_bpix = get_unaligned_le16(&bmp->header.bit_count);
@@ -718,86 +586,23 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 
 	colors = 1 << bmp_bpix;
 
-#if defined(CONFIG_LCD_INDIVIDUAL_BOOTLOGO_PER_PATH)
-	int iLastNumOfColByteAligned, iTotalNumOfPanelBytes;
-	ushort usLast_VLine, usLast_HLine;
-	void *pvLastLcd_BaseAddr;
-
-	usLast_VLine = panel_info.vl_col;
-	usLast_HLine = panel_info.vl_row;
-
-	iLastNumOfColByteAligned = lcd_line_length;
-	pvLastLcd_BaseAddr = lcd_base;
-
-	lcd_base = (void *)panel_info.lcdbase;
-
-	if ((width > MAX_INDIVIDUAL_IMAGE_WIDTH) ||
-		(height >  MAX_INDIVIDUAL_IMAGE_HEIGHT)) {
-		pr_err("\n[%s:%d][Individual]Error: Log size(col '%d', row '%d') is larger than '1920 x 1080'\n",
-				__func__, __LINE__,
-				(u32)width, (u32)height);
-		return 1;
-	}
-
-	if (panel_info.vl_col > MAX_INDIVIDUAL_IMAGE_WIDTH) {
-		pr_info("\n[%s:%d][Individual]Panel width %d is larger than %d -> reduce to %d\n",
-				__func__, __LINE__,
-				(u32)panel_info.vl_col,
-				MAX_INDIVIDUAL_IMAGE_WIDTH,
-				MAX_INDIVIDUAL_IMAGE_WIDTH);
-
-		panel_info.vl_col = MAX_INDIVIDUAL_IMAGE_WIDTH;
-	}
-
-	if (panel_info.vl_row > MAX_INDIVIDUAL_IMAGE_HEIGHT) {
-		pr_info("\n[%s:%d][Individual]Panel height %d is larger than %d -> reduce to %d\n",
-				__func__, __LINE__,
-				(u32)panel_info.vl_row,
-				MAX_INDIVIDUAL_IMAGE_HEIGHT,
-				MAX_INDIVIDUAL_IMAGE_HEIGHT);
-
-		panel_info.vl_row = MAX_INDIVIDUAL_IMAGE_HEIGHT;
-	}
-
-	iTotalNumOfPanelBytes = lcd_get_size(&lcd_line_length);
-
-	pr_info("\n[%s:%d]BMP   -> Col(%d), Row(%d), BPP(%d), Color(0x%x)\n",
-				__func__, __LINE__,
-				(u32)width, (u32)height,
-				(u32)bmp_bpix, (u32)colors);
-	pr_info("[%s:%d]Pannel -> Col(%d), Row(%d), BPP(%d)\n",
-				__func__, __LINE__,
-				(u32)panel_info.vl_col,
-				(u32)panel_info.vl_row,
-				panel_info.vl_bpix);
-	pr_info("[%s:%d]Total length(%d), Line(%d) <- V(%d) x BPP(%d) / 8 * H(%d)\n",
-				__func__, __LINE__,
-				(u32)iTotalNumOfPanelBytes,
-				(u32)lcd_line_length,
-				(u32)panel_info.vl_col,
-				(u32)NBITS(panel_info.vl_bpix),
-				(u32)panel_info.vl_row);
-#endif
-
-	pwidth = panel_info.vl_col;
-
 	bpix = NBITS(panel_info.vl_bpix);
 
 	if (bpix != 1 && bpix != 8 && bpix != 16 && bpix != 32) {
-		pr_err("Error: %d bit/pixel mode, but BMP has %d bit/pixel\n",
-				bpix,
-				bmp_bpix);
+		printf ("Error: %d bit/pixel mode, but BMP has %d bit/pixel\n",
+			bpix, bmp_bpix);
+
 		return 1;
 	}
 
 	/*
 	 * We support displaying 8bpp BMPs on 16bpp LCDs
 	 * and displaying 24bpp BMPs on 32bpp LCDs
-	 */
+	 * */
 	if (bpix != bmp_bpix &&
 	    !(bmp_bpix == 8 && bpix == 16) &&
 	    !(bmp_bpix == 24 && bpix == 32)) {
-		pr_err("Error: %d bit/pixel mode, but BMP has %d bit/pixel\n",
+		printf ("Error: %d bit/pixel mode, but BMP has %d bit/pixel\n",
 			bpix, get_unaligned_le16(&bmp->header.bit_count));
 		return 1;
 	}
@@ -811,22 +616,6 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	padded_width = (width & 0x3 ? (width & ~0x3) + 4 : width);
 
 #ifdef CONFIG_SPLASH_SCREEN_ALIGN
-	if (width > pwidth) {
-		pr_err("[%s:%d]Error: Logo width(%d) is larger than pannel width(%d) -> it makes log cut right side\n",
-				__func__, __LINE__,
-				(u32)width,
-				(unsigned int)pwidth);
-		uiDiffWidth_Panel_Bmp = (width - pwidth);
-		width = pwidth;
-	}
-	if (height > panel_info.vl_row) {
-		pr_err("[%s:%d]Error: Logo height(%d) is larger than pannel height(%d) -> it makes log cut top side\n",
-				__func__, __LINE__,
-				(u32)height,
-				(unsigned int)panel_info.vl_row);
-		height = panel_info.vl_row;
-	}
-
 	splash_align_axis(&x, pwidth, width);
 	splash_align_axis(&y, panel_info.vl_row, height);
 #endif /* CONFIG_SPLASH_SCREEN_ALIGN */
@@ -846,12 +635,11 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		cmap_base = configuration_get_cmap();
 #ifdef CONFIG_LCD_BMP_RLE8
 		u32 compression = get_unaligned_le32(&bmp->header.compression);
-
 		debug("compressed %d %d\n", compression, BMP_BI_RLE8);
 		if (compression == BMP_BI_RLE8) {
 			if (bpix != 16) {
 				/* TODO implement render code for bpix != 16 */
-				pr_err("Error: only support 16 bpix");
+				printf("Error: only support 16 bpix");
 				return 1;
 			}
 			lcd_display_rle8_bitmap(bmp, cmap_base, fb, x, y);
@@ -900,8 +688,6 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 
 			bmap += (padded_width - width) * 2;
 			fb -= width * 2 + lcd_line_length;
-
-			bmap += (uiDiffWidth_Panel_Bmp * 2);
 		}
 		break;
 #endif /* CONFIG_BMP_16BPP */
@@ -915,8 +701,6 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 				*(fb++) = 0;
 			}
 			fb -= lcd_line_length + width * (bpix / 8);
-
-			bmap += (uiDiffWidth_Panel_Bmp * 3);
 		}
 		break;
 #endif /* CONFIG_BMP_24BPP */
@@ -930,8 +714,6 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 				*(fb++) = *(bmap++);
 			}
 			fb -= lcd_line_length + width * (bpix / 8);
-
-			bmap += (uiDiffWidth_Panel_Bmp * 4);
 		}
 		break;
 #endif /* CONFIG_BMP_32BPP */
@@ -939,19 +721,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		break;
 	};
 
-#if defined(CONFIG_LCD_INDIVIDUAL_BOOTLOGO_PER_PATH)
-	if (lcd_flush_dcache)
-		lcd_panel_sync(panel_info.dev.uiDisplayPathNum);
-
-	panel_info.vl_col = usLast_VLine;
-	panel_info.vl_row = usLast_HLine;
-
-	lcd_base = pvLastLcd_BaseAddr;
-	lcd_line_length = iLastNumOfColByteAligned;
-#else
 	lcd_sync();
-#endif
-
 	return 0;
 }
 #endif
@@ -977,11 +747,11 @@ static int on_splashimage(const char *name, const char *value, enum env_op op,
 	if (op == env_op_delete)
 		return 0;
 
-	addr = simple_strtoul(value, NULL, 16);
+	addr = hextoul(value, NULL);
 	/* See README.displaying-bmps */
 	aligned = (addr % 4 == 2);
 	if (!aligned) {
-		pr_err("Invalid splashimage value. Value must be 16 bit aligned, but not 32 bit aligned\n");
+		printf("Invalid splashimage value. Value must be 16 bit aligned, but not 32 bit aligned\n");
 		return -1;
 	}
 

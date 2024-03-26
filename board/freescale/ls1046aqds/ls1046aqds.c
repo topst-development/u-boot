@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2016 Freescale Semiconductor, Inc.
+ * Copyright 2019-2020 NXP
  */
 
 #include <common.h>
 #include <i2c.h>
 #include <fdt_support.h>
 #include <fsl_ddr_sdram.h>
+#include <init.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/fsl_serdes.h>
@@ -26,6 +29,7 @@
 #include <fsl_ifc.h>
 #include <fsl_sec.h>
 #include <spl.h>
+#include "../common/i2c_mux.h"
 
 #include "../common/vid.h"
 #include "../common/qixis.h"
@@ -269,27 +273,16 @@ u32 get_lpuart_clk(void)
 }
 #endif
 
-int select_i2c_ch_pca9547(u8 ch)
-{
-	int ret;
-
-	ret = i2c_write(I2C_MUX_PCA_ADDR_PRI, 0, 1, &ch, 1);
-	if (ret) {
-		puts("PCA: failed to select proper channel\n");
-		return ret;
-	}
-
-	return 0;
-}
-
 int dram_init(void)
 {
 	/*
 	 * When resuming from deep sleep, the I2C channel may not be
 	 * in the default channel. So, switch to the default channel
 	 * before accessing DDR SPD.
+	 *
+	 * PCA9547 mount on I2C1 bus
 	 */
-	select_i2c_ch_pca9547(I2C_MUX_CH_DEFAULT);
+	select_i2c_ch_pca9547(I2C_MUX_CH_DEFAULT, 0);
 	fsl_initdram();
 #if (!defined(CONFIG_SPL) && !defined(CONFIG_TFABOOT)) || \
 	defined(CONFIG_SPL_BUILD)
@@ -302,11 +295,12 @@ int dram_init(void)
 
 int i2c_multiplexer_select_vid_channel(u8 channel)
 {
-	return select_i2c_ch_pca9547(channel);
+	return select_i2c_ch_pca9547(channel, 0);
 }
 
 int board_early_init_f(void)
 {
+	u32 __iomem *cntcr = (u32 *)CONFIG_SYS_FSL_TIMER_ADDR;
 #ifdef CONFIG_HAS_FSL_XHCI_USB
 	struct ccsr_scfg *scfg = (struct ccsr_scfg *)CONFIG_SYS_FSL_SCFG_ADDR;
 	u32 usb_pwrfault;
@@ -315,7 +309,12 @@ int board_early_init_f(void)
 	u8 uart;
 #endif
 
-#ifdef CONFIG_SYS_I2C_EARLY_INIT
+	/*
+	 * Enable secure system counter for timer
+	 */
+	out_le32(cntcr, 0x1);
+
+#if defined(CONFIG_SYS_I2C_EARLY_INIT)
 	i2c_early_init_f();
 #endif
 	fsl_lsch2_early_init_f();
@@ -394,7 +393,7 @@ int misc_init_r(void)
 
 int board_init(void)
 {
-	select_i2c_ch_pca9547(I2C_MUX_CH_DEFAULT);
+	select_i2c_ch_pca9547(I2C_MUX_CH_DEFAULT, 0);
 
 #ifdef CONFIG_SYS_FSL_SERDES
 	config_serdes_mux();
@@ -429,7 +428,7 @@ int board_init(void)
 }
 
 #ifdef CONFIG_OF_BOARD_SETUP
-int ft_board_setup(void *blob, bd_t *bd)
+int ft_board_setup(void *blob, struct bd_info *bd)
 {
 	u64 base[CONFIG_NR_DRAM_BANKS];
 	u64 size[CONFIG_NR_DRAM_BANKS];
@@ -445,7 +444,9 @@ int ft_board_setup(void *blob, bd_t *bd)
 	ft_cpu_setup(blob, bd);
 
 #ifdef CONFIG_SYS_DPAA_FMAN
+#ifndef CONFIG_DM_ETH
 	fdt_fixup_fman_ethernet(blob);
+#endif
 	fdt_fixup_board_enet(blob);
 #endif
 

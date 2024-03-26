@@ -11,6 +11,7 @@
 #include <command.h>
 #include <malloc.h>
 #include <nand.h>
+#include <dm/devres.h>
 
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/rawnand.h>
@@ -715,7 +716,7 @@ static int fsl_elbc_chip_init(int devnum, u8 *addr)
 	nand->bbt_td = &bbt_main_descr;
 	nand->bbt_md = &bbt_mirror_descr;
 
-  	/* set up nand options */
+	/* set up nand options */
 	nand->options = NAND_NO_SUBPAGE_WRITE;
 	nand->bbt_options = NAND_BBT_USE_FLASH;
 

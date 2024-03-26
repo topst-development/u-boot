@@ -11,6 +11,7 @@
 
 #include <common.h>
 #include <ahci.h>
+#include <blk.h>
 #include <dm.h>
 #include <command.h>
 #include <part.h>
@@ -25,6 +26,8 @@ int sata_remove(int devnum)
 #ifdef CONFIG_AHCI
 	struct udevice *dev;
 	int rc;
+
+	blk_unbind_all(IF_TYPE_SATA);
 
 	rc = uclass_find_device(UCLASS_AHCI, devnum, &dev);
 	if (!rc && !dev)
@@ -76,7 +79,8 @@ int sata_probe(int devnum)
 #endif
 }
 
-static int do_sata(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_sata(struct cmd_tbl *cmdtp, int flag, int argc,
+		   char *const argv[])
 {
 	int rc = 0;
 
@@ -84,7 +88,7 @@ static int do_sata(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		int devnum = 0;
 
 		if (argc == 3)
-			devnum = (int)simple_strtoul(argv[2], NULL, 10);
+			devnum = (int)dectoul(argv[2], NULL);
 		if (!strcmp(argv[1], "stop"))
 			return sata_remove(devnum);
 

@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) Telechips Inc.
+ */
+
+/ {
+	tcc_timer0: timer0@1E030000 {
+		compatible = "telechips,timer";
+		reg = <0x1E030000 0x10>;
+		id = <0>;
+		width = <16>;
+		interrupts = <GIC_SPI 17 0>;
+		clocks = <&clk_peri PERI_TCT>;
+		clock-frequency = <12000000>;
+	};
+
+	tcc_timer1: timer1@1E030010 {
+		compatible = "telechips,timer";
+		reg = <0x1E030010 0x10>;
+		id = <1>;
+		width = <16>;
+		interrupts = <GIC_SPI 18 0>;
+		clocks = <&clk_peri PERI_TCT>;
+		clock-frequency = <12000000>;
+		status = "disabled";
+	};
+
+	tcc_timer2: timer2@1E030020 {
+		compatible = "telechips,timer";
+		reg = <0x1E030020 0x10>;
+		id = <2>;
+		width = <16>;
+		interrupts = <GIC_SPI 19 0>;
+		clocks = <&clk_peri PERI_TCT>;
+		clock-frequency = <12000000>;
+		status = "disabled";
+	};
+
+	tcc_timer3: timer3@1E030030 {
+		compatible = "telechips,timer";
+		reg = <0x1E030030 0x10>;
+		id = <3>;
+		width = <16>;
+		interrupts = <GIC_SPI 20 0>;
+		clocks = <&clk_peri PERI_TCT>;
+		clock-frequency = <12000000>;
+		status = "disabled";
+	};
+
+	tcc_timer4: timer4@1E030040 {
+		compatible = "telechips,timer";
+		reg = <0x1E030040 0x10>;
+		id = <4>;
+		width = <20>;
+		interrupts = <GIC_SPI 21 0>;
+		clocks = <&clk_peri PERI_TCT>;
+		clock-frequency = <12000000>;
+		status = "disabled";
+	};
+
+	tcc_timer5: timer5@1E030050 {
+		compatible = "telechips,timer";
+		reg = <0x1E030050 0x10>;
+		id = <5>;
+		width = <20>;
+		interrupts = <GIC_SPI 22 0>;
+		clocks = <&clk_peri PERI_TCT>;
+		clock-frequency = <12000000>;
+		status = "disabled";
+	};
+};

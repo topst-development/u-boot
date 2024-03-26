@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+/ {
+	gmac: gmac@13000000 {
+		compatible = "telechips,gmac","snps,gmac";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		// reg = <0x13000000 0x3000>, /* base address */
+			// <0x13003000 0x0014>; /* cfg address */
+		reg = <0x13000000 0x3000>, <0x13003000 0x0014>;
+		interrupts = <GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>;
+		status = "disabled";
+		index = <1>;
+		clocks = <&clk_peri PERI_GMAC0 &clk_fbus FBUS_GMAC &clk_peri PERI_GMAC1>;
+		clock-names = "gmac-pclk", "stmmaceth", "ptp-pclk";
+		telechips,no_hsio;
+	};
+};

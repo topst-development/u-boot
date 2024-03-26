@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright (C) 2019 Eugeniu Rosca <rosca.eugeniu@gmail.com>
- * Copyright (C) 2020 Telechips Inc.
  *
  * Command to read/modify/write Android BCB fields
  */
 
 #include <android_bootloader_message.h>
+#include <bcb.h>
 #include <command.h>
 #include <common.h>
+#include <log.h>
+#include <part.h>
+#include <malloc.h>
 
 enum bcb_cmd {
 	BCB_CMD_LOAD,
@@ -21,7 +24,7 @@ enum bcb_cmd {
 
 static int bcb_dev = -1;
 static int bcb_part = -1;
-static struct bootloader_message bcb __aligned(4096) = { { 0 } };
+static struct bootloader_message bcb = { { 0 } };
 
 static int bcb_cmd_get(char *cmd)
 {
@@ -109,21 +112,32 @@ static int bcb_field_get(char *name, char **fieldp, int *sizep)
 	return 0;
 }
 
-static int do_bcb_load(cmd_tbl_t *cmdtp, int flag, int argc,
-		       char * const argv[])
+static int __bcb_load(int devnum, const char *partp)
 {
 	struct blk_desc *desc;
-	disk_partition_t info;
+	struct disk_partition info;
 	u64 cnt;
+	char *endp;
 	int part, ret;
 
-	if (argc != 3)
-		return CMD_RET_USAGE;
+	desc = blk_get_devnum_by_type(IF_TYPE_MMC, devnum);
+	if (!desc) {
+		ret = -ENODEV;
+		goto err_read_fail;
+	}
 
-	part = part_get_info_by_dev_and_name_or_num(argv[1], argv[2], &desc,
-						    &info);
-	if (part < 0)
-		return CMD_RET_FAILURE;
+	part = simple_strtoul(partp, &endp, 0);
+	if (*endp == '\0') {
+		ret = part_get_info(desc, part, &info);
+		if (ret)
+			goto err_read_fail;
+	} else {
+		part = part_get_info_by_name(desc, partp, &info);
+		if (part < 0) {
+			ret = part;
+			goto err_read_fail;
+		}
+	}
 
 	cnt = DIV_ROUND_UP(sizeof(struct bootloader_message), info.blksz);
 	if (cnt > info.size)
@@ -140,10 +154,10 @@ static int do_bcb_load(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	return CMD_RET_SUCCESS;
 err_read_fail:
-	printf("Error: %s %s read failed (%d)\n", argv[1], argv[2], ret);
+	printf("Error: mmc %d:%s read failed (%d)\n", devnum, partp, ret);
 	goto err;
 err_too_small:
-	printf("Error: %s %s too small!", argv[1], argv[2]);
+	printf("Error: mmc %d:%s too small!", devnum, partp);
 	goto err;
 err:
 	bcb_dev = -1;
@@ -152,35 +166,60 @@ err:
 	return CMD_RET_FAILURE;
 }
 
-static int do_bcb_set(cmd_tbl_t *cmdtp, int flag, int argc,
-		      char * const argv[])
+static int do_bcb_load(struct cmd_tbl *cmdtp, int flag, int argc,
+		       char * const argv[])
 {
-	int size, len;
-	char *field, *str, *found;
+	char *endp;
+	int devnum = simple_strtoul(argv[1], &endp, 0);
 
-	if (bcb_field_get(argv[1], &field, &size))
-		return CMD_RET_FAILURE;
-
-	len = strlen(argv[2]);
-	if (len >= size) {
-		printf("Error: sizeof('%s') = %d >= %d = sizeof(bcb.%s)\n",
-		       argv[2], len, size, argv[1]);
+	if (*endp != '\0') {
+		printf("Error: Device id '%s' not a number\n", argv[1]);
 		return CMD_RET_FAILURE;
 	}
-	str = argv[2];
 
+	return __bcb_load(devnum, argv[2]);
+}
+
+static int __bcb_set(char *fieldp, const char *valp)
+{
+	int size, len;
+	char *field, *str, *found, *tmp;
+
+	if (bcb_field_get(fieldp, &field, &size))
+		return CMD_RET_FAILURE;
+
+	len = strlen(valp);
+	if (len >= size) {
+		printf("Error: sizeof('%s') = %d >= %d = sizeof(bcb.%s)\n",
+		       valp, len, size, fieldp);
+		return CMD_RET_FAILURE;
+	}
+	str = strdup(valp);
+	if (!str) {
+		printf("Error: Out of memory while strdup\n");
+		return CMD_RET_FAILURE;
+	}
+
+	tmp = str;
 	field[0] = '\0';
-	while ((found = strsep(&str, ":"))) {
+	while ((found = strsep(&tmp, ":"))) {
 		if (field[0] != '\0')
 			strcat(field, "\n");
 		strcat(field, found);
 	}
+	free(str);
 
 	return CMD_RET_SUCCESS;
 }
 
-static int do_bcb_clear(cmd_tbl_t *cmdtp, int flag, int argc,
-			char * const argv[])
+static int do_bcb_set(struct cmd_tbl *cmdtp, int flag, int argc,
+		      char * const argv[])
+{
+	return __bcb_set(argv[1], argv[2]);
+}
+
+static int do_bcb_clear(struct cmd_tbl *cmdtp, int flag, int argc,
+			char *const argv[])
 {
 	int size;
 	char *field;
@@ -198,8 +237,8 @@ static int do_bcb_clear(cmd_tbl_t *cmdtp, int flag, int argc,
 	return CMD_RET_SUCCESS;
 }
 
-static int do_bcb_test(cmd_tbl_t *cmdtp, int flag, int argc,
-		       char * const argv[])
+static int do_bcb_test(struct cmd_tbl *cmdtp, int flag, int argc,
+		       char *const argv[])
 {
 	int size;
 	char *field;
@@ -225,8 +264,8 @@ static int do_bcb_test(cmd_tbl_t *cmdtp, int flag, int argc,
 	return CMD_RET_FAILURE;
 }
 
-static int do_bcb_dump(cmd_tbl_t *cmdtp, int flag, int argc,
-		       char * const argv[])
+static int do_bcb_dump(struct cmd_tbl *cmdtp, int flag, int argc,
+		       char *const argv[])
 {
 	int size;
 	char *field;
@@ -239,19 +278,14 @@ static int do_bcb_dump(cmd_tbl_t *cmdtp, int flag, int argc,
 	return CMD_RET_SUCCESS;
 }
 
-static int do_bcb_store(cmd_tbl_t *cmdtp, int flag, int argc,
-			char * const argv[])
+static int __bcb_store(void)
 {
 	struct blk_desc *desc;
-	disk_partition_t info;
+	struct disk_partition info;
 	u64 cnt;
 	int ret;
 
-#if defined(CONFIG_UFS_BOOT)
-	desc = blk_get_devnum_by_type(IF_TYPE_SCSI, bcb_dev);
-#else
 	desc = blk_get_devnum_by_type(IF_TYPE_MMC, bcb_dev);
-#endif
 	if (!desc) {
 		ret = -ENODEV;
 		goto err;
@@ -270,15 +304,37 @@ static int do_bcb_store(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	return CMD_RET_SUCCESS;
 err:
-#if defined(CONFIG_UFS_BOOT)
-	printf("Error: ufs %d:%d write failed (%d)\n", bcb_dev, bcb_part, ret);
-#else
 	printf("Error: mmc %d:%d write failed (%d)\n", bcb_dev, bcb_part, ret);
-#endif
+
 	return CMD_RET_FAILURE;
 }
 
-static cmd_tbl_t cmd_bcb_sub[] = {
+static int do_bcb_store(struct cmd_tbl *cmdtp, int flag, int argc,
+			char * const argv[])
+{
+	return __bcb_store();
+}
+
+int bcb_write_reboot_reason(int devnum, char *partp, const char *reasonp)
+{
+	int ret;
+
+	ret = __bcb_load(devnum, partp);
+	if (ret != CMD_RET_SUCCESS)
+		return ret;
+
+	ret = __bcb_set("command", reasonp);
+	if (ret != CMD_RET_SUCCESS)
+		return ret;
+
+	ret = __bcb_store();
+	if (ret != CMD_RET_SUCCESS)
+		return ret;
+
+	return 0;
+}
+
+static struct cmd_tbl cmd_bcb_sub[] = {
 	U_BOOT_CMD_MKENT(load, CONFIG_SYS_MAXARGS, 1, do_bcb_load, "", ""),
 	U_BOOT_CMD_MKENT(set, CONFIG_SYS_MAXARGS, 1, do_bcb_set, "", ""),
 	U_BOOT_CMD_MKENT(clear, CONFIG_SYS_MAXARGS, 1, do_bcb_clear, "", ""),
@@ -287,9 +343,9 @@ static cmd_tbl_t cmd_bcb_sub[] = {
 	U_BOOT_CMD_MKENT(store, CONFIG_SYS_MAXARGS, 1, do_bcb_store, "", ""),
 };
 
-static int do_bcb(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+static int do_bcb(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
-	cmd_tbl_t *c;
+	struct cmd_tbl *c;
 
 	if (argc < 2)
 		return CMD_RET_USAGE;
@@ -313,31 +369,24 @@ static int do_bcb(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	return c->cmd(cmdtp, flag, argc, argv);
 }
 
-U_BOOT_CMD(bcb, CONFIG_SYS_MAXARGS, 1, do_bcb,
-	   "Load/set/clear/test/dump/store Android BCB fields",
-	   "load <interface> <dev[:part|#part_name]\n"
-	   "    - load BCB from the partition 'part' on device type 'interface'\n"
-	   "      instance 'dev'.\n"
-	   "bcb set <field> <val>\n"
-	   "    - set BCB <field> to <val>\n"
-	   "bcb clear [<field>]\n"
-	   "    - clear BCB <field> or all fields\n"
-	   "bcb test  <field> <op> <val>\n"
-	   "    - test  BCB <field> against <val>\n"
-	   "bcb dump  <field>\n"
-	   "    - dump  BCB <field>\n"
-	   "bcb store\n"
-	   "    - store BCB back\n"
-	   "\n"
-	   "Legend:\n"
-	   "<interface> - device type\n"
-	   "<dev>       - device index containing the BCB partition\n"
-	   "<part>      - partition index or name containing the BCB\n"
-	   "<field>     - one of {command,status,recovery,stage,reserved}\n"
-	   "<op>        - the binary operator used in 'bcb test':\n"
-	   "              '=' returns true if <val> matches the string stored in <field>\n"
-	   "              '~' returns true if <val> matches a subset of <field>'s string\n"
-	   "<val>       - string/text provided as input to bcb {set,test}\n"
-	   "              NOTE: any ':' character in <val> will be replaced by line feed\n"
-	   "              during 'bcb set' and used as separator by upper layers\n"
+U_BOOT_CMD(
+	bcb, CONFIG_SYS_MAXARGS, 1, do_bcb,
+	"Load/set/clear/test/dump/store Android BCB fields",
+	"load  <dev> <part>       - load  BCB from mmc <dev>:<part>\n"
+	"bcb set   <field> <val>      - set   BCB <field> to <val>\n"
+	"bcb clear [<field>]          - clear BCB <field> or all fields\n"
+	"bcb test  <field> <op> <val> - test  BCB <field> against <val>\n"
+	"bcb dump  <field>            - dump  BCB <field>\n"
+	"bcb store                    - store BCB back to mmc\n"
+	"\n"
+	"Legend:\n"
+	"<dev>   - MMC device index containing the BCB partition\n"
+	"<part>  - MMC partition index or name containing the BCB\n"
+	"<field> - one of {command,status,recovery,stage,reserved}\n"
+	"<op>    - the binary operator used in 'bcb test':\n"
+	"          '=' returns true if <val> matches the string stored in <field>\n"
+	"          '~' returns true if <val> matches a subset of <field>'s string\n"
+	"<val>   - string/text provided as input to bcb {set,test}\n"
+	"          NOTE: any ':' character in <val> will be replaced by line feed\n"
+	"          during 'bcb set' and used as separator by upper layers\n"
 );
