@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcc807x-clks.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+	gmac: gmac@11C00000 {
+		compatible = "telechips,gmac","snps,gmac";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		//reg = <0x0 0x11C00000 0x0 0x3000>, /* base address */
+		//	<0x0 0x11DA0068 0x0 0x0008>; /* cfg address */
+		reg = <0x11C00000 0x3000>, <0x11DA0068 0x0008>;
+		interrupts = <GIC_SPI 176 IRQ_TYPE_LEVEL_HIGH>;
+		status = "disabled";
+		index = <1>;
+		//clocks = <&clk_peri PERI_GMAC0 &clk_fbus FBUS_GMAC &clk_peri PERI_GMAC1>;
+		clocks = <&clk_peri PERI_GMAC &clk_fbus FBUS_HSIO &clk_peri PERI_GMAC_PTP>;
+		clock-names = "gmac-pclk", "stmmaceth", "ptp-pclk";
+		//telechips,no_hsio;
+	};
+};

@@ -1,0 +1,157 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	pinctrl: pinctrl@4b300000 {
+		compatible = "telechips,pinctrl";
+		reg = <0x0 0x4b300000 0x0 0x3000>,
+			<0x0 0x4b310000 0x0 0xA30>; /* gpio, pmgpio(not used) */
+		gpio-controller;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		#gpio-cells = <3>;
+		interrupts = <GIC_SPI 443 0>,
+			     <GIC_SPI 444 0>,
+			     <GIC_SPI 445 0>,
+			     <GIC_SPI 446 0>,
+			     <GIC_SPI 447 0>,
+			     <GIC_SPI 448 0>,
+			     <GIC_SPI 449 0>,
+			     <GIC_SPI 450 0>,
+			     <GIC_SPI 451 0>,
+			     <GIC_SPI 452 0>,
+			     <GIC_SPI 453 0>,
+			     <GIC_SPI 454 0>,
+			     <GIC_SPI 455 0>,
+			     <GIC_SPI 456 0>,
+			     <GIC_SPI 457 0>,
+			     <GIC_SPI 458 0>,
+			     <GIC_SPI 459 0>,
+			     <GIC_SPI 460 0>,
+			     <GIC_SPI 461 0>,
+			     <GIC_SPI 462 0>,
+			     <GIC_SPI 463 0>,
+			     <GIC_SPI 464 0>,
+			     <GIC_SPI 465 0>,
+			     <GIC_SPI 466 0>,
+			     <GIC_SPI 467 0>,
+			     <GIC_SPI 468 0>,
+			     <GIC_SPI 469 0>,
+			     <GIC_SPI 470 0>,
+			     <GIC_SPI 471 0>,
+			     <GIC_SPI 472 0>,
+			     <GIC_SPI 473 0>,
+			     <GIC_SPI 474 0>;
+		u-boot,dm-pre-reloc;
+	};
+
+	gpa: gpa- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x0 0x0 21>;
+	};
+
+	gpb: gpb- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x54 0x0 21>;
+	};
+
+	gpc: gpc- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0xa8 0x0 21>;
+	};
+
+	gpd: gpd- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0xfc 0x0 21>;
+	};
+
+	gpe: gpe- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x150 0x0 16>;
+	};
+
+	gpf: gpf- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x1a4 0x0 16>;
+	};
+
+	gpg: gpg- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x1f8 0x0 16>;
+	};
+
+	gph: gph- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x24c 0x0 16>;
+	};
+
+	gpi: gpi- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x2a0 0x0 16>;
+	};
+
+	gpj: gpj- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x2f4 0x0 16>;
+	};
+
+	gpk: gpk- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x348 0x0 14>;
+	};
+
+	gpl: gpl- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x39c 0x0 18>;
+	};
+
+	gpsf0: gpsf0- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x3f0 0x0 12>;
+	};
+
+	gpsf1: gpsf1- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x444 0x0 12>;
+	};
+
+	gpsd: gpsd- {
+		compatible = "telechips,tcn100x-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x0 0x498 0x0 12>;
+	};
+};

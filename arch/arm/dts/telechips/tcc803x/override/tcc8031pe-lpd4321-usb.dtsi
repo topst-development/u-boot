@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) Telechips Inc.
+ */
+
+&ehci {
+	use_expander;
+	gpios = <&gpext1 1 0>;
+};
+
+&ehci_mux {
+	gpios = <&gpext1 0 0>;
+	use_expander;
+};
+
+&dwc_otg {
+	use_expander;
+	gpios = <&gpext1 0 0>;
+};
+
+&dwc3 {
+	use_expander;
+	gpios = <&gpext1 2 0>;
+};

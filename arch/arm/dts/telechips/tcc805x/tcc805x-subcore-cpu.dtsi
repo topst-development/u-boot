@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+/ {
+	cpus: cpus {
+		compatible = "cpu_bus";
+		u-boot,dm-pre-reloc;
+
+		cpu4: cpu@4 {
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+		};
+	};
+
+	gic: interrupt-controller@17C01000 {
+		compatible = "arm,gic-400", "telechips,tcc805x-vpic";
+		#interrupt-cells = <3>;
+		#address-cells = <0>;
+		interrupt-controller;
+		reg = <0x17C01000 0x1000>,
+		      <0x17C02000 0x1000>,
+		      <0x17C04000 0x2000>,
+		      <0x17C06000 0x2000>,
+		      <0x141000E0 0x18>,
+		      <0x14600100 0x24>;
+	};
+};

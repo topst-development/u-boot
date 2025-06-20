@@ -1,0 +1,7 @@
+config DISPLAY_PORT_V14
+	bool "Enable DisplayPort V1.4support"
+	default y
+	depends on TELECHIPS_FB_DM && (TCC805X || TCC807X)
+	help
+	   DisplayPort is a standard widely used in laptops to drive LCD panels.
+	   This property provides DP V1.4 support where it's supported by the video hardware.

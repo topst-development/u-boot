@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2024 Telechips Inc.
+ */
+#include <dt-bindings/display/telechips-common-fb_dm_display.h>
+
+/* 1. Defination for DSI configuration */
+#define DSI0_PANEL_INDEX 1 /* 0: BOE PANEL, 1: AUO PANEL */
+
+#define DSI1_PANEL_INDEX 1 /* 0: BOE PANEL, 1: AUO PANEL */
+

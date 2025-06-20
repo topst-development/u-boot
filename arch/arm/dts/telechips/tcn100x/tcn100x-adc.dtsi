@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcn100x-clks.h>
+
+/ {
+	aliases: aliases {
+		adc = &adc;
+	};
+
+	adc: adc@4A400000 {
+		compatible = "telechips,tcn100x-adc";
+		reg = <0x0 0x4A400000 0x0 0xB0>;
+		clocks = <&clk_io IO_ADC>;
+		status = "disabled";
+	};
+};

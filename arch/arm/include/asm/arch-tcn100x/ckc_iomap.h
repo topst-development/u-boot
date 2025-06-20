@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) Telechips Inc.
+ */
+
+#ifndef CKC_IOMAP_H
+#define CKC_IOMAP_H
+
+/* Part 2. CPU */
+#define TCC_CA65_CCU_BASE	0x40000000UL
+#define TCC_CA65_CMU_BASE	0x40010000UL
+#define TCC_CA65_CFG_BASE	0x40020000UL
+#define TCC_CPU_CFG_BASE	0x40E00000UL
+
+/* Part 4. MEMORY */
+#define	TCC_MEM_PHY0_PLL_BASE	0x45040000UL
+#define	TCC_MEM_PHY1_PLL_BASE	0x45050000UL
+#define TCC_MEM_CFG_BASE	0x45E00000UL
+
+/* Part 7. HSIO */
+#define TCC_HSIO_CFG_BASE	0x48E00000UL
+
+/* Part 8. PCIe */
+#define TCC_PEIe_CFG_BASE	0x49E00000UL
+
+/* Part 9. IO */
+#define TCC_IO_CFG_BASE		0x4AE00000UL
+
+/* Part 10. SMU */
+#define TCC_SMU_CCU_BASE	0x4B100000UL
+#define TCC_SMU_CMU_BASE	0x4B110000UL
+#define TCC_SMU_CFG_BASE	0x4BBE0000UL
+
+#endif

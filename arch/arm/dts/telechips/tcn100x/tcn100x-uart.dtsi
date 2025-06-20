@@ -1,0 +1,53 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcn100x-clks.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+	uart0: serial@4a100000 {
+		compatible = "telechips,telechips-pl011", "arm,pl011", "arm,primecell";
+		reg = <0x0 0x4a100000 0x0 0x1000>,
+			<0x0 0x4b30082c 0x0 0x4>;
+		interrupts = <GIC_SPI 396 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&peri_smu PERI_IO_UART0>, <&clk_io IO_UART0>;
+		clock = <24000000>;
+		status = "disabled";
+		u-boot,dm-pre-reloc;
+	};
+
+	uart1: serial@4a110000 {
+		compatible = "telechips,telechips-pl011", "arm,pl011", "arm,primecell";
+		reg = <0x0 0x4a110000 0x0 0x1000>,
+			<0x0 0x4b30082c 0x0 0x4>;
+		interrupts = <GIC_SPI 397 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&peri_smu PERI_IO_UART1>, <&clk_io IO_UART1>;
+		clock = <24000000>;
+		status = "disabled";
+		u-boot,dm-pre-reloc;
+	};
+
+	uart2: serial@4a120000 {
+		compatible = "telechips,telechips-pl011", "arm,pl011", "arm,primecell";
+		reg = <0x0 0x4a120000 0x0 0x1000>,
+			<0x0 0x4b30082c 0x0 0x4>;
+		interrupts = <GIC_SPI 398 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&peri_smu PERI_IO_UART2>, <&clk_io IO_UART2>;
+		clock = <24000000>;
+		status = "disabled";
+		u-boot,dm-pre-reloc;
+	};
+
+	uart3: serial@4a130000 {
+		compatible = "telechips,telechips-pl011", "arm,pl011", "arm,primecell";
+		reg = <0x0 0x4a130000 0x0 0x1000>,
+			<0x0 0x4b30082c 0x0 0x4>;
+		interrupts = <GIC_SPI 399 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&peri_smu PERI_IO_UART3>, <&clk_io IO_UART3>;
+		clock = <24000000>;
+		status = "disabled";
+		u-boot,dm-pre-reloc;
+	};
+};

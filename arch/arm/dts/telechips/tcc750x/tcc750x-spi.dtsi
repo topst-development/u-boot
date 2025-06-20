@@ -1,0 +1,56 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcc750x-clks.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+	aliases: aliases {
+		spi0 = &gpsb0;
+		spi1 = &gpsb1;
+		spi2 = &gpsb2;
+		spi3 = &gpsb3;
+	};
+
+	gpsb0: gpsb0@18200000 {
+		compatible = "telechips,tcc750x-spi";
+		reg = <0x18200000 0x38>, /* base address */
+		      <0x18260000 0x18>, /* Port Configuration register */
+		      <0x18270000 0x1C>; /* GPSB_IOMON */
+		interrupts = <GIC_SPI 25 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_peri PERI_GPSB0 &clk_fbus FBUS_GPSB>;
+		status = "disabled";
+	};
+
+	gpsb1: gpsb1@18210000 {
+		compatible = "telechips,tcc750x-spi";
+		reg = <0x18210000 0x38>, /* base address */
+		      <0x18260000 0x18>, /* Port Configuration register */
+		      <0x18270000 0x1C>; /* GPSB_IOMON */
+		interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_peri PERI_GPSB1 &clk_fbus FBUS_GPSB>;
+		status = "disabled";
+	};
+
+	gpsb2: gpsb2@18220000 {
+		compatible = "telechips,tcc750x-spi";
+		reg = <0x18220000 0x38>, /* base address */
+		      <0x18260000 0x18>, /* Port Configuration register */
+		      <0x18270000 0x1C>; /* GPSB_IOMON */
+		interrupts = <GIC_SPI 29 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_peri PERI_GPSB2 &clk_fbus FBUS_GPSB>;
+		status = "disabled";
+	};
+
+	gpsb3: gpsb3@18230000 {
+		compatible = "telechips,tcc750x-spi";
+		reg = <0x18230000 0x38>, /* base address */
+		      <0x18260000 0x18>, /* Port Configuration register */
+		      <0x18270000 0x1C>; /* GPSB_IOMON */
+		interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&clk_peri PERI_GPSB3 &clk_fbus FBUS_GPSB>;
+		status = "disabled";
+	};
+};

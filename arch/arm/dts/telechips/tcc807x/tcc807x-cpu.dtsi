@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+	cpus: cpus {
+		compatible = "cpu_bus";
+		u-boot,dm-pre-reloc;
+
+		cpu0: cpu@0 {
+			compatible = "arm,cortex-a55";
+			device_type = "cpu";
+		};
+	};
+
+	gic: interrupt-controller@17600000 {
+		compatible = "arm,gic-600", "telechips,tcc807x-vpic";
+		#interrupt-cells = <3>;
+		interrupt-controller;
+		reg = <0x17600000 0x10000>, /* GICD */
+		      <0x17680000 0x20000>, /* GICR */
+		      <0x0 0x0>,
+		      <0x0 0x0>,
+		      <0x14600100 0x58>;
+		interrupt = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+	};
+};

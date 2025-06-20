@@ -1,0 +1,129 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcc750x-clks.h>
+
+/ {
+	clocks {
+		compatible = "telechips,ckc";
+		u-boot,dm-pre-reloc;
+
+		osc24m: oscillator {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <24000000>;
+		};
+
+		clk_pll: pll_clk {
+			compatible = "telechips,clk-pll";
+			#clock-cells = <1>;
+			clocks = <&osc24m>;
+			clock-indices = <PLL_0>, <PLL_1>, <PLL_2>, <PLL_3>,
+					<PLL_4>;
+			clock-output-names = "pll0", "pll1", "pll2", "pll3",
+					     "pll4";
+		};
+
+		mem_pll: mem_pll {
+			compatible = "telechips,clk-mempll";
+			#clock-cells = <1>;
+			clocks = <&osc24m>;
+			clock-indices = <PLL_MEM_PHY_0>, <PLL_MEM_PHY_1>;
+			clock-output-names = "pll-mem-phy0", "pll-mem-phy1";
+		};
+
+		cpu_pll: cpu_pll {
+			compatible = "telechips,clk-cpupll";
+			#clock-cells = <1>;
+			clocks = <&osc24m>;
+			clock-indices = <PLL_CA53>;
+			clock-output-names = "pll-ca53";
+		};
+
+		cam_pll: cam_pll {
+			compatible = "telechips,clk-campll";
+			#clock-cells = <1>;
+			clocks = <&osc24m>;
+			clock-indices = <PLL_CAM>;
+			clock-output-names = "pll-cam";
+		};
+
+		npu_pll: npu_pll {
+			compatible = "telechips,clk-npupll";
+			#clock-cells = <1>;
+			clocks = <&osc24m>;
+			clock-indices = <PLL_NPU_0>, <PLL_NPU_1>;
+			clock-output-names = "pll-npu0", "pll-npu1";
+		};
+
+		clk_fbus: clk@1E000000 {
+			compatible = "telechips,clk-fbus";
+			#clock-cells = <1>;
+			clock-indices =
+				<FBUS_CPUBUS>, <FBUS_OIC>, <FBUS_OMC_ACLK>, <FBUS_PCIe>,
+				<FBUS_CAM>, <FBUS_DDI>, <FBUS_GMAC>, <FBUS_OIC_CR>,
+				<FBUS_IMEM>, <FBUS_HSM>, <FBUS_CBC>, <FBUS_DMA>,
+				<FBUS_SFMC>, <FBUS_SDMMC>, <FBUS_CAN>, <FBUS_UART>,
+				<FBUS_GPSB>, <FBUS_I2C>, <FBUS_SYS>, <FBUS_PMU>,
+				<FBUS_MEMCFG>, <FBUS_OTP>, <FBUS_TZCFG>, <FBUS_OMC_PCLK>,
+				<FBUS_SIL>, <FBUS_LIDAR_PROC>, <FBUS_LIDAR_CTRL>,
+				<FBUS_OIC_PCDV>, <FBUS_OIC_SAFE_DAP>, <FBUS_OIC_NPU0>,
+				<FBUS_OIC_NPU1>;
+			clock-output-names =
+				"fbus_cpub", "fbus_oic", "fbus_omc_aclk", "fbus_pcie",
+				"fbus_camb", "fbus_ddib", "fbus_gmac", "fbus_oic_cr",
+				"fbus_imem", "fbus_hsm", "fbus_cbc", "fbus_dma",
+				"fbus_sfmc", "fbus_sdmmc", "fbus_can", "fbus_uart",
+				"fbus_gpsb", "fbus_i2c", "fbus_sys", "fbus_pmu",
+				"fbus_memcfg", "fbus_otp", "fbus_tzcfg", "fbus_omc_pclk",
+				"fbus_sil", "fbus_sil", "fbus_lidar_proc", "fbus_lidar_ctrl",
+				"fbus_oic_pcdv", "fbus_oic_safe_dap", "fbus_oic_npu0",
+				"fbus_oic_npu1";
+		};
+
+		clk_peri: clk@1E000400 {
+			compatible = "telechips,clk-peri";
+			#clock-cells = <1>;
+			clock-indices =
+				<PERI_CPU_WDT_TIMER>, <PERI_TCX>, <PERI_TCT>, <PERI_TCZ>,
+				<PERI_PCIe>, <PERI_GMAC0>, <PERI_GMAC1>, <PERI_SFMC>,
+				<PERI_SDMMC>, <PERI_CAN0>, <PERI_CAN1>, <PERI_UART0>,
+				<PERI_UART1>, <PERI_UART2>, <PERI_GPSB0>, <PERI_GPSB1>,
+				<PERI_GPSB2>, <PERI_GPSB3>, <PERI_GPSB4>, <PERI_I2C0>,
+				<PERI_I2C1>, <PERI_I2C2>, <PERI_DISP_TIMER>, <PERI_DISP>,
+				<PERI_DISP_TVM>, <PERI_OUT0>, <PERI_OUT1>, <PERI_OUT2>,
+				<PERI_OUT3>, <PERI_OUT4>, <PERI_OUT5>, <PERI_OUT6>,
+				<PERI_OUT7>, <PERI_HSMB>, <PERI_SPAD>, <PERI_VCSEL>;
+			clock-output-names =
+				"peri_cpu_wdt_timer", "peri_tcx", "peri_tct", "peri_tcz",
+				"peri_pcie", "peri_gmac0", "peri_gmac1", "peri_sfmc",
+				"peri_sdmmc", "peri_can0", "peri_can1", "peri_uart0",
+				"peri_uart1", "peri_uart2", "peri_gpsb0", "peri_gpsb1",
+				"peri_gpsb2", "peri_gpsb3", "peri_gpsb4", "peri_i2c0",
+				"peri_i2c1", "peri_i2c2", "peri_disp_timer", "peri_disp",
+				"peri_disp_tvm", "peri_out0", "peri_out1", "peri_out2",
+				"peri_out3", "peri_out4", "peri_out5", "peri_out6",
+				"peri_out7", "peri_hsmb", "peri_spad", "peri_vcsel";
+		};
+
+		clk_ddi: clk@12380000 {
+			compatible = "telechips,clk-ddibus";
+			#clock-cells = <1>;
+			clocks = <&clk_fbus FBUS_DDI>;
+			clock-indices = <DDIBUS_VIOC>;
+			clock-output-names = "ddibus_vioc";
+		};
+
+		clk_cam: clk@16000000 {
+			compatible = "telechips,clk-camsub";
+			#clock-cells = <1>;
+			clocks = <&cam_pll PLL_CAM>;
+			clock-indices =
+				<FBUS_CAM_AXI>, <FBUS_CAM_PIX>, <FBUS_CAM_APB>, <FBUS_CAM_PERI>;
+			clock-output-names =
+				"cambus_axi", "cambus_pix", "cambus_apb", "cambus_peri";
+		};
+	};
+};

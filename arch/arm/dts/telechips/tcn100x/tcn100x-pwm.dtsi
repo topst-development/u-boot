@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcn100x-clks.h>
+
+/ {
+	pwm0: pwm_a {
+		compatible = "telechips,pwm";
+		reg = <0x0 0x4A500000 0x0 0x94>,
+			<0x0 0x4AE00010 0x0 0x4>,
+			<0x0 0x4B30083C 0x0 0x4>;
+		tcc,pwm-number = <1>;
+		#pwm-cells = <2>;
+		clocks = <&peri_smu PERI_IO_PDM &clk_io IO_PDM>;
+		pwm-num = <0>;
+		gfb-port = <255>;
+		status = "disabled";
+	};
+	pwm1: pwm_b {
+		compatible = "telechips,pwm";
+		reg = <0x0 0x4A500000 0x0 0x94>,
+			<0x0 0x4AE00010 0x0 0x4>,
+			<0x0 0x4B300840 0x0 0x4>;
+		tcc,pwm-number = <1>;
+		#pwm-cells = <2>;
+		clocks = <&peri_smu PERI_IO_PDM &clk_io IO_PDM>;
+		pwm-num = <1>;
+		gfb-port = <255>;
+		status = "disabled";
+	};
+	pwm2: pwm_c {
+		compatible = "telechips,pwm";
+		reg = <0x0 0x4A500000 0x0 0x94>,
+			<0x0 0x4AE00010 0x0 0x4>,
+			<0x0 0x4B300844 0x0 0x4>;
+		tcc,pwm-number = <1>;
+		#pwm-cells = <2>;
+		clocks = <&peri_smu PERI_IO_PDM &clk_io IO_PDM>;
+		pwm-num = <2>;
+		gfb-port = <255>;
+		status = "disabled";
+	};
+	pwm3: pwm_d {
+		compatible = "telechips,pwm";
+		reg = <0x0 0x4A500000 0x0 0x94>,
+			<0x0 0x4AE00010 0x0 0x4>,
+			<0x0 0x4B300848 0x0 0x4>;
+		tcc,pwm-number = <1>;
+		#pwm-cells = <2>;
+		clocks = <&peri_smu PERI_IO_PDM &clk_io IO_PDM>;
+		pwm-num = <3>;
+		gfb-port = <255>;
+		status = "disabled";
+	};
+};

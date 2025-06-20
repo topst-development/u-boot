@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) Telechips Inc.
+
+config SPLASH_LOGO_SUPPORT
+        bool "Telechips splash-image support "
+        default y
+        help
+                If this option is set Y, It can use the function to output
+                the splash logo image stored in the storage to the display
+                device.
+
+config SPLASH_PARTITION_NAME
+	string "The name of splash partition name"
+        depends on SPLASH_LOGO_SUPPORT
+	default "subcore_splash" if USE_SUBCORE
+	default "splash" if !USE_SUBCORE
+	help
+		Specify the 'splash' partition name. The name of the splash partition
+		is 'subcore_splash' in TCC805x subcore bootloader. For main-core, it
+		should be 'splash' instead.
+
+### end of file

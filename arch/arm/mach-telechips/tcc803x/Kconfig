@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) 2023 Telechips Inc.
+
+if TCC803X
+
+config SYS_SOC
+	default "tcc803x"
+
+config SYS_CONFIG_NAME
+	default "tcc803x"
+
+config SYS_BOARD
+	default "tcc803x_evb"
+
+config USE_CORE_RESET
+	bool "TCC803x Core Reset feature"
+	default n
+
+config BOOT_SUBCORE_BY_MAINCORE
+	bool "Boot subcore kernel by maincore"
+	default n
+
+config INIT_SUBCORE_SERIAL_BY_MAINCORE
+	bool "Init subcore serial by maincore"
+	depends on BOOT_SUBCORE_BY_MAINCORE
+	default y
+
+source "board/telechips/tcc803x_evb/Kconfig"
+
+endif

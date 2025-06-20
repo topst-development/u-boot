@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) Telechips Inc.
+
+#
+# IRQ subsystem configuration
+#
+
+menu "IRQ support"
+	depends on USE_IRQ
+
+config DM_IRQ
+	bool "Enable Driver Model for IRQ driver"
+	depends on DM
+	help
+	  Enable driver mdoel for IRQ.
+
+choice
+	prompt "ARM Generic Interrupt Conroller"
+	default ARM_GICV3 if TCC807X
+
+config ARM_GIC
+	bool "ARM GICv2 interrupt controller"
+	depends on ARM && DM_IRQ
+	help
+	  Add support for ARM GICv2 interrupt controller.
+
+config ARM_GICV3
+	bool "ARM GICv3 interrupt controller"
+	depends on ARM && DM_IRQ
+	help
+	  Add support for ARM GICv3 interrupt controller.
+
+endchoice
+
+endmenu

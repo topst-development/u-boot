@@ -1,0 +1,109 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+&gmac {
+	status = "okay";
+	compatible = "snps,dwmac-4.10a","telechips,gmac";
+	//phyrst-gpio = <&gpb 27 0>;
+	phy-interface = "rgmii";
+	interrupt-names = "macirq";
+	phy-mode = "rgmii";
+	snps,txpbl = <8>;
+	snps,rxpbl = <2>;
+	txclk_delay = <31>;
+	rxclk_delay = <0>;
+	pinctrl-names = "rgmii";
+	pinctrl-0 = <&gmac1_mdc &gmac1_mdio
+		&gmac1_txclk &gmac1_txen &gmac1_txd0 &gmac1_txd1 &gmac1_txd2 &gmac1_txd3
+		&gmac1_rxclk &gmac1_rxdv &gmac1_rxd0 &gmac1_rxd1 &gmac1_rxd2 &gmac1_rxd3>;
+};
+
+&pinctrl {
+	gmac1_txclk: gmac1_txclk {
+		telechips,pins = "gpb-0";
+		telechips,pin-function = <1>;
+		telechips,drive-strength = <3>;
+		telechips,input-enable;
+	};
+
+	gmac1_mdc: gmac1_mdc {
+		telechips,pins = "gpb-1";
+		telechips,pin-function = <1>;
+		telechips,drive-strength = <3>;
+	};
+
+	gmac1_mdio: gmac1_mdio {
+		telechips,pins = "gpb-2";
+		telechips,pin-function = <1>;
+		telechips,drive-strength = <3>;
+		telechips,input-enable;
+	};
+
+	gmac1_rxd0: gmac1_rxd0 {
+		telechips,pins = "gpb-3";
+		telechips,pin-function = <1>;
+		telechips,input-enable;
+	};
+
+	gmac1_rxd1: gmac1_rxd1 {
+		telechips,pins = "gpb-4";
+		telechips,pin-function = <1>;
+		telechips,input-enable;
+	};
+
+	gmac1_txd0: gmac1_txd0 {
+		telechips,pins = "gpb-5";
+		telechips,pin-function = <1>;
+		telechips,drive-strength = <3>;
+	};
+
+	gmac1_txd1: gmac1_txd1 {
+		telechips,pins = "gpb-6";
+		telechips,pin-function = <1>;
+		telechips,drive-strength = <3>;
+	};
+
+	gmac1_txen: gmac1_txen {
+		telechips,pins = "gpb-7";
+		telechips,pin-function = <1>;
+		telechips,drive-strength = <3>;
+	};
+
+	gmac1_rxdv: gmac1_rxdv {
+		telechips,pins = "gpb-8";
+		telechips,pin-function = <1>;
+		telechips,input-enable;
+	};
+
+	gmac1_rxd2: gmac1_rxd2 {
+		telechips,pins = "gpb-9";
+		telechips,pin-function = <1>;
+		telechips,input-enable;
+	};
+
+	gmac1_rxd3: gmac1_rxd3 {
+		telechips,pins = "gpb-10";
+		telechips,pin-function = <1>;
+		telechips,input-enable;
+	};
+
+	gmac1_txd2: gmac1_txd2 {
+		telechips,pins = "gpb-11";
+		telechips,pin-function = <1>;
+		telechips,drive-strength = <3>;
+	};
+
+	gmac1_txd3: gmac1_txd3 {
+		telechips,pins = "gpb-12";
+		telechips,pin-function = <1>;
+		telechips,drive-strength = <3>;
+	};
+
+	gmac1_rxclk: gmac1_rxclk {
+		telechips,pins = "gpb-13";
+		telechips,pin-function = <1>;
+		telechips,input-enable;
+	};
+};

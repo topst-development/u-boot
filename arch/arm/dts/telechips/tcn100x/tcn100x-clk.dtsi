@@ -1,0 +1,177 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcn100x-clks.h>
+
+/ {
+	clocks {
+		compatible = "telechips,ckc";
+		u-boot,dm-pre-reloc;
+
+		osc24m: osc24m {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <24000000>;
+		};
+
+		osc32k: osc32k {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <24000000>;
+		};
+
+		pll_smu: pll_smu {
+			compatible = "telechips,clk-pll";
+			#clock-cells = <1>;
+			clocks = <&osc24m>;
+			clock-indices = <PLL_0>, <PLL_1>, <PLL_2>, <PLL_3>;
+			clock-output-names = "pll0", "pll1", "pll2", "pll3";
+		};
+
+		pll_mem: pll_mem {
+			compatible = "telechips,clk-mempll";
+			#clock-cells = <1>;
+			clocks = <&osc24m>;
+			clock-indices = <PLL_MEM_PHY_0>, <PLL_MEM_PHY_1>;
+			clock-output-names = "pll-mem-phy0", "pll-mem-phy1";
+		};
+
+		pll_cpu: pll_cpu {
+			compatible = "telechips,clk-cpupll";
+			#clock-cells = <1>;
+			clocks = <&osc24m>;
+			clock-indices = <PLL_CA65_0>, <PLL_CA65_1>, <PLL_CA65_2>, <PLL_CA65_3>;
+			clock-output-names = "pll_ca65_0", "pll_ca65_1", "pll_ca65_2", "pll_ca65_3";
+		};
+
+		fbus_smu: fbus_smu {
+			compatible = "telechips,clk-fbus";
+			#clock-cells = <1>;
+			clock-indices =
+				<FBUS_SMU>, <FBUS_CPU>, <FBUS_MEM>, <FBUS_HSIO>,
+				<FBUS_EPP>, <FBUS_NET>, <FBUS_IO>, <FBUS_HSM>,
+				<FBUS_PCIe>, <PERI_SDMMC>;
+			clock-output-names =
+				"fbus_smu", "fbus_cpu", "fbus_mem", "fbus_hsio",
+				"fbus_epp", "fbus_net", "fbus_io", "fbus_hsm",
+				"fbus_pcie", "peri_sdmmc";
+		};
+
+		peri_smu: peri_smu {
+			compatible = "telechips,clk-peri";
+			#clock-cells = <1>;
+			clock-indices =
+				<PERI_SM_TCX0>, <PERI_SM_TCT0>, <PERI_SM_TCZ0>,
+				<PERI_SM_TCX1>, <PERI_SM_TCT1>, <PERI_SM_TCZ1>,
+				<PERI_SM_GTC>,
+				<PERI_HSIO_GMAC0_PCLK>, <PERI_HSIO_GMAC0_TS>,
+				<PERI_HSIO_GMAC1_PCLK>, <PERI_HSIO_GMAC1_TS>,
+				<PERI_IO_GPSB0>, <PERI_IO_GPSB1>, <PERI_IO_GPSB2>,
+				<PERI_IO_GPSB3>, <PERI_IO_GPSB4>, <PERI_IO_GPSB5>,
+				<PERI_IO_I2C0>, <PERI_IO_I2C1>, <PERI_IO_I2C2>,
+				<PERI_IO_I2C3>, <PERI_IO_I2C4>,
+				<PERI_IO_UART0>, <PERI_IO_UART1>,
+				<PERI_IO_UART2>, <PERI_IO_UART3>,
+				<PERI_IO_CAN0>, <PERI_IO_CAN1>,
+				<PERI_IO_CAN2>, <PERI_IO_CAN3>,
+				<PERI_IO_ADC>, <PERI_IO_PDM>,
+				<PERI_IO_ICTC0>, <PERI_IO_ICTC1>, <PERI_IO_ICTC2>,
+				<PERI_NET_GMAC0_PCLK>, <PERI_NET_GMAC1_PCLK>,
+				<PERI_NET_TS>, <PERI_NET_LPA>,
+				<PERI_MEM_SFMC0>, <PERI_MEM_SFMC1>,
+				<PERI_MEM_SFMC0_1600>, <PERI_MEM_SFMC1_1600>,
+				<PERI_PCIe_PHY_CR>, <PERI_HSM>,
+				<PERI_OUT0>, <PERI_OUT1>, <PERI_OUT2>, <PERI_OUT3>,
+				<PERI_OUT4>, <PERI_OUT5>, <PERI_OUT6>, <PERI_OUT7>,
+				<PERI_OUT8>, <PERI_OUT9>, <PERI_OUT10>, <PERI_OUT11>,
+				<PERI_OUT12>, <PERI_OUT13>, <PERI_OUT14>, <PERI_OUT15>;
+			clock-output-names =
+				"peri_sm_tcx0", "peri_sm_tct0", "peri_sm_tcz0",
+				"peri_sm_tcx1", "peri_sm_tct1", "peri_sm_tcz1",
+				"peri_sm_gtc",
+				"peri_hsio_gmac0_pclk", "peri_hsio_gmac0_ts",
+				"peri_hsio_gmac1_pclk", "peri_hsio_gmac1_ts",
+				"peri_io_gpsb0", "peri_io_gpsb1", "peri_io_gpsb2",
+				"peri_io_gpsb3", "peri_io_gpsb4", "peri_io_gpsb5",
+				"peri_io_i2c0", "peri_io_i2c1", "peri_io_i2c2",
+				"peri_io_i2c3", "peri_io_i2c4",
+				"peri_io_uart0", "peri_io_uart1",
+				"peri_io_uart2", "peri_io_uart3",
+				"peri_io_can0", "peri_io_can1",
+				"peri_io_can2", "peri_io_can3",
+				"peri_io_adc", "peri_io_pdm",
+				"peri_io_ictc0", "peri_io_ictc1", "peri_io_ictc2",
+				"peri_net_gmac0_pclk", "peri_net_gmac1_pclk",
+				"peri_net_ts", "peri_net_lpa",
+				"peri_mem_sfmc0", "peri_mem_sfmc1",
+				"peri_mem_sfmc0_1600", "peri_mem_sfmc1_1600",
+				"peri_pcie_phy_cr", "peri_hsm",
+				"peri_out0", "peri_out1", "peri_out2", "peri_out3",
+				"peri_out4", "peri_out5", "peri_out6", "peri_out7",
+				"peri_out8", "peri_out9", "peri_out10", "peri_out11",
+				"peri_out12", "peri_out13", "peri_out14", "peri_out15";
+
+		};
+
+		clk_smu: gate_smu {
+			compatible = "telechips,clk-gate";
+			#clock-cells = <1>;
+			clocks = <&fbus_smu FBUS_SMU>;
+			clock-indices = <SMU_GPIO>, <SMU_TRNG>, <SMU_TIMER0>, <SMU_TIMER1>, <SMU_GTC>;
+			clock-output-names = "smu_gpio", "smu_trng", "smu_timer0", "smu_timer1", "smu_gtc";
+		};
+
+		clk_hsio: gate_hsio {
+			compatible = "telechips,clk-gate";
+			#clock-cells = <1>;
+			clocks = <&fbus_smu FBUS_HSIO>;
+			clock-indices = <HSIO_EMMC_CORE>, <HSIO_EMMC_IOMUX>, <HSIO_USB>,
+					<HSIO_GMAC0>, <HSIO_GMAC1>;
+			clock-output-names =
+					"hsio_emmc_core", "hsio_emmc_iomux", "hsio_usb",
+					"hsio_gmac0", "hsio_gmac1";
+		};
+
+		clk_pcie: gate_pcie {
+			compatible = "telechips,clk-gate";
+			#clock-cells = <1>;
+			clocks = <&fbus_smu FBUS_PCIe>;
+			clock-indices = <PCIe_BUS>, <PCIe_MMU>, <PCIe_MMU_CFG>, <PCIe_MMU_CTRL_STS>;
+			clock-output-names = "pcie_bus", "pcie_mmu", "pcie_mmu_cfg", "pcie_mmu_ctrl_sts";
+		};
+
+		clk_io: gate_io {
+			compatible = "telechips,clk-gate";
+			#clock-cells = <1>;
+			clocks = <&fbus_smu FBUS_IO>;
+			clock-indices =
+				<IO_CAN>, <IO_CAN0>, <IO_CAN1>,
+				<IO_CAN2>, <IO_CAN3>, <IO_CAN_CFG>,
+				<IO_GPSB>, <IO_GPSB0>, <IO_GPSB1>,
+				<IO_GPSB2>, <IO_GPSB3>, <IO_GPSB4>,
+				<IO_GPSB5>, <IO_GPSB_SAFE>, <IO_GPSB_CFG>,
+				<IO_ADC>, <IO_PDM>,
+				<IO_ICTC>, <IO_ICTC0>, <IO_ICTC1>, <IO_ICTC2>,
+				<IO_UART>, <IO_UART0>, <IO_UART1>, <IO_UART2>,
+				<IO_UART3>, <IO_UART_DMA0>, <IO_UART_DMA1>, <IO_UART_DMA2>,
+				<IO_UART_DMA3>, <IO_UART_CFG>,
+				<IO_I2C>, <IO_I2C0>, <IO_I2C1>, <IO_I2C2>, <IO_I2C3>,
+				<IO_I2C4>, <IO_I2C_CFG>;
+			clock-output-names =
+				"io_can", "io_can0", "io_can1",
+				"io_can2", "io_can3", "io_can_cfg",
+				"io_gpsb", "io_gpsb0", "io_gpsb1",
+				"io_gpsb2", "io_gpsb3", "io_gpsb4",
+				"io_gpsb5", "io_gpsb_safe", "io_gpsb_cfg",
+				"io_adc", "io_pdm",
+				"io_ictc", "io_ictc0", "io_ictc1", "io_ictc2",
+				"io_uart", "io_uart0", "io_uart1", "io_uart2",
+				"io_uart3", "io_uart_dma0", "io_uart_dma1", "io_uart_dma2",
+				"io_uart_dma3", "io_uart_cfg",
+				"io_i2c", "io_i2c0", "io_i2c1", "io_i2c2", "io_i2c3",
+				"io_i2c4", "io_i2c_cfg";
+		};
+	};
+};

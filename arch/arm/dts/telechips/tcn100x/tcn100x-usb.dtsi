@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) Telechips Inc.
+ */
+
+/ {
+	usb20drd_phy_dev: usb20drd_phy_dev@481F0100 {
+		compatible = "telechips,tcn100x-dwc2-phy";
+		reg = <0x0 0x481F0100 0x0 0x6c>;
+		#phy-cells = <0>;
+		status = "okay";
+	};
+
+	usb20drd_controller: usb_dwc2@48100000 {
+		compatible = "telechips,dwc2";
+		reg = <0x0 0x48100000 0x0 0xCFFF>;
+		phys = <&usb20drd_phy_dev>;
+		phy-names = "usb2-phy";
+		dr_mode = "peripheral";
+		g-np-tx-fifo-size = <16>;
+		g-rx-fifo-size = <275>;
+		g-tx-fifo-size = <256 128 128 64 64 32>;
+		g-use-dma;
+		status = "okay";
+	};
+};

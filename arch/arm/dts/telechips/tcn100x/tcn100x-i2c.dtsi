@@ -1,0 +1,81 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcn100x-clks.h>
+
+/ {
+	aliases: aliases {
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		i2c2 = &i2c2;
+		i2c3 = &i2c3;
+		i2c4 = &i2c4;
+	};
+
+	i2c0: i2c@4A300000 {
+		compatible = "telechips,tcn100x-i2c";
+		reg = <0x0 0x4A300000 0x0 0x28>,
+		      <0x0 0x4B300818 0x0 0x14>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clocks = <&peri_smu PERI_IO_I2C0 &clk_io IO_I2C0
+			  &fbus_smu FBUS_IO>;
+		clock-frequency = <400000>;
+		port-mux = <0xFF>;	/* default value */
+		status = "disabled";
+	};
+
+	i2c1: i2c@4A310000 {
+		compatible = "telechips,tcn100x-i2c";
+		reg = <0x0 0x4A310000 0x0 0x28>,
+		      <0x0 0x4B300818 0x0 0x14>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clocks = <&peri_smu PERI_IO_I2C1 &clk_io IO_I2C1
+			  &fbus_smu FBUS_IO>;
+		clock-frequency = <400000>;
+		port-mux = <0xFF>;	/* default value */
+		status = "disabled";
+	};
+
+	i2c2: i2c@4A320000 {
+		compatible = "telechips,tcn100x-i2c";
+		reg = <0x0 0x4A320000 0x0 0x28>,
+		      <0x0 0x4B300818 0x0 0x14>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clocks = <&peri_smu PERI_IO_I2C2 &clk_io IO_I2C2
+			  &fbus_smu FBUS_IO>;
+		clock-frequency = <400000>;
+		port-mux = <0xFF>;	/* default value */
+		status = "disabled";
+	};
+
+	i2c3: i2c@4A330000 {
+		compatible = "telechips,tcn100x-i2c";
+		reg = <0x0 0x4A330000 0x0 0x28>,
+		      <0x0 0x4B300818 0x0 0x14>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clocks = <&peri_smu PERI_IO_I2C3 &clk_io IO_I2C3
+			  &fbus_smu FBUS_IO>;
+		clock-frequency = <400000>;
+		port-mux = <0xFF>;	/* default value */
+		status = "disabled";
+	};
+
+	i2c4: i2c@4A340000 {
+		compatible = "telechips,tcn100x-i2c";
+		reg = <0x0 0x4A340000 0x0 0x28>,
+		      <0x0 0x4B300818 0x0 0x14>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clocks = <&peri_smu PERI_IO_I2C4 &clk_io IO_I2C4
+			  &fbus_smu FBUS_IO>;
+		clock-frequency = <400000>;
+		port-mux = <0xFF>;	/* default value */
+		status = "disabled";
+	};
+};

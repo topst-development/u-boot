@@ -1,0 +1,90 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) Telechips Inc.
+ */
+
+#ifndef CKC_OFFSET_H
+#define CKC_OFFSET_H
+
+/*
+ * CKC Register Offsets
+ */
+/* Part 2. CPU */
+#define CPU_CCU_CLKCTRL		0x000UL
+#define CPU_CCU_PCLKCTRL	0x010UL
+#define CPU_CCU_PLLPMS		0x014UL
+#define CPU_CCU_PLLCON		0x018UL
+#define CPU_CCU_PLLMON		0x01CUL
+#define CPU_CCU_CLKDIV		0x020UL
+
+#define CPU_CMU_CTRL		0x000UL
+#define CPU_CMU_LIMIT		0x004UL
+#define CPU_CMU_FAULT_EN	0x120UL
+#define CPU_CMU_FAULT_STS	0x124UL
+#define CPU_CMU_STOP_STS	0x130UL
+#define CPU_CMU_WR_PW		0x13CUL
+#define CPU_CMU_SF_CHK_EN	0x1D0UL
+#define CPU_CMU_SF_CHK_STS	0x1E0UL
+#define CPU_CMU_SF_CTRL_CFG	0x1F0UL
+#define CPU_CMU_MON_CNT		0x200UL
+
+
+#define CA65_CLKMASK		0x000UL
+#define CA65_SWRESET		0x008UL
+#define CA65_RSTDIS		0x010UL
+
+#define CPU_CLKMASK		0x000UL
+#define CPU_SWRESET		0x004UL
+#define CPU_RSTDIS		0x008UL
+
+
+/* Part 3. Memory */
+#define MEM_PHY_PLLPMS		0x000UL
+
+#define MEM_CFG_CLKMASK		0x000UL
+#define MEM_CFG_SWRESET		0x008UL
+
+
+/* Part 7. HSIO */
+#define HSIO_CFG_CLKMASK	0x000UL
+#define HSIO_CFG_SWRESET	0x004UL
+
+
+/* Part 8. PCIe */
+#define PCIe_CFG_CLKMASK	0x000UL
+#define PCIe_CFG_SWRESET	0x004UL
+
+
+/* Part 9. IO */
+#define IO_CFG_CLKMASK		0x000UL
+#define IO_CFG_SWRESET		0x008UL
+
+
+/* Part 10. SMU */
+#define SMU_CCU_CLKCTRL		0x000UL
+#define SMU_CCU_PLLPMS		0x088UL
+#define SMU_CCU_PLLCON		0x108UL
+#define SMU_CCU_PLLMON		0x188UL
+#define SMU_CCU_CLKDIVC0	0x200UL
+#define SMU_CCU_CLKDIVC1	0x204UL
+#define SMU_CCU_WR_PW		0x280UL
+#define SMU_CCU_WR_PW_LOCK	0x284UL
+#define SMU_CCU_PCLKCTRL	0x300UL
+
+#define SMU_CMU_CTRL		0x000UL
+#define SMU_CMU_LIMIT		0x004UL
+#define SMU_CMU_FAULT_EN	0x2A8UL
+#define SMU_CMU_FAULT_STS	0x2ACUL
+#define SMU_CMU_TIMEOUT_STS	0x2B8UL
+#define SMU_CMU_CLKSTOP_STS	0x2C4UL
+#define SMU_CMU_PCLK_MON_EN	0x2D0UL
+#define SMU_CMU_CFG_WR_PW	0x2D4UL
+#define SMU_CMU_SF_CHK_EN	0x2D8UL
+#define SMU_CMU_SF_CHK_STS	0x2F0UL
+#define SMU_CMU_SF_CTRL_CFG	0x308UL
+#define SMU_CMU_MON_CNT		0x30CUL
+
+#define SMU_CFG_CLKMASK		0x000UL
+#define SMU_CFG_SWRESET		0x004UL
+
+#endif

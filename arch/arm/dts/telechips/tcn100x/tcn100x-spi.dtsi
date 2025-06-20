@@ -1,0 +1,67 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/clock/telechips,tcn100x-clks.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+	aliases: aliases {
+		spi0 = &gpsb0;
+		spi1 = &gpsb1;
+		spi2 = &gpsb2;
+		spi3 = &gpsb3;
+		spi4 = &gpsb4;
+		spi5 = &gpsb5;
+	};
+
+	gpsb0: gpsb0@4A000000 {
+		compatible = "telechips,tcn100x-spi";
+		reg = <0x0 0x4A000000 0x0 0x40>, /* base address */
+		      <0x0 0x4B300800 0x0 0x18>; /* port address */
+		clocks = <&peri_smu PERI_IO_GPSB0 &clk_io IO_GPSB0>;
+		status = "disabled";
+	};
+
+	gpsb1: gpsb1@4A010000 {
+		compatible = "telechips,tcn100x-spi";
+		reg = <0x0 0x4A010000 0x0 0x40>, /* base address */
+		      <0x0 0x4B300800 0x0 0x18>; /* port address */
+		clocks = <&peri_smu PERI_IO_GPSB1 &clk_io IO_GPSB1>;
+		status = "disabled";
+
+	};
+
+	gpsb2: gpsb2@4A020000 {
+		compatible = "telechips,tcn100x-spi";
+		reg = <0x0 0x4A020000 0x0 0x40>, /* base address */
+		      <0x0 0x4B300800 0x0 0x18>; /* port address */
+		clocks = <&peri_smu PERI_IO_GPSB2 &clk_io IO_GPSB2>;
+		status = "disabled";
+	};
+
+	gpsb3: gpsb3@4A030000 {
+		compatible = "telechips,tcn100x-spi";
+		reg = <0x0 0x4A030000 0x0 0x40>, /* base address */
+		      <0x0 0x4B300800 0x0 0x18>; /* port address */
+		clocks = <&peri_smu PERI_IO_GPSB3 &clk_io IO_GPSB3>;
+		status = "disabled";
+	};
+
+	gpsb4: gpsb4@4A040000 {
+		compatible = "telechips,tcn100x-spi";
+		reg = <0x0 0x4A040000 0x0 0x40>, /* base address */
+		      <0x0 0x4B300800 0x0 0x18>; /* port address */
+		clocks = <&peri_smu PERI_IO_GPSB4 &clk_io IO_GPSB4>;
+		status = "disabled";
+	};
+
+	gpsb5: gpsb5@4A050000 {
+		compatible = "telechips,tcn100x-spi";
+		reg = <0x0 0x4A050000 0x0 0x40>, /* base address */
+		      <0x0 0x4B300800 0x0 0x18>; /* port address */
+		clocks = <&peri_smu PERI_IO_GPSB5 &clk_io IO_GPSB5>;
+		status = "disabled";
+	};
+};
