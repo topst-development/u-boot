@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+#include <dt-bindings/display/telechips-common-fb_dm_display.h>
+
+/* 1. Defination for Displayport configuration */
+
+#define DPCFG_PANEL_MODE PANEL_MODE_OFF
+
+/* Defination for Displayport Video Identification Code */
+#define DPCFG_DP0_VIC CUSTOM_CEA861_1080P
+#define DPCFG_DP1_VIC CUSTOM_CEA861_1080P
+#define DPCFG_DP2_VIC CUSTOM_CEA861_1080P
+#define DPCFG_DP3_VIC CUSTOM_CEA861_1080P
+
+/* Defination for Displayport VCP ID */
+#define DPCFG_DP0_VCP VCP_ID_1
+#define DPCFG_DP1_VCP VCP_ID_2
+#define DPCFG_DP2_VCP VCP_ID_3
+#define DPCFG_DP3_VCP VCP_ID_4
+
+/* Defination for Displayport MISC */
+#define DPCFG_ENCODING PIXEL_ENCODING_RGB
+#define DPCFG_MAX_LANE PHY_LINK_LANE_4
+#define DPCFG_RATE PHY_LINK_RATE_HBR3
+
+#define DPCFG_DP0_VIDEO_FORMAT VIDEO_FORMAT_CEA_861
+#define DPCFG_DP1_VIDEO_FORMAT VIDEO_FORMAT_CEA_861
+#define DPCFG_DP2_VIDEO_FORMAT VIDEO_FORMAT_CEA_861
+#define DPCFG_DP3_VIDEO_FORMAT VIDEO_FORMAT_CEA_861
+
+/* 2. Defination for LVDS configuration */
+#define DUAL_LVDS_PANEL_INDEX LVDS_PANEL_AUO /* 0: BOE PANEL, 1: AUO PANEL */
+
+#if (DUAL_LVDS_PANEL_INDEX == LVDS_PANEL_AUO)
+#define DUAL_LVDS_PANEL &fb_auoc123han06  /* 0: BOE PANEL, 1: AUO PANEL */
+#define DUAL_LVDS_PANEL_IN &auoc123_in
+#else
+#define DUAL_LVDS_PANEL &fb_tm123xdhp90
+#define DUAL_LVDS_PANEL_IN &tm123_in
+#endif
+
+/* 3. Defination for Secure configuration */
+#define CFG_SDM_BYPASS SDM_BYPASS_ENABLE
+#define CFG_TRVC_BYPASS TRVC_BYPASS_ENABLE

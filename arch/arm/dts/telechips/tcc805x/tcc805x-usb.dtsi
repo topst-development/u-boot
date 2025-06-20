@@ -1,0 +1,100 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) Telechips Inc.
+ */
+
+/ {
+	ehci_phy: ehci_phy@11DA0010 {
+		compatible = "telechips,tcc_ehci_phy";
+		reg = <0x11DA0010 0x30>;
+		#phy-cells = <0>;
+		//support-bc12;
+		//support-line-state;
+		status = "okay";
+	};
+
+	ehci: ehci@11A00000 {
+		compatible = "telechips,tcc-ehci";
+		reg = <0x11A00000 0x108>;
+		phys = <&ehci_phy>;
+		pinctrl-names = "vbus_on", "vbus_off";
+		status = "okay";
+	};
+
+	ohci: ohci@11A80000 {
+		compatible = "telechips,tcc-ohci";
+		reg = <0x11A80000 0x60>;
+		status = "okay";
+	};
+
+	mhst_phy: mux_host_phy@11DA00DC {
+		compatible = "telechips,tcc_ehci_phy";
+		reg = <0x11DA00DC 0x20>;
+		#phy-cells = <0>;
+		mux-port;
+		//support-bc12;
+		//support-line-state;
+		status = "okay";
+	};
+
+	ehci_mux: ehci_mux@11900000 {
+		compatible = "telechips,tcc-ehci";
+		reg = <0x11900000 0x108>;
+		phys = <&mhst_phy>;
+		pinctrl-names = "vbus_on", "vbus_off";
+		status = "okay";
+	};
+
+	ohci_mux: ohci_mux@11940000 {
+		compatible = "telechips,tcc-ohci";
+		reg = <0x11940000 0x60>;
+		status = "okay";
+	};
+
+	dwc_otg_phy: dwc_otg_phy@11DA0100 {
+		compatible = "telechips,tcc_dwc_otg_phy";
+		reg = <0x11DA0100 0x30>;
+		#phy-cells = <0>;
+		status = "okay";
+	};
+
+	dwc_otg: dwc_otg@11980000 {
+		compatible = "telechips,dwc2";
+		reg = <0x11980000 0xcfff>;
+		phys = <&dwc_otg_phy>;
+		phy-names = "usb2-phy";
+		dr_mode = "peripheral";
+		g-np-tx-fifo-size = <16>;
+		g-rx-fifo-size = <275>;
+		g-tx-fifo-size = <256 128 128 64 64 32>;
+		g-use-dma;
+		pinctrl-names = "vbus_on", "vbus_off";
+		status = "okay";
+	};
+
+	dwc3_phy: dwc3_phy@11D90000 {
+		compatible = "telechips,tcc_dwc3_phy";
+		reg = <0x11D90000 0xB8>;
+		#phy-cells = <0>;
+		//support-bc12;
+		//support-line-state;
+		status = "okay";
+	};
+
+	dwc3_platform: dwc3_platform {
+		compatible = "telechips,tcc-dwc3";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		status = "okay";
+		ranges;
+
+		dwc3: dwc3 {
+			compatible = "snps,dwc3";
+			reg = <0x11B00000 0xCFFF>;
+			phys = <&dwc3_phy>;
+			dr_mode = "host";
+			maximum-speed = "super-speed";
+			pinctrl-names = "vbus_on", "vbus_off";
+		};
+	};
+};

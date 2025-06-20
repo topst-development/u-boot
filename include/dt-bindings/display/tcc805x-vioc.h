@@ -1,0 +1,1 @@
+../../../arch/arm/include/asm/arch-tcc805x/vioc/vioc_global.h

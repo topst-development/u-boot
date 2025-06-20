@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) Telechips Inc.
+ */
+
+&ehci {
+	pinctrl-0 = <&usb20_vbus_pwr_ctrl_on_sv10>;
+	pinctrl-1 = <&usb20_vbus_pwr_ctrl_off_sv10>;
+};
+
+&ehci_mux {
+	pinctrl-0 = <&usb20_mux_vbus_pwr_ctrl_on_sv10>;
+	pinctrl-1 = <&usb20_mux_vbus_pwr_ctrl_off_sv10>;
+};
+
+&dwc_otg {
+	pinctrl-0 = <&usb20_mux_vbus_pwr_ctrl_on_sv10>;
+	pinctrl-1 = <&usb20_mux_vbus_pwr_ctrl_off_sv10>;
+};
+
+&dwc3 {
+	pinctrl-0 = <&usb30_vbus_pwr_ctrl_on_sv10>;
+	pinctrl-1 = <&usb30_vbus_pwr_ctrl_off_sv10>;
+};
+
+&pinctrl {
+	usb20_vbus_pwr_ctrl_on_sv10: usb20_vbus_pwr_ctrl_on_sv10 {
+		telechips,pins = "gpmd-15";
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+
+	usb20_vbus_pwr_ctrl_off_sv10: usb20_vbus_pwr_ctrl_off_sv10 {
+		telechips,pins = "gpmd-15";
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+
+	usb20_mux_vbus_pwr_ctrl_on_sv10: usb20_mux_vbus_pwr_ctrl_on_sv10 {
+		telechips,pins = "gpmd-14";
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+
+	usb20_mux_vbus_pwr_ctrl_off_sv10: usb20_mux_vbus_pwr_ctrl_off_sv10 {
+		telechips,pins = "gpmd-14";
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+
+	usb30_vbus_pwr_ctrl_on_sv10: usb30_vbus_pwr_ctrl_on_sv10 {
+		telechips,pins = "gpmd-16";
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+
+	usb30_vbus_pwr_ctrl_off_sv10: usb30_vbus_pwr_ctrl_off_sv10 {
+		telechips,pins = "gpmd-16";
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+};

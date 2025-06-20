@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) 2023 Telechips Inc.
+
+if TCC805X
+
+config POWERVR_VZ
+	bool "PowerVR 9XTP Virtualization Support"
+	default n
+	
+endif

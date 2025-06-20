@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+#include <dt-bindings/display/telechips-common-fb_dm_display.h>
+
+/* 2. Defination for LVDS configuration */
+#define DUAL_LVDS_PANEL_INDEX LVDS_PANEL_AUO /* 0: BOE PANEL, 1: AUO PANEL */
+
+#if (DUAL_LVDS_PANEL_INDEX == LVDS_PANEL_AUO)
+#define DUAL_LVDS_PANEL &fb_auoc123han06  /* 0: BOE PANEL, 1: AUO PANEL */
+#define DUAL_LVDS_PANEL_IN &auoc123_in
+#else
+#define DUAL_LVDS_PANEL &fb_tm123xdhp90
+#define DUAL_LVDS_PANEL_IN &tm123_in
+#endif

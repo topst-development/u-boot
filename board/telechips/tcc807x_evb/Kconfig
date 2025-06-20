@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) 2023 Telechips Inc.
+
+if TCC807X
+
+config MALI_VZ
+        bool "ARM MALI-G78AE Virtualization Support"
+        default n
+
+endif

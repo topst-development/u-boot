@@ -1,0 +1,129 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#define DP_HPD_GPIO "gpc-14"
+#include "topst-d3-g-disp-target-config.dtsi"
+#include "tcc805x-disp.dtsi"
+/*==============================================================================
+ * TCC805x DISPLAY PATH
+ * ---------------------------
+ * FB0 : fb0<fb0_display_out> -> <fb_dpv14_input_0>fb_dpv14_0
+ *	 RDMA0 - WMIX0 - DISP0 -> MUX3 -> DP0 (MAIN)
+ * FB1 : fb1<fb1_display_out> -> <fb_dpv14_input_1>fb_dpv14_1
+ *	 RDMA4 - WMIX1 - DISP1 -> MUX0 -> DP1
+ * FB2 : fb2<fb2_display_out> -> <fb_dpv14_input_2>fb_dpv14_2
+ *	 RDMA8 - WMIX2 - DISP2 -> MUX2 -> DP2
+ * FB3 : fb3<fb3_display_out> -> <fb_dpv14_input_3>fb_dpv14_3
+ *	 RDMA13 - WMIX3 - DISP3 -> MUX1 -> DP3
+==============================================================================*/
+
+/* FB0 */
+&tcc_fb_dm0 {
+	status = "okay";
+	fb-buf-id = <0>;
+	fb-buf-addr = <0x2A000000>;
+};
+
+/* FB0: fb0_display_out -> DP0: fb_dpv14_input_0 */
+&fb0_out {
+	fb0_display_out: endpoint {
+		remote-endpoint = <&fb_dpv14_input_0>;
+	};
+};
+
+/* FB1 */
+&tcc_fb_dm1 {
+	status = "okay";
+	fb-buf-id = <1>;
+	fb-buf-addr = <0x2A800000>;
+};
+
+/* FB1: fb1_display_out -> DP1: fb_dpv14_input_1 */
+&fb1_out {
+	fb1_display_out: endpoint {
+		remote-endpoint = <&fb_dpv14_input_1>;
+	};
+};
+
+/* FB2 */
+&tcc_fb_dm2 {
+	status = "okay";
+	fb-buf-id = <2>;
+	fb-buf-addr = <0x2B000000>;
+};
+
+/* FB2: fb2_display_out -> DP2: fb_dpv14_input_2 */
+&fb2_out {
+	fb2_display_out: endpoint {
+		remote-endpoint = <&fb_dpv14_input_2>;
+	};
+};
+
+/* FB3 */
+&tcc_fb_dm3 {
+	status = "okay";
+	fb-buf-id = <3>;
+	fb-buf-addr = <0x2B800000>;
+};
+
+/* FB3: fb3_display_out -> DP3: fb_dpv14_input_3 */
+&fb3_out {
+	fb3_display_out: endpoint {
+		remote-endpoint = <&fb_dpv14_input_3>;
+	};
+};
+
+/* DP0 */
+&fb_dpv14_0 {
+	status = "okay";
+	pinctrl-0 = <&dp_hpd_gpio>;
+};
+
+/* FB0: fb0_display_out -> DP0: fb_dpv14_input_0 */
+&dp14_in0 {
+	fb_dpv14_input_0: endpoint@0 {
+		reg = <0>;
+		remote-endpoint = <&fb0_display_out>;
+	};
+};
+
+/* DP1 */
+&fb_dpv14_1 {
+	status = "okay";
+};
+
+/* FB1: fb1_display_out -> DP1: fb_dpv14_input_1 */
+&dp14_in1 {
+	fb_dpv14_input_1: endpoint@0 {
+		reg = <0>;
+		remote-endpoint = <&fb1_display_out>;
+	};
+};
+
+/* DP2 */
+&fb_dpv14_2 {
+	status = "okay";
+};
+
+/* FB2: fb2_display_out -> DP2: fb_dpv14_input_2 */
+&dp14_in2 {
+	fb_dpv14_input_2: endpoint@0 {
+		reg = <0>;
+		remote-endpoint = <&fb2_display_out>;
+	};
+};
+
+/* DP3 */
+&fb_dpv14_3 {
+	status = "okay";
+};
+
+/* FB3: fb3_display_out -> DP3: fb_dpv14_input_3 */
+&dp14_in3 {
+	fb_dpv14_input_3: endpoint@0 {
+		reg = <0>;
+		remote-endpoint = <&fb3_display_out>;
+	};
+};

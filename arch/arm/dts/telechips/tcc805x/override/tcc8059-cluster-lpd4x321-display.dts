@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+#include <dt-bindings/display/tcc8059-lpd4x321-panel.h>
+#include "tcc805x-subcore-disp-target-config.dtsi"
+#include "tcc805x-disp.dtsi"
+/*==============================================================================
+ * TCC805x DISPLAY PATH
+ * ---------------------------
+ * FB0 : fb0<fb0_display_out> -> <fb_lvds_dual_input_0>fb_tm123xdhp90
+ *	 RDMA0 - WMIX0 - DISP0 -> MUX2 -> LVDS (dual-ldi)
+==============================================================================*/
+
+/* FB0: CLUSTER */
+&tcc_fb_dm0 {
+	status = "okay";
+};
+
+/* FB0: fb0_display_out -> LVDS: fb_lvds_dual_input_0 */
+&fb0_out {
+	fb0_display_out: endpoint {
+		remote-endpoint = <&fb_lvds_dual_input_0>;
+	};
+};
+
+/* LVDS (dual ldi) */
+DUAL_LVDS_PANEL {
+	status = "okay";
+	#if defined(LCD_PORT1_PWR) && defined(LCD_PORT1_RST) && \
+		defined(LCD_PORT1_BLK)
+	pinctrl-0 = <&lcd_port_default1>;
+	pinctrl-1 = <&lcd_port_power_on1>;
+	pinctrl-2 = <&lcd_port_reset_off1>;
+	pinctrl-3 = <&lcd_port_blk_on1>;
+	pinctrl-4 = <&lcd_port_blk_off1>;
+	pinctrl-5 = <&lcd_port_reset_on1 &lcd_port_power_off1>;
+	#endif
+};
+
+/* FB0: fb0_display_out -> LVDS: fb_lvds_dual_input_0 */
+DUAL_LVDS_PANEL_IN {
+	fb_lvds_dual_input_0: endpoint@0 {
+		reg = <0>;
+		remote-endpoint = <&fb0_display_out>;
+	};
+};

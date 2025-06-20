@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright (C) 2023 Telechips Inc.
+ */
+
+&sf_pcie_phy0 {
+	status = "okay";
+};
+
+&pcie0 {
+	pinctrl-0 = <&pcie_rst_on_sv01>;
+	pinctrl-1 = <&pcie_rst_off_sv01>;
+	status = "okay";
+};
+
+&pinctrl {
+	pcie_rst_on_sv01: pcie_rst_on_sv01 {
+		telechips,pins = "gpb-25";
+		telechips,pin-function = <0>;
+		telechips,output-high;
+	};
+
+	pcie_rst_off_sv01: pcie_rst_off_sv01 {
+		telechips,pins = "gpb-25";
+		telechips,pin-function = <0>;
+		telechips,output-low;
+	};
+};
